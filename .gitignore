@@ -1,0 +1,50 @@
+# Environment files (never commit credentials)
+.env
+.env.dev
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+dist-ssr/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TinyMCE (copied by postinstall)
+admin/public/tinymce/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# PHP
+*.phar
+composer-setup.php
+
+# Backups
+api/backups/
+
+# Test artifacts
+api/cgi-bin/
