@@ -71,6 +71,9 @@ class AuthController
                     'error' => 'Invalid credentials'
                 ], 401);
             }
+
+            // Cast id to int - PDO returns all columns as strings by default
+            $user['id'] = (int) $user['id'];
             
             // Check if account is locked
             if ($this->userRepo->isAccountLocked($user['id'])) {

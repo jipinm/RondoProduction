@@ -25,7 +25,7 @@ RewriteRule ^ index.html [L]
     # Referrer policy
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     # Content Security Policy
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.rondosportstickets.com https://api.xs2event.com; frame-src 'none';"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.rondosportstickets.com https://api.xs2event.com https://api.frankfurter.dev; frame-src 'none';"
     # Remove server signature
     Header unset Server
     Header unset X-Powered-By
