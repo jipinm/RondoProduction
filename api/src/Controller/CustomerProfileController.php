@@ -10,6 +10,7 @@ use XS2EventProxy\Repository\CustomerRepository;
 use XS2EventProxy\Service\CustomerJWTService;
 use XS2EventProxy\Service\CustomerValidationService;
 use XS2EventProxy\Exception\CustomerException;
+use XS2EventProxy\Service\EmailService;
 use Psr\Log\LoggerInterface;
 use Slim\Psr7\Response;
 
@@ -19,17 +20,20 @@ class CustomerProfileController
     private CustomerJWTService $jwtService;
     private CustomerValidationService $validator;
     private LoggerInterface $logger;
+    private EmailService $emailService;
 
     public function __construct(
         CustomerRepository $customerRepository,
         CustomerJWTService $jwtService,
         CustomerValidationService $validator,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        EmailService $emailService
     ) {
         $this->customerRepository = $customerRepository;
         $this->jwtService = $jwtService;
         $this->validator = $validator;
         $this->logger = $logger;
+        $this->emailService = $emailService;
     }
 
     /**
@@ -109,8 +113,7 @@ class CustomerProfileController
                 $updateData['email_verified'] = false;
                 $updateData['email_verification_token'] = bin2hex(random_bytes(32));
                 
-                // TODO: Send verification email for new email address
-                // $this->emailService->sendEmailChangeVerification($customer, $sanitizedData['email']);
+                $this->emailService->sendEmailChangeVerification($customer, $sanitizedData['email']);
             }
 
             if (empty($updateData)) {

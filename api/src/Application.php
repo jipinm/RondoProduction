@@ -642,7 +642,8 @@ class Application
             $customerRepository,
             $customerJWTService,
             $customerValidationService,
-            $this->logger
+            $this->logger,
+            $this->emailService
         );
 
         $this->app->group('/api/v1/customers/auth', function (\Slim\Routing\RouteCollectorProxy $group) use ($customerAuthController) {
@@ -731,7 +732,8 @@ class Application
             $customerRepository,
             $customerJWTService,
             $customerValidationService,
-            $this->logger
+            $this->logger,
+            $this->emailService
         );
         $customerBookingController = new CustomerBookingController(
             $customerRepository,

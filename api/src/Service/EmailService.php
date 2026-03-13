@@ -4,22 +4,16 @@ declare(strict_types=1);
 
 namespace XS2EventProxy\Service;
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+use SendGrid\Mail\Mail;
 use Psr\Log\LoggerInterface;
 
 class EmailService
 {
     private LoggerInterface $logger;
-    private string $smtpHost;
-    private int $smtpPort;
-    private string $smtpUsername;
-    private string $smtpPassword;
-    private bool $smtpSecure;
+    private string $sendGridApiKey;
     private string $fromEmail;
     private string $fromName;
-    private bool $debugMode;
+    private string $frontendUrl;
 
     public function __construct(LoggerInterface $logger)
     {
@@ -29,101 +23,210 @@ class EmailService
 
     private function loadConfiguration(): void
     {
-        // Load email configuration from environment variables
-        $this->smtpHost = $_ENV['SMTP_HOST'] ?? 'localhost';
-        $this->smtpPort = (int)($_ENV['SMTP_PORT'] ?? 587);
-        $this->smtpUsername = $_ENV['SMTP_USERNAME'] ?? '';
-        $this->smtpPassword = $_ENV['SMTP_PASSWORD'] ?? '';
-        $this->smtpSecure = ($_ENV['SMTP_SECURE'] ?? 'tls') === 'tls';
-        $this->fromEmail = $_ENV['MAIL_FROM_EMAIL'] ?? 'noreply@rondosport.com';
-        $this->fromName = $_ENV['MAIL_FROM_NAME'] ?? 'Rondo Sport';
-        $this->debugMode = ($_ENV['APP_DEBUG'] ?? 'false') === 'true';
+        $this->sendGridApiKey = $_ENV['SENDGRID_API_KEY'] ?? '';
+        $this->fromEmail      = $_ENV['MAIL_FROM_EMAIL']  ?? 'noreply@rondosportstickets.com';
+        $this->fromName       = $_ENV['MAIL_FROM_NAME']   ?? 'Rondo Sport';
+        $this->frontendUrl    = rtrim($_ENV['FRONTEND_URL'] ?? 'https://rondosportstickets.com', '/');
     }
 
-    /**
-     * Send booking confirmation email
-     */
-    public function sendBookingConfirmation(array $bookingData): bool
+    private function dispatch(Mail $mail): bool
     {
-        // Check if PHPMailer is available
-        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-            $this->logger->error('PHPMailer is not installed or available', [
-                'booking_id' => $bookingData['booking_id'] ?? 'unknown',
-                'message' => 'Please install PHPMailer using: composer install'
-            ]);
+        if (empty($this->sendGridApiKey)) {
+            $this->logger->error('SendGrid API key is not configured');
             return false;
         }
 
         try {
-            $mail = $this->createMailer();
-            
-            // Recipients
-            $customerFullName = trim(($bookingData['customer_first_name'] ?? '') . ' ' . ($bookingData['customer_last_name'] ?? ''));
-            $mail->addAddress($bookingData['customer_email'], $customerFullName ?: 'Valued Customer');
-            
-            // Content
-            $mail->isHTML(true);
-            $mail->Subject = 'Booking Confirmation - ' . $bookingData['booking_reference'];
-            
-            $mail->Body = $this->generateBookingConfirmationHTML($bookingData);
-            $mail->AltBody = $this->generateBookingConfirmationText($bookingData);
+            $sendGrid = new SendGrid($this->sendGridApiKey);
+            $response = $sendGrid->send($mail);
 
-            if ($mail->send()) {
-                $this->logger->info('Booking confirmation email sent successfully', [
-                    'booking_id' => $bookingData['booking_id'],
-                    'booking_reference' => $bookingData['booking_reference'],
-                    'customer_email' => $bookingData['customer_email']
-                ]);
+            if ($response->statusCode() === 202) {
                 return true;
-            } else {
-                $this->logger->error('Failed to send booking confirmation email', [
-                    'booking_id' => $bookingData['booking_id'],
-                    'error' => $mail->ErrorInfo
-                ]);
-                return false;
             }
-        } catch (Exception $e) {
-            $this->logger->error('Exception while sending booking confirmation email', [
+
+            $this->logger->error('SendGrid rejected email', [
+                'status_code' => $response->statusCode(),
+                'body'        => $response->body(),
+            ]);
+            return false;
+        } catch (\Exception $e) {
+            $this->logger->error('SendGrid exception', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    public function sendBookingConfirmation(array $bookingData): bool
+    {
+        try {
+            $customerFullName = trim(
+                ($bookingData['customer_first_name'] ?? '') . ' ' .
+                ($bookingData['customer_last_name']  ?? '')
+            ) ?: 'Valued Customer';
+
+            $mail = new Mail();
+            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->setSubject('Booking Confirmation - ' . ($bookingData['booking_reference'] ?? ''));
+            $mail->addTo($bookingData['customer_email'], $customerFullName);
+            $mail->addContent('text/html',  $this->generateBookingConfirmationHTML($bookingData));
+            $mail->addContent('text/plain', $this->generateBookingConfirmationText($bookingData));
+
+            $sent = $this->dispatch($mail);
+
+            if ($sent) {
+                $this->logger->info('Booking confirmation email sent', [
+                    'booking_id'        => $bookingData['booking_id'] ?? null,
+                    'booking_reference' => $bookingData['booking_reference'] ?? null,
+                    'customer_email'    => $bookingData['customer_email'],
+                ]);
+            }
+
+            return $sent;
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to build booking confirmation email', [
                 'booking_id' => $bookingData['booking_id'] ?? 'unknown',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error'      => $e->getMessage(),
             ]);
             return false;
         }
     }
 
-    /**
-     * Create and configure PHPMailer instance
-     */
-    private function createMailer(): PHPMailer
+    public function sendVerificationEmail(array $customer): bool
     {
-        // Double-check PHPMailer availability
-        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-            throw new Exception('PHPMailer is not installed. Please run: composer install');
+        try {
+            $verifyUrl = $this->frontendUrl
+                . '/verify-email?token=' . urlencode($customer['email_verification_token'])
+                . '&email='              . urlencode($customer['email']);
+
+            $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
+
+            $html = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e293b;">'
+                . '<h2>Verify your email address</h2>'
+                . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                . '<p>Thank you for registering with Rondo Sport. Please click the button below to verify your email address.</p>'
+                . '<p><a href="' . htmlspecialchars($verifyUrl) . '" '
+                .    'style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;'
+                .    'text-decoration:none;border-radius:8px;font-weight:600;">Verify Email</a></p>'
+                . '<p>Or copy and paste this link into your browser:<br><a href="' . htmlspecialchars($verifyUrl) . '">'
+                . htmlspecialchars($verifyUrl) . '</a></p>'
+                . '<p>This link expires in 24 hours.</p>'
+                . '<p>If you did not create an account, you can safely ignore this email.</p>'
+                . '<p>— The Rondo Sport Team</p>'
+                . '</body></html>';
+
+            $text = "Verify your email address\n\n"
+                . "Hi {$name},\n\n"
+                . "Please verify your email by visiting:\n{$verifyUrl}\n\n"
+                . "This link expires in 24 hours.\n"
+                . "If you did not create an account, ignore this email.";
+
+            $mail = new Mail();
+            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->setSubject('Verify your email address — Rondo Sport');
+            $mail->addTo($customer['email'], $name);
+            $mail->addContent('text/html',  $html);
+            $mail->addContent('text/plain', $text);
+
+            return $this->dispatch($mail);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to send verification email', [
+                'customer_email' => $customer['email'] ?? 'unknown',
+                'error'          => $e->getMessage(),
+            ]);
+            return false;
         }
+    }
 
-        $mail = new PHPMailer(true);
+    public function sendPasswordResetEmail(array $customer, string $resetToken): bool
+    {
+        try {
+            $resetUrl = $this->frontendUrl
+                . '/reset-password?token=' . urlencode($resetToken)
+                . '&email='               . urlencode($customer['email']);
 
-        // Server settings
-        if ($this->debugMode) {
-            $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+            $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
+
+            $html = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e293b;">'
+                . '<h2>Reset your password</h2>'
+                . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                . '<p>We received a request to reset the password for your Rondo Sport account.</p>'
+                . '<p><a href="' . htmlspecialchars($resetUrl) . '" '
+                .    'style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;'
+                .    'text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a></p>'
+                . '<p>Or copy and paste this link:<br><a href="' . htmlspecialchars($resetUrl) . '">'
+                . htmlspecialchars($resetUrl) . '</a></p>'
+                . '<p>This link expires in 1 hour. If you did not request a password reset, '
+                . 'you can safely ignore this email — your password will not be changed.</p>'
+                . '<p>— The Rondo Sport Team</p>'
+                . '</body></html>';
+
+            $text = "Reset your password\n\n"
+                . "Hi {$name},\n\n"
+                . "Visit the link below to reset your password (expires in 1 hour):\n{$resetUrl}\n\n"
+                . "If you did not request this, ignore this email.";
+
+            $mail = new Mail();
+            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->setSubject('Reset your password — Rondo Sport');
+            $mail->addTo($customer['email'], $name);
+            $mail->addContent('text/html',  $html);
+            $mail->addContent('text/plain', $text);
+
+            return $this->dispatch($mail);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to send password reset email', [
+                'customer_email' => $customer['email'] ?? 'unknown',
+                'error'          => $e->getMessage(),
+            ]);
+            return false;
         }
-        
-        $mail->isSMTP();
-        $mail->Host = $this->smtpHost;
-        $mail->SMTPAuth = !empty($this->smtpUsername);
-        $mail->Username = $this->smtpUsername;
-        $mail->Password = $this->smtpPassword;
-        $mail->SMTPSecure = $this->smtpSecure ? PHPMailer::ENCRYPTION_STARTTLS : PHPMailer::ENCRYPTION_SMTPS;
-        $mail->Port = $this->smtpPort;
+    }
 
-        // From
-        $mail->setFrom($this->fromEmail, $this->fromName);
-        
-        // Encoding
-        $mail->CharSet = 'UTF-8';
-        
-        return $mail;
+    public function sendEmailChangeVerification(array $customer, string $newEmail): bool
+    {
+        try {
+            $verifyUrl = $this->frontendUrl
+                . '/verify-email?token=' . urlencode($customer['email_verification_token'])
+                . '&email='              . urlencode($newEmail);
+
+            $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
+
+            $html = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e293b;">'
+                . '<h2>Verify your new email address</h2>'
+                . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                . '<p>You recently requested to change the email address on your Rondo Sport account '
+                . 'to <strong>' . htmlspecialchars($newEmail) . '</strong>.</p>'
+                . '<p>Please click the button below to confirm this change.</p>'
+                . '<p><a href="' . htmlspecialchars($verifyUrl) . '" '
+                .    'style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;'
+                .    'text-decoration:none;border-radius:8px;font-weight:600;">Confirm Email Change</a></p>'
+                . '<p>Or copy and paste this link:<br><a href="' . htmlspecialchars($verifyUrl) . '">'
+                . htmlspecialchars($verifyUrl) . '</a></p>'
+                . '<p>This link expires in 24 hours. If you did not request this change, '
+                . 'please contact support immediately.</p>'
+                . '<p>— The Rondo Sport Team</p>'
+                . '</body></html>';
+
+            $text = "Verify your new email address\n\n"
+                . "Hi {$name},\n\n"
+                . "You requested to change your email to: {$newEmail}\n\n"
+                . "Confirm this change by visiting:\n{$verifyUrl}\n\n"
+                . "If you did not request this, contact support immediately.";
+
+            $mail = new Mail();
+            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->setSubject('Confirm your new email address — Rondo Sport');
+            $mail->addTo($newEmail, $name);
+            $mail->addContent('text/html',  $html);
+            $mail->addContent('text/plain', $text);
+
+            return $this->dispatch($mail);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to send email change verification', [
+                'new_email' => $newEmail,
+                'error'     => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -602,32 +705,4 @@ class EmailService
         }
     }
 
-    /**
-     * Test email configuration
-     */
-    public function testConfiguration(): bool
-    {
-        // Check if PHPMailer is available
-        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-            $this->logger->error('PHPMailer is not installed or available');
-            return false;
-        }
-
-        try {
-            $mail = $this->createMailer();
-            
-            // Just test the connection without sending
-            if ($mail->smtpConnect()) {
-                $mail->smtpClose();
-                return true;
-            }
-            
-            return false;
-        } catch (Exception $e) {
-            $this->logger->error('Email configuration test failed', [
-                'error' => $e->getMessage()
-            ]);
-            return false;
-        }
-    }
 }

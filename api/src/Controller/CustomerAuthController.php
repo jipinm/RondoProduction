@@ -10,6 +10,7 @@ use XS2EventProxy\Repository\CustomerRepository;
 use XS2EventProxy\Service\CustomerJWTService;
 use XS2EventProxy\Service\CustomerValidationService;
 use XS2EventProxy\Exception\CustomerException;
+use XS2EventProxy\Service\EmailService;
 use Psr\Log\LoggerInterface;
 use Slim\Psr7\Response;
 
@@ -19,17 +20,20 @@ class CustomerAuthController
     private CustomerJWTService $jwtService;
     private CustomerValidationService $validator;
     private LoggerInterface $logger;
+    private EmailService $emailService;
 
     public function __construct(
         CustomerRepository $customerRepository,
         CustomerJWTService $jwtService,
         CustomerValidationService $validator,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        EmailService $emailService
     ) {
         $this->customerRepository = $customerRepository;
         $this->jwtService = $jwtService;
         $this->validator = $validator;
         $this->logger = $logger;
+        $this->emailService = $emailService;
     }
 
     /**
@@ -95,8 +99,7 @@ class CustomerAuthController
                 ]
             );
 
-            // TODO: Send verification email (implement EmailService)
-            // $this->emailService->sendVerificationEmail($customer);
+            $this->emailService->sendVerificationEmail($customer);
 
             $this->logger->info('Customer registered successfully', [
                 'customer_id' => $customerId,
@@ -346,8 +349,7 @@ class CustomerAuthController
                     ]
                 );
 
-                // TODO: Send password reset email
-                // $this->emailService->sendPasswordResetEmail($customer, $resetToken);
+                $this->emailService->sendPasswordResetEmail($customer, $resetToken);
 
                 $this->logger->info('Password reset requested', [
                     'customer_id' => $customer['id'],

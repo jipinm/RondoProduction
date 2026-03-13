@@ -184,39 +184,22 @@ class LocalBookingController
 
             // Send booking confirmation email
             try {
-                // Check if PHPMailer is available before attempting to send email
-                if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-                    $emailData = array_merge($bookingData, [
-                        'booking_id' => $bookingId,
-                        'customer_email' => $customerEmail,
-                        'customer_first_name' => $data['customer_first_name'] ?? 'Guest',
-                        'customer_last_name' => $data['customer_last_name'] ?? 'Customer'
-                    ]);
-                    
-                    $emailSent = $this->emailService->sendBookingConfirmation($emailData);
-                    
-                    if ($emailSent) {
-                        $this->logger->info('Booking confirmation email sent', [
-                            'booking_id' => $bookingId,
-                            'customer_email' => $customerEmail
-                        ]);
-                    } else {
-                        $this->logger->warning('Failed to send booking confirmation email', [
-                            'booking_id' => $bookingId,
-                            'customer_email' => $customerEmail
-                        ]);
-                    }
+                $emailData = array_merge($bookingData, [
+                    'booking_id'          => $bookingId,
+                    'customer_email'      => $customerEmail,
+                    'customer_first_name' => $data['customer_first_name'] ?? 'Guest',
+                    'customer_last_name'  => $data['customer_last_name']  ?? 'Customer',
+                ]);
+                $emailSent = $this->emailService->sendBookingConfirmation($emailData);
+                if ($emailSent) {
+                    $this->logger->info('Booking confirmation email sent', ['booking_id' => $bookingId]);
                 } else {
-                    $this->logger->warning('PHPMailer not available - skipping email notification', [
-                        'booking_id' => $bookingId,
-                        'customer_email' => $customerEmail
-                    ]);
+                    $this->logger->warning('Failed to send booking confirmation email', ['booking_id' => $bookingId]);
                 }
             } catch (\Throwable $emailException) {
-                // Don't fail the booking if email sending fails (catch Throwable to handle TypeError etc.)
                 $this->logger->error('Exception while sending booking confirmation email', [
                     'booking_id' => $bookingId,
-                    'error' => $emailException->getMessage()
+                    'error'      => $emailException->getMessage(),
                 ]);
             }
 
