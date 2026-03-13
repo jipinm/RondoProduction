@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Header.module.css';
-import { FaGlobe, FaSearch, FaUser } from 'react-icons/fa';
+import { FaSearch, FaUser } from 'react-icons/fa';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSports } from '../../hooks/useSports';
 import { useMenuHierarchy } from '../../hooks/useMenuHierarchy';
@@ -275,11 +275,6 @@ const Header: React.FC = () => {
       <div className={styles.topBar}>
         <div className={styles.wrapper}>
           <div className={styles.topBarLeft}>
-            <div className={styles.topBarItem}>
-              <FaGlobe className={styles.icon} />
-              <span>London</span>
-              <MdArrowDropDown className={styles.icon} />
-            </div>
             <div className={styles.topBarItemWithSubmenu}>
               <div 
                 className={styles.topBarItem}

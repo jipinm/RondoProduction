@@ -230,15 +230,7 @@ const LoginPage: React.FC = () => {
                 ) : 'Login'}
               </button>
             </form>
-              <div className={styles.loginHelp}>
-              <p className={styles.testCredentials}>
-                For demo purposes, use:
-                <br />
-                Email: admin@example.com
-                <br />
-                Password: admin123
-              </p>
-            </div>
+              
           </div>
         </div>
       </div>

@@ -48,6 +48,7 @@ use XS2EventProxy\Controller\CustomerETicketController;
 use XS2EventProxy\Controller\CustomerCancellationController;
 use XS2EventProxy\Controller\AdminCancellationController;
 use XS2EventProxy\Controller\PaymentController;
+use XS2EventProxy\Controller\WhyRondoSportsController;
 use XS2EventProxy\Controller\PublicTicketEnhancementsController;
 use XS2EventProxy\Controller\LocalBookingController;
 use XS2EventProxy\Controller\CountryController;
@@ -85,6 +86,7 @@ use XS2EventProxy\Repository\TicketMarkupRepository;
 use XS2EventProxy\Repository\MarkupRuleRepository;
 use XS2EventProxy\Repository\HospitalityRepository;
 use XS2EventProxy\Repository\CurrencyRepository;
+use XS2EventProxy\Repository\WhyRondoSportsRepository;
 use XS2EventProxy\Service\TeamCredentialsService;
 use XS2EventProxy\Service\BannersService;
 use XS2EventProxy\Service\DashboardService;
@@ -107,9 +109,9 @@ class Application
     private EmailService $emailService;
     private XS2EventBookingBridge $xs2eventBridge;
     private ETicketService $eTicketService;
+    private WhyRondoSportsRepository $whyRondoRepository;
 
-    public function __construct()
-    {
+    public function __construct() {
         // Create Slim app instance
         $this->app = AppFactory::create();
         
@@ -217,6 +219,9 @@ class Application
             $xs2eventBaseUrl,
             $xs2eventApiKey
         );
+
+        // Why Rondo Sports repository
+        $this->whyRondoRepository = new WhyRondoSportsRepository($this->database->getConnection(), $this->logger);
     }
     
     private function setupRoutes(): void
@@ -312,6 +317,15 @@ class Application
                 $this->logger
             ))->add(new RoleMiddleware(['admin'], $this->logger));
         });
+
+        // Why Rondo Sports public route (no auth required)
+        $whyRondoController = new WhyRondoSportsController(
+            $this->whyRondoRepository,
+            $this->logger,
+            __DIR__ . '/../public/images/why-rondo',
+            $this->config->getAppUrl()
+        );
+        $this->app->get('/api/v1/why-rondo-sports', [$whyRondoController, 'getPublicItems']);
 
         // Initialize cancellation controllers for admin routes
         $cancellationRequestRepository = new CancellationRequestRepository($this->database, $this->logger);
@@ -597,6 +611,19 @@ class Application
             $group->delete('/currencies/{id:[0-9]+}', [$currencyController, 'deleteCurrency']);
             $group->patch('/currencies/{id:[0-9]+}/set-default', [$currencyController, 'setDefault']);
             $group->patch('/currencies/{id:[0-9]+}/toggle-active', [$currencyController, 'toggleActive']);
+
+            // Why Rondo Sports Management (Admin)
+            $whyRondoAdminController = new WhyRondoSportsController(
+                $this->whyRondoRepository,
+                $this->logger,
+                __DIR__ . '/../public/images/why-rondo',
+                $this->config->getAppUrl()
+            );
+            $group->get('/why-rondo-sports', [$whyRondoAdminController, 'getAdminItems']);
+            $group->post('/why-rondo-sports', [$whyRondoAdminController, 'createItem']);
+            $group->put('/why-rondo-sports/{id}', [$whyRondoAdminController, 'updateItem']);
+            $group->delete('/why-rondo-sports/{id}', [$whyRondoAdminController, 'deleteItem']);
+            $group->post('/why-rondo-sports/{id}/upload-icon', [$whyRondoAdminController, 'uploadIcon']);
             
         })->add(new AuthMiddleware(
             $this->jwtService,
@@ -784,7 +811,7 @@ class Application
         $countriesController = new CountriesController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $citiesController = new CitiesController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $ticketsController = new TicketsController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
-        $reservationsController = new ReservationsController($this->httpClient, $this->logger);
+        $reservationsController = new ReservationsController($this->httpClient, $this->logger, $this->config->getApiKey());
         $bookingsController = new BookingsController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $bookingOrdersController = new BookingOrdersController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $eTicketsController = new ETicketsController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());

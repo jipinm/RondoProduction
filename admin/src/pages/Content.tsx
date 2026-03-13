@@ -4,6 +4,7 @@ import { File, Edit, Save, Image, AlertCircle, Loader } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import RichTextEditor from '../components/RichTextEditor';
 import { BannerList } from '../components/banners';
+import WhyRondoManager from '../components/WhyRondoManager';
 import staticPagesService, { type StaticPage } from '../services/staticPagesService';
 import styles from './Content.module.css';
 
@@ -13,7 +14,7 @@ const sanitizeHtml = (html: string): string => {
 };
 
 const Content: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'pages' | 'banners'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'banners' | 'whyrondo'>('pages');
   const [selectedPage, setSelectedPage] = useState<'terms' | 'privacy' | 'about' | 'faq'>('terms');
   const [isEditing, setIsEditing] = useState(false);
   const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
@@ -66,7 +67,7 @@ const Content: React.FC = () => {
     }
   };
 
-  const handleTabChange = (tab: 'pages' | 'banners') => {
+  const handleTabChange = (tab: 'pages' | 'banners' | 'whyrondo') => {
     setActiveTab(tab);
     setIsEditing(false);
     
@@ -156,10 +157,18 @@ const Content: React.FC = () => {
           <Image size={18} />
           <span>Banners & Promotions</span>
         </button>
+        <button 
+          className={`${styles.tabButton} ${activeTab === 'whyrondo' ? styles.activeTab : ''}`}
+          onClick={() => handleTabChange('whyrondo')}
+        >
+          <AlertCircle size={18} />
+          <span>Why Rondo Sports</span>
+        </button>
       </div>
       
       {activeTab === 'pages' ? (
         <div className={styles.pagesContent}>
+          {/* ... existing pages sidebar ... */}
           <div className={styles.pagesSidebar}>
             <h2 className={styles.sidebarTitle}>Static Pages</h2>
             {loading ? (
@@ -198,6 +207,7 @@ const Content: React.FC = () => {
           </div>
           
           <div className={styles.pageContentSection}>
+            {/* ... code ... */}
             {error && (
               <div className={styles.errorMessage}>
                 <AlertCircle size={16} />
@@ -267,8 +277,10 @@ const Content: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'banners' ? (
         <BannerList />
+      ) : (
+        <WhyRondoManager />
       )}
     </div>
   );

@@ -84,11 +84,13 @@ class EventsController
             ]);
 
             $statusCode = $apiResponse->getStatusCode();
-            $response->getBody()->write((string) $apiResponse->getBody());
+            $body = (string) $apiResponse->getBody();
+            $response->getBody()->write($body);
             
             return $response
                 ->withStatus($statusCode)
                 ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Content-Length', (string) strlen($body))
                 ->withHeader('Cache-Control', 'public, max-age=' . self::CACHE_TTL);
                 
         } catch (GuzzleException $e) {
@@ -130,11 +132,13 @@ class EventsController
             ]);
 
             $statusCode = $apiResponse->getStatusCode();
-            $response->getBody()->write((string) $apiResponse->getBody());
+            $body = (string) $apiResponse->getBody();
+            $response->getBody()->write($body);
             
             return $response
                 ->withStatus($statusCode)
                 ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Content-Length', (string) strlen($body))
                 ->withHeader('Cache-Control', 'public, max-age=' . self::CACHE_TTL);
                 
         } catch (GuzzleException $e) {
@@ -180,11 +184,13 @@ class EventsController
             ]);
 
             $statusCode = $apiResponse->getStatusCode();
-            $response->getBody()->write((string) $apiResponse->getBody());
+            $body = (string) $apiResponse->getBody();
+            $response->getBody()->write($body);
             
             return $response
                 ->withStatus($statusCode)
                 ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Content-Length', (string) strlen($body))
                 ->withHeader('Cache-Control', 'public, max-age=' . self::CACHE_TTL);
                 
         } catch (GuzzleException $e) {

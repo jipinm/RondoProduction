@@ -16,12 +16,15 @@ class ReservationsController
     private const CACHE_TTL = 300; // 5 minutes for reservation data
     private const GUEST_CACHE_TTL = 600; // 10 minutes for guest data
     private string $apiBaseUrl;
+    private string $apiKey;
 
     public function __construct(
         private Client $httpClient,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        string $apiKey = ''
     ) {
         $this->apiBaseUrl = getenv('API_BASE_URL') ?: 'https://api.xs2event.com';
+        $this->apiKey = $apiKey ?: (getenv('API_KEY') ?: '');
     }
 
     /**
@@ -635,16 +638,14 @@ class ReservationsController
      */
     private function getHeaders(Request $request): array
     {
-        $headers = [
+        return [
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json'
+            'Accept'       => 'application/json',
+            // Always use the server-side API key from config/env, never
+            // forward the key supplied by the browser. Forwarding the
+            // client key caused 401s when the frontend key differed from
+            // the production key stored in .env.
+            'X-Api-Key'    => $this->apiKey,
         ];
-
-        // Forward X-Api-Key header
-        if ($request->hasHeader('X-Api-Key')) {
-            $headers['X-Api-Key'] = $request->getHeaderLine('X-Api-Key');
-        }
-
-        return $headers;
     }
 }
