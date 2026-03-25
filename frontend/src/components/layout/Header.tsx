@@ -5,6 +5,7 @@ import { FaSearch, FaUser } from 'react-icons/fa';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSports } from '../../hooks/useSports';
 import { useMenuHierarchy } from '../../hooks/useMenuHierarchy';
+import { useTennisTournaments } from '../../hooks/useTennisTournaments';
 import { useAuth } from '../../services/customerAuth';
 import { useSelectedCurrency } from '../../contexts/CurrencyContext';
 
@@ -45,6 +46,10 @@ const getTeamsPageLink = (tournamentId: string): string => {
   return link;
 };
 
+const getTennisEventsLink = (tournamentId: string): string => {
+  return `/events?sport_type=tennis&tournament_id=${tournamentId}`;
+};
+
 const Header: React.FC = () => {
   const { sports, loading, error } = useSports();
   const { 
@@ -52,6 +57,11 @@ const Header: React.FC = () => {
     loading: tournamentsLoading, 
     error: tournamentsError
   } = useMenuHierarchy();
+  const {
+    tournaments: tennisTournaments,
+    loading: tennisTournamentsLoading,
+    error: tennisTournamentsError
+  } = useTennisTournaments();
   const { isAuthenticated, logout } = useAuth();
   const { currencies, selectedCurrency, loading: currenciesLoading, setSelectedCurrency } = useSelectedCurrency();
   const [logoLoaded, setLogoLoaded] = React.useState(false);
@@ -251,6 +261,58 @@ const Header: React.FC = () => {
                 </Link>
               );
             })}
+          </div>
+        </div>
+      );
+    }
+
+    // Special handling for tennis with tournaments submenu
+    if (sportId === 'tennis') {
+      return (
+        <div
+          className={styles.navItemWithSubmenu}
+          key={sportId}
+        >
+          <Link
+            to={getEventLinkBySport(sportId)}
+            className={styles.navItem}
+            data-sport-id={sportId}
+            onClick={(e) => handleMenuClick(e, 'tennis', true)}
+          >
+            {displayName}
+            {isMobile && <MdArrowDropDown style={{ marginLeft: '4px', fontSize: '16px' }} />}
+          </Link>
+          <div className={`${styles.submenu} ${isMobile && activeSubmenu === 'tennis' ? styles.submenuActive : ''}`}>
+            {tennisTournamentsLoading && (
+              <>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`tennis-skeleton-${index}`} className={styles.submenuItemSkeleton}>
+                    <div className={styles.skeletonTournamentName}></div>
+                    <div className={styles.skeletonArrow}></div>
+                  </div>
+                ))}
+              </>
+            )}
+            {tennisTournamentsError && (
+              <div className={styles.submenuItem} style={{ fontStyle: 'italic', color: '#ff6b6b' }}>
+                Error loading tournaments
+              </div>
+            )}
+            {!tennisTournamentsLoading && !tennisTournamentsError && tennisTournaments.length === 0 && (
+              <div className={styles.submenuItem} style={{ fontStyle: 'italic', color: '#666' }}>
+                No tournaments available
+              </div>
+            )}
+            {!tennisTournamentsLoading && !tennisTournamentsError && tennisTournaments.map((tournament) => (
+              <Link
+                key={tournament.tournament_id}
+                to={getTennisEventsLink(tournament.tournament_id)}
+                className={styles.submenuItem}
+                onClick={handleSubmenuItemClick}
+              >
+                {tournament.official_name}
+              </Link>
+            ))}
           </div>
         </div>
       );

@@ -366,20 +366,23 @@ const EventTicketsPage: React.FC = () => {
         return usdAmount;
       };
       
-      // Calculate price in the selected currency
+      // Mirror CartPanel.getTicketFinalPrice() exactly — 3 branches:
+      // 1. Conversion available + ticket currency ≠ selected → convert then apply markup
+      // 2. Ticket currency already matches selected → apply markup directly
+      // 3. No conversion available + currency mismatch → use raw face_value, no markup
+      // This guarantees the checkout page shows the same price as the cart panel.
       let basePrice = faceValue;
+      let markupAmount = 0;
+
       if (hasConversionForCurrency(currency) && currency !== selectedCurrencyCode) {
         basePrice = convertAmount(faceValue, currency);
+        markupAmount = calculateEffectiveMarkupAmount(basePrice, markup ?? null, convertUsdToSelected);
+      } else if (currency === selectedCurrencyCode) {
+        markupAmount = calculateEffectiveMarkupAmount(basePrice, markup ?? null, convertUsdToSelected);
       }
+      // else: no conversion available — use raw face_value with no markup (matches CartPanel)
       
-      // Calculate markup amount in the selected currency using the shared helper
-      const markupAmount = calculateEffectiveMarkupAmount(
-        basePrice,
-        markup ?? null,
-        convertUsdToSelected
-      );
-      
-      // Final price in selected currency = converted base + markup (no hospitality pricing)
+      // Final price in selected currency
       const finalPrice = basePrice + markupAmount;
       
       return {

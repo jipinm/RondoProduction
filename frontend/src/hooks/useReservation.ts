@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { apiClient, API_ENDPOINTS, type Reservation, type Guest } from '../services/apiRoutes';
+import { customerApiClient } from '../services/customerApiClient';
+import { API_ENDPOINTS, type Reservation, type Guest } from '../services/apiRoutes';
 
 interface CreateReservationData {
   items: Array<{
@@ -29,7 +30,7 @@ export const useReservation = (): UseReservationResult => {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.post<Reservation>(API_ENDPOINTS.RESERVATIONS, data);
+      const response = await customerApiClient.post<Reservation>(API_ENDPOINTS.RESERVATIONS, data);
       const newReservation = response.data;
       
       setReservation(newReservation);
@@ -51,7 +52,7 @@ export const useReservation = (): UseReservationResult => {
       
       const guestData = { guests };
       
-      await apiClient.post(`${API_ENDPOINTS.RESERVATIONS}/${reservationId}/guests`, guestData);
+      await customerApiClient.post(`${API_ENDPOINTS.RESERVATIONS}/${reservationId}/guests`, guestData);
       return true;
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to add guest data';

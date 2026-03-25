@@ -290,8 +290,8 @@ export const mapUserDetailsToLeadGuest = (
     street_name: userDetails.street + (userDetails.houseNumber ? ` ${userDetails.houseNumber}` : ''),
     city: userDetails.city,
     zip: userDetails.zipCode,
-    gender: existingGuestData?.gender,
-    passport_number: existingGuestData?.passport_number
+    gender: existingGuestData?.gender ?? undefined,
+    passport_number: existingGuestData?.passport_number ?? ''
   };
 };
 

@@ -61,7 +61,15 @@ export const useEvents = (params?: EventsParams) => {
           }))
         );
         
-        setEvents(response.data.events);
+        // API returns prices in cents (e.g. 15000 = €150.00). Normalize to standard
+        // currency units so all consumers (display, sorting, currency conversion) are correct.
+        const normalized = (response.data.events || []).map(event => ({
+          ...event,
+          min_ticket_price_eur: event.min_ticket_price_eur != null ? event.min_ticket_price_eur / 100 : event.min_ticket_price_eur,
+          max_ticket_price_eur: event.max_ticket_price_eur != null ? event.max_ticket_price_eur / 100 : event.max_ticket_price_eur,
+        }));
+
+        setEvents(normalized);
         setPagination(response.data.pagination);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch events';
