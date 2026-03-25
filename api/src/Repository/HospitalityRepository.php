@@ -11,12 +11,17 @@ use Exception;
 /**
  * Repository for hospitality services management.
  * 
- * Supports hierarchical hospitality assignment at 5 levels (most-specific wins):
- *   ticket > event > team > tournament > sport
+ * Supports hierarchical hospitality assignment at 6 levels (most-specific wins):
+ *   ticket > event > category > team > tournament > sport
+ * 
+ * The 'category' level uses XS2Event category_id (venue-scoped), which is stable
+ * across all events at the same venue. This allows assigning hospitality services
+ * once per venue section (e.g., "VIP Tribune") and having them apply automatically
+ * to every event that includes that section — without per-event configuration.
  * 
  * The existing ticket_hospitalities table is treated as legacy "ticket" level
  * assignments for backward compatibility. The new hospitality_assignments table
- * handles all 5 levels.
+ * handles all 6 levels.
  * 
  * Unlike markup rules (where one value overrides another), hospitality is
  * ADDITIVE: we collect all applicable hospitality services from all matching
@@ -184,6 +189,7 @@ class HospitalityRepository
     {
         if (!empty($data['ticket_id'])) return 'ticket';
         if (!empty($data['event_id'])) return 'event';
+        if (!empty($data['category_id'])) return 'category';
         if (!empty($data['team_id'])) return 'team';
         if (!empty($data['tournament_id'])) return 'tournament';
         if (!empty($data['sport_type'])) return 'sport';
@@ -203,15 +209,16 @@ class HospitalityRepository
         $sql = "
             INSERT INTO hospitality_assignments (
                 hospitality_id,
-                sport_type, tournament_id, team_id, event_id, ticket_id,
-                sport_name, tournament_name, team_name, event_name, ticket_name,
+                sport_type, tournament_id, team_id, category_id, event_id, ticket_id,
+                sport_name, tournament_name, team_name, category_name, event_name, ticket_name,
                 level, is_active,
                 created_by, updated_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 sport_name = VALUES(sport_name),
                 tournament_name = VALUES(tournament_name),
                 team_name = VALUES(team_name),
+                category_name = VALUES(category_name),
                 event_name = VALUES(event_name),
                 ticket_name = VALUES(ticket_name),
                 level = VALUES(level),
@@ -226,11 +233,13 @@ class HospitalityRepository
             $data['sport_type'] ?? null,
             $data['tournament_id'] ?? null,
             $data['team_id'] ?? null,
+            $data['category_id'] ?? null,
             $data['event_id'] ?? null,
             $data['ticket_id'] ?? null,
             $data['sport_name'] ?? null,
             $data['tournament_name'] ?? null,
             $data['team_name'] ?? null,
+            $data['category_name'] ?? null,
             $data['event_name'] ?? null,
             $data['ticket_name'] ?? null,
             $level,
@@ -317,7 +326,7 @@ class HospitalityRepository
         $conditions = [];
         $params = [];
 
-        foreach (['sport_type', 'tournament_id', 'team_id', 'event_id', 'ticket_id'] as $field) {
+        foreach (['sport_type', 'tournament_id', 'team_id', 'category_id', 'event_id', 'ticket_id'] as $field) {
             if (!empty($scopeData[$field])) {
                 $conditions[] = "{$field} = ?";
                 $params[] = $scopeData[$field];
@@ -349,7 +358,7 @@ class HospitalityRepository
         $conditions[] = 'ha.hospitality_id = ?';
         $params[] = $data['hospitality_id'];
 
-        foreach (['sport_type', 'tournament_id', 'team_id', 'event_id', 'ticket_id'] as $field) {
+        foreach (['sport_type', 'tournament_id', 'team_id', 'category_id', 'event_id', 'ticket_id'] as $field) {
             if (!empty($data[$field])) {
                 $conditions[] = "ha.{$field} = ?";
                 $params[] = $data[$field];
@@ -471,8 +480,8 @@ class HospitalityRepository
             LEFT JOIN admin_users uu ON ha.updated_by = uu.id
             {$whereClause}
             ORDER BY 
-                FIELD(ha.level, 'sport', 'tournament', 'team', 'event', 'ticket'),
-                ha.sport_name, ha.tournament_name, ha.team_name, ha.event_name, ha.ticket_name,
+                FIELD(ha.level, 'sport', 'tournament', 'team', 'category', 'event', 'ticket'),
+                ha.sport_name, ha.tournament_name, ha.team_name, ha.category_name, ha.event_name, ha.ticket_name,
                 h.sort_order, h.name
             LIMIT ? OFFSET ?
         ";
@@ -503,7 +512,7 @@ class HospitalityRepository
         $conditions = [];
         $params = [];
 
-        foreach (['sport_type', 'tournament_id', 'team_id', 'event_id', 'ticket_id'] as $field) {
+        foreach (['sport_type', 'tournament_id', 'team_id', 'category_id', 'event_id', 'ticket_id'] as $field) {
             if (!empty($scopeData[$field])) {
                 $conditions[] = "ha.{$field} = ?";
                 $params[] = $scopeData[$field];
@@ -547,32 +556,37 @@ class HospitalityRepository
         ?string $tournamentId,
         ?string $teamId,
         string $eventId,
-        string $ticketId
+        string $ticketId,
+        ?string $categoryId = null
     ): array {
         $conditions = [];
         $params = [];
 
         // Sport level
-        $conditions[] = "(ha.sport_type = ? AND ha.tournament_id IS NULL AND ha.team_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
+        $conditions[] = "(ha.sport_type = ? AND ha.tournament_id IS NULL AND ha.team_id IS NULL AND ha.category_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
         $params[] = $sportType;
 
         // Tournament level
         if ($tournamentId) {
-            $conditions[] = "(ha.sport_type = ? AND ha.tournament_id = ? AND ha.team_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
+            $conditions[] = "(ha.sport_type = ? AND ha.tournament_id = ? AND ha.team_id IS NULL AND ha.category_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
             $params[] = $sportType;
             $params[] = $tournamentId;
         }
 
         // Team level
         if ($teamId) {
-            $conditions[] = "(ha.sport_type = ? AND ha.tournament_id = ? AND ha.team_id = ? AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
-            $params[] = $sportType;
-            $params[] = $tournamentId;
+            $conditions[] = "(ha.team_id = ? AND ha.category_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
             $params[] = $teamId;
         }
 
+        // Category level (XS2Event venue section — applies across all events)
+        if ($categoryId) {
+            $conditions[] = "(ha.category_id = ? AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
+            $params[] = $categoryId;
+        }
+
         // Event level
-        $conditions[] = "(ha.event_id = ? AND ha.ticket_id IS NULL)";
+        $conditions[] = "(ha.event_id = ? AND ha.ticket_id IS NULL AND ha.category_id IS NULL)";
         $params[] = $eventId;
 
         // Ticket level
@@ -594,7 +608,7 @@ class HospitalityRepository
                 AND ha.is_active = 1
                 AND h.is_active = 1
             ORDER BY 
-                FIELD(ha.level, 'ticket', 'event', 'team', 'tournament', 'sport'),
+                FIELD(ha.level, 'ticket', 'event', 'category', 'team', 'tournament', 'sport'),
                 h.sort_order ASC, h.name ASC
         ";
 
@@ -630,12 +644,17 @@ class HospitalityRepository
      * Resolve all effective hospitality services for ALL tickets in an event.
      * Returns a map of ticket_id → hospitality services.
      */
+    /**
+     * @param array $ticketCategoryMap  Optional map of ticket_id => category_id (XS2Event venue-scoped).
+     *                                  Enables category-level hospitality resolution.
+     */
     public function resolveHospitalitiesForEvent(
         string $eventId,
         string $sportType,
         ?string $tournamentId,
         ?string $teamId,
-        array $ticketIds
+        array $ticketIds,
+        array $ticketCategoryMap = []
     ): array {
         if (empty($ticketIds)) {
             return [];
@@ -645,26 +664,32 @@ class HospitalityRepository
         $params = [];
 
         // Sport level
-        $conditions[] = "(ha.sport_type = ? AND ha.tournament_id IS NULL AND ha.team_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
+        $conditions[] = "(ha.sport_type = ? AND ha.tournament_id IS NULL AND ha.team_id IS NULL AND ha.category_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
         $params[] = $sportType;
 
         // Tournament level
         if ($tournamentId) {
-            $conditions[] = "(ha.sport_type = ? AND ha.tournament_id = ? AND ha.team_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
+            $conditions[] = "(ha.sport_type = ? AND ha.tournament_id = ? AND ha.team_id IS NULL AND ha.category_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
             $params[] = $sportType;
             $params[] = $tournamentId;
         }
 
         // Team level
         if ($teamId) {
-            $conditions[] = "(ha.sport_type = ? AND ha.tournament_id = ? AND ha.team_id = ? AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
-            $params[] = $sportType;
-            $params[] = $tournamentId;
+            $conditions[] = "(ha.team_id = ? AND ha.category_id IS NULL AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
             $params[] = $teamId;
         }
 
+        // Category level (XS2Event venue sections — applies across all events at the venue)
+        $uniqueCategoryIds = array_unique(array_values(array_filter($ticketCategoryMap)));
+        if (!empty($uniqueCategoryIds)) {
+            $catPlaceholders = implode(',', array_fill(0, count($uniqueCategoryIds), '?'));
+            $conditions[] = "(ha.category_id IN ({$catPlaceholders}) AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
+            $params = array_merge($params, $uniqueCategoryIds);
+        }
+
         // Event level
-        $conditions[] = "(ha.event_id = ? AND ha.ticket_id IS NULL)";
+        $conditions[] = "(ha.event_id = ? AND ha.ticket_id IS NULL AND ha.category_id IS NULL)";
         $params[] = $eventId;
 
         // Ticket level (all tickets)
@@ -687,7 +712,7 @@ class HospitalityRepository
                 AND ha.is_active = 1
                 AND h.is_active = 1
             ORDER BY 
-                FIELD(ha.level, 'ticket', 'event', 'team', 'tournament', 'sport'),
+                FIELD(ha.level, 'ticket', 'event', 'category', 'team', 'tournament', 'sport'),
                 h.sort_order ASC, h.name ASC
         ";
 
@@ -699,6 +724,7 @@ class HospitalityRepository
         $sportLevel = [];
         $tournamentLevel = [];
         $teamLevel = [];
+        $categoryLevel = [];  // category_id => array of hospitality rows
         $eventLevel = [];
         $ticketLevel = [];
 
@@ -707,6 +733,11 @@ class HospitalityRepository
                 case 'sport': $sportLevel[] = $match; break;
                 case 'tournament': $tournamentLevel[] = $match; break;
                 case 'team': $teamLevel[] = $match; break;
+                case 'category':
+                    $cId = $match['category_id'];
+                    $categoryLevel[$cId] = $categoryLevel[$cId] ?? [];
+                    $categoryLevel[$cId][] = $match;
+                    break;
                 case 'event': $eventLevel[] = $match; break;
                 case 'ticket':
                     $tId = $match['ticket_id'];
@@ -732,10 +763,17 @@ class HospitalityRepository
         foreach ($ticketIds as $tId) {
             $resolved = [];
 
-            // Most-specific first for dedup
+            // Category-level hospitalities for this ticket's venue section
+            $ticketCatId = $ticketCategoryMap[$tId] ?? null;
+            $categoryForTicket = ($ticketCatId && isset($categoryLevel[$ticketCatId]))
+                ? $categoryLevel[$ticketCatId]
+                : [];
+
+            // Most-specific first for dedup: ticket > event > category > team > tournament > sport
             $allForTicket = array_merge(
                 $ticketLevel[$tId] ?? [],
                 $eventLevel,
+                $categoryForTicket,
                 $teamLevel,
                 $tournamentLevel,
                 $sportLevel
@@ -970,7 +1008,7 @@ class HospitalityRepository
             FROM hospitality_assignments 
             WHERE is_active = 1 
             GROUP BY level 
-            ORDER BY FIELD(level, 'sport', 'tournament', 'team', 'event', 'ticket')
+            ORDER BY FIELD(level, 'sport', 'tournament', 'team', 'category', 'event', 'ticket')
         ");
         $byLevel = $levelStmt->fetchAll(PDO::FETCH_ASSOC);
 

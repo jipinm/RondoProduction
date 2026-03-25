@@ -300,33 +300,36 @@ export interface ResolvedHospitality {
   hospitality_id: number;
   hospitality_name: string;
   hospitality_description: string | null;
-  level: 'sport' | 'tournament' | 'team' | 'event' | 'ticket';
+  level: 'sport' | 'tournament' | 'team' | 'category' | 'event' | 'ticket';
   source: 'hospitality_assignments' | 'legacy';
 }
 
 /**
  * Get hierarchically resolved hospitality services for all tickets in an event.
- * Uses the 5-level hierarchy: sport > tournament > team > event > ticket.
+ * Uses the 6-level hierarchy: sport > tournament > team > category > event > ticket.
  * Returns a map of ticket_id → resolved hospitality list (no pricing).
  *
  * @param eventId - The event ID
  * @param sportType - Sport type for hierarchical context
- * @param ticketIds - Comma-separated ticket IDs
+ * @param ticketIds - Array of ticket IDs
  * @param tournamentId - Optional tournament ID
  * @param teamId - Optional team (home team) ID
+ * @param categoryIds - Optional array of XS2Event category_ids parallel to ticketIds
  */
 export const getResolvedEventHospitalities = async (
   eventId: string,
   sportType: string,
   ticketIds: string[],
   tournamentId?: string | null,
-  teamId?: string | null
+  teamId?: string | null,
+  categoryIds?: string[]
 ): Promise<Record<string, ResolvedHospitality[]>> => {
   const params = new URLSearchParams();
   if (sportType) params.append('sport_type', sportType);
   if (tournamentId) params.append('tournament_id', tournamentId);
   if (teamId) params.append('team_id', teamId);
   if (ticketIds.length > 0) params.append('ticket_ids', ticketIds.join(','));
+  if (categoryIds && categoryIds.length > 0) params.append('category_ids', categoryIds.join(','));
 
   const url = `${API_BASE_URL}/v1/events/${eventId}/effective-hospitalities?${params.toString()}`;
   const response = await fetch(url);

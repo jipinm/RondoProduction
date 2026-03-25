@@ -438,13 +438,24 @@ class PublicTicketEnhancementsController
             $tournamentId = $queryParams['tournament_id'] ?? null;
             $teamId = $queryParams['team_id'] ?? null;
             $ticketIdsStr = $queryParams['ticket_ids'] ?? '';
+            $categoryIdsStr = $queryParams['category_ids'] ?? '';
 
             $ticketIds = !empty($ticketIdsStr) ? explode(',', $ticketIdsStr) : [];
+            $categoryIdsArr = !empty($categoryIdsStr) ? explode(',', $categoryIdsStr) : [];
+
+            // Build ticket_id => category_id map (parallel arrays, same index order)
+            $ticketCategoryMap = [];
+            foreach ($ticketIds as $i => $tId) {
+                $catId = trim($categoryIdsArr[$i] ?? '');
+                if (!empty($catId)) {
+                    $ticketCategoryMap[trim($tId)] = $catId;
+                }
+            }
 
             if (!empty($sportType) && !empty($ticketIds)) {
-                // Use hierarchical resolution
+                // Use hierarchical resolution (includes category level if map provided)
                 $resolved = $this->hospitalityRepository->resolveHospitalitiesForEvent(
-                    $eventId, $sportType, $tournamentId, $teamId, $ticketIds
+                    $eventId, $sportType, $tournamentId, $teamId, $ticketIds, $ticketCategoryMap
                 );
             } else {
                 // Fallback to legacy event hospitalities (flat)
@@ -505,10 +516,11 @@ class PublicTicketEnhancementsController
             $sportType = $queryParams['sport_type'] ?? '';
             $tournamentId = $queryParams['tournament_id'] ?? null;
             $teamId = $queryParams['team_id'] ?? null;
+            $categoryId = !empty($queryParams['category_id']) ? $queryParams['category_id'] : null;
 
             if (!empty($sportType)) {
                 $resolved = $this->hospitalityRepository->resolveHospitalitiesForTicket(
-                    $sportType, $tournamentId, $teamId, $eventId, $ticketId
+                    $sportType, $tournamentId, $teamId, $eventId, $ticketId, $categoryId
                 );
             } else {
                 // Fallback to legacy

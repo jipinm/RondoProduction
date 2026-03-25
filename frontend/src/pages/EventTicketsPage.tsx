@@ -130,6 +130,9 @@ const EventTicketsPage: React.FC = () => {
   // Collect ticket IDs for hierarchical markup resolution
   const ticketIds = useMemo(() => tickets.map(t => t.ticket_id), [tickets]);
 
+  // Collect XS2Event category_ids aligned to ticketIds for category-level hospitality resolution
+  const categoryIds = useMemo(() => tickets.map(t => t.category_id), [tickets]);
+
   // Fetch effective (hierarchically-resolved) markup pricing for this event
   // Priority: legacy ticket > ticket rule > event rule > team rule > tournament rule > sport rule
   const { 
@@ -151,7 +154,8 @@ const EventTicketsPage: React.FC = () => {
     event?.sport_type,
     ticketIds,
     event?.tournament_id,
-    event?.hometeam_id
+    event?.hometeam_id,
+    categoryIds
   );
 
   // Registration form state
@@ -676,9 +680,11 @@ const EventTicketsPage: React.FC = () => {
 
                     <div className={styles.ticketPrice}>
                       <div className={styles.priceDisplay}>
+                        {/* DEBUG: Tooltip logic temporarily disabled. May be re-enabled in future.
+                        data-tooltip={`Local Price: ${ticket.currency_code} ${ticket.face_value?.toFixed(2)}\nExchange Rate: 1 ${ticket.currency_code} = ${hasConversionForCurrency(ticket.currency_code || '') ? getExchangeRate(ticket.currency_code || '').toFixed(4) : 'N/A'} ${selectedCurrencyCode}\nConverted: ${hasConversionForCurrency(ticket.currency_code || '') ? `${selectedCurrencyCode} ${convertAmount(ticket.face_value || 0, ticket.currency_code || '').toFixed(2)}` : 'N/A'}\nMarkup: ${(() => { const m = markupsByTicket.get(ticket.ticket_id); if (!m) return '0.00 (none)'; return m.markup_type === 'percentage' ? `${m.markup_percentage ?? m.markup_amount}% (${m.level})` : `${(m.markup_price_usd ?? m.markup_amount).toFixed(2)} USD (${m.level})`; })()}\nFinal Price: ${formatPrice(ticket)}`}
+                        */}
                         <span 
                           className={styles.priceAmount}
-                          data-tooltip={`Local Price: ${ticket.currency_code} ${ticket.face_value?.toFixed(2)}\nExchange Rate: 1 ${ticket.currency_code} = ${hasConversionForCurrency(ticket.currency_code || '') ? getExchangeRate(ticket.currency_code || '').toFixed(4) : 'N/A'} ${selectedCurrencyCode}\nConverted: ${hasConversionForCurrency(ticket.currency_code || '') ? `${selectedCurrencyCode} ${convertAmount(ticket.face_value || 0, ticket.currency_code || '').toFixed(2)}` : 'N/A'}\nMarkup: ${(() => { const m = markupsByTicket.get(ticket.ticket_id); if (!m) return '0.00 (none)'; return m.markup_type === 'percentage' ? `${m.markup_percentage ?? m.markup_amount}% (${m.level})` : `${(m.markup_price_usd ?? m.markup_amount).toFixed(2)} USD (${m.level})`; })()}\nFinal Price: ${formatPrice(ticket)}`}
                         >
                           {formatPrice(ticket)}
                         </span>

@@ -12,7 +12,7 @@ import { apiClient } from './api-client';
 // Types & Interfaces
 // ============================================================================
 
-export type AssignmentLevel = 'sport' | 'tournament' | 'team' | 'event' | 'ticket';
+export type AssignmentLevel = 'sport' | 'tournament' | 'team' | 'category' | 'event' | 'ticket';
 
 export interface Hospitality {
   id: number;
@@ -42,12 +42,14 @@ export interface HospitalityAssignment {
   sport_type: string | null;
   tournament_id: string | null;
   team_id: string | null;
+  category_id: string | null;
   event_id: string | null;
   ticket_id: string | null;
   level: AssignmentLevel;
   sport_name: string | null;
   tournament_name: string | null;
   team_name: string | null;
+  category_name: string | null;
   event_name: string | null;
   ticket_name: string | null;
   is_active: boolean | number;
@@ -66,11 +68,13 @@ export interface HospitalityAssignmentScope {
   sport_type: string;
   tournament_id?: string | null;
   team_id?: string | null;
+  category_id?: string | null;
   event_id?: string | null;
   ticket_id?: string | null;
   sport_name?: string | null;
   tournament_name?: string | null;
   team_name?: string | null;
+  category_name?: string | null;
   event_name?: string | null;
   ticket_name?: string | null;
 }

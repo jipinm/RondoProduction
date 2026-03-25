@@ -72,16 +72,18 @@ const LEVEL_LABELS: Record<AssignmentLevel, string> = {
   sport: 'Sport Level',
   tournament: 'Tournament Level',
   team: 'Team Level',
+  category: 'Venue Category Level',
   event: 'Event Level',
-  ticket: 'Ticket Category Level',
+  ticket: 'Ticket Level',
 };
 
 const LEVEL_DESCRIPTIONS: Record<AssignmentLevel, string> = {
   sport: 'Selected services will be available for ALL events and tickets under this sport',
   tournament: 'Selected services will be available for all events and tickets in this tournament',
   team: 'Selected services will be available for all events and tickets for this team',
-  event: 'Selected services will be available for all tickets under this event',
-  ticket: 'Selected services will be available only for this specific ticket category',
+  category: 'Selected services apply to all events at this venue that include this seating section (uses stable XS2Event category_id)',
+  event: 'Selected services will be available for all tickets under this specific event',
+  ticket: 'Selected services will be available only for this specific supplier ticket (event-scoped)',
 };
 
 // XS2Event API types
@@ -104,6 +106,15 @@ interface XS2Event {
   tournament_name: string;
   venue_name: string;
   date_start: string;
+}
+
+interface XS2Category {
+  category_id: string;
+  category_name: string;
+  category_type: string;
+  venue_id: string;
+  venue_name: string;
+  description?: Record<string, string | null>;
 }
 
 interface XS2Ticket {
@@ -149,12 +160,14 @@ const HospitalityManagement: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [events, setEvents] = useState<XS2Event[]>([]);
+  const [categories, setCategories] = useState<XS2Category[]>([]);
   const [tickets, setTickets] = useState<XS2Ticket[]>([]);
 
   const [selectedSport, setSelectedSport] = useState<Sport | null>(null);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<XS2Event | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<XS2Category | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<XS2Ticket | null>(null);
 
   const [targetLevel, setTargetLevel] = useState<AssignmentLevel>('sport');
@@ -344,6 +357,27 @@ const HospitalityManagement: React.FC = () => {
     }
   }, [error]);
 
+  const fetchCategories = useCallback(async (eventId: string) => {
+    setLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
+      const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
+
+      const response = await fetch(`${baseUrl}/v1/categories?event_id=${eventId}`, {
+        headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSports();
   }, [fetchSports]);
@@ -357,10 +391,11 @@ const HospitalityManagement: React.FC = () => {
     if (selectedSport) scope.sport_type = selectedSport.sport_type;
     if (selectedTournament) scope.tournament_id = selectedTournament.tournament_id;
     if (selectedTeam) scope.team_id = selectedTeam.team_id;
-    if (selectedEvent) scope.event_id = selectedEvent.event_id;
-    if (selectedTicket) scope.ticket_id = selectedTicket.ticket_id;
+    if (selectedCategory) scope.category_id = selectedCategory.category_id;
+    if (selectedEvent && !selectedCategory) scope.event_id = selectedEvent.event_id;
+    if (selectedTicket && !selectedCategory) scope.ticket_id = selectedTicket.ticket_id;
     return scope;
-  }, [selectedSport, selectedTournament, selectedTeam, selectedEvent, selectedTicket]);
+  }, [selectedSport, selectedTournament, selectedTeam, selectedCategory, selectedEvent, selectedTicket]);
 
   const fetchScopeAssignments = useCallback(async () => {
     if (!selectedSport) return;
@@ -382,7 +417,7 @@ const HospitalityManagement: React.FC = () => {
     if (viewMode === 'assignments' && selectedSport) {
       fetchScopeAssignments();
     }
-  }, [viewMode, selectedSport, selectedTournament, selectedTeam, selectedEvent, selectedTicket, fetchScopeAssignments]);
+  }, [viewMode, selectedSport, selectedTournament, selectedTeam, selectedCategory, selectedEvent, selectedTicket, fetchScopeAssignments]);
 
   const handleSportSelect = async (sportType: string) => {
     const sport = sports.find(s => s.sport_type === sportType);
@@ -390,10 +425,12 @@ const HospitalityManagement: React.FC = () => {
     setSelectedTournament(null);
     setSelectedTeam(null);
     setSelectedEvent(null);
+    setSelectedCategory(null);
     setSelectedTicket(null);
     setTournaments([]);
     setTeams([]);
     setEvents([]);
+    setCategories([]);
     setTickets([]);
     setTargetLevel('sport');
     setSelectedHospitalityIds([]);
@@ -409,9 +446,11 @@ const HospitalityManagement: React.FC = () => {
     setSelectedTournament(tournament || null);
     setSelectedTeam(null);
     setSelectedEvent(null);
+    setSelectedCategory(null);
     setSelectedTicket(null);
     setTeams([]);
     setEvents([]);
+    setCategories([]);
     setTickets([]);
     setTargetLevel('tournament');
     setSelectedHospitalityIds([]);
@@ -430,8 +469,10 @@ const HospitalityManagement: React.FC = () => {
     const team = teams.find(t => t.team_id === teamId);
     setSelectedTeam(team || null);
     setSelectedEvent(null);
+    setSelectedCategory(null);
     setSelectedTicket(null);
     setEvents([]);
+    setCategories([]);
     setTickets([]);
     setTargetLevel('team');
     setSelectedHospitalityIds([]);
@@ -445,20 +486,36 @@ const HospitalityManagement: React.FC = () => {
   const handleEventSelect = async (eventId: string) => {
     const event = events.find(e => e.event_id === eventId);
     setSelectedEvent(event || null);
+    setSelectedCategory(null);
     setSelectedTicket(null);
+    setCategories([]);
     setTickets([]);
     setTargetLevel('event');
     setSelectedHospitalityIds([]);
     setScopeAssignments([]);
 
     if (event) {
-      await fetchTickets(event.event_id);
+      // Fetch both categories (for category-level assignment) and tickets in parallel
+      await Promise.all([
+        fetchCategories(event.event_id),
+        fetchTickets(event.event_id),
+      ]);
     }
+  };
+
+  const handleCategorySelect = (categoryId: string) => {
+    const category = categories.find(c => c.category_id === categoryId);
+    setSelectedCategory(category || null);
+    setSelectedTicket(null); // mutually exclusive with ticket selection
+    setTargetLevel('category');
+    setSelectedHospitalityIds([]);
+    setScopeAssignments([]);
   };
 
   const handleTicketSelect = (ticketId: string) => {
     const ticket = tickets.find(t => t.ticket_id === ticketId);
     setSelectedTicket(ticket || null);
+    setSelectedCategory(null); // mutually exclusive with category selection
     setTargetLevel('ticket');
     setSelectedHospitalityIds([]);
     setScopeAssignments([]);
@@ -470,8 +527,9 @@ const HospitalityManagement: React.FC = () => {
     if (selectedSport) levels.push('sport');
     if (selectedTournament) levels.push('tournament');
     if (selectedTeam) levels.push('team');
-    if (selectedEvent) levels.push('event');
-    if (selectedTicket) levels.push('ticket');
+    if (selectedCategory) levels.push('category');
+    if (selectedEvent && !selectedCategory) levels.push('event');
+    if (selectedTicket && !selectedCategory) levels.push('ticket');
     return levels;
   };
 
@@ -481,8 +539,9 @@ const HospitalityManagement: React.FC = () => {
     if (selectedSport) parts.push(selectedSport.name);
     if (selectedTournament) parts.push(selectedTournament.official_name || selectedTournament.name);
     if (selectedTeam) parts.push(selectedTeam.official_name || selectedTeam.name);
-    if (selectedEvent) parts.push(selectedEvent.event_name);
-    if (selectedTicket) parts.push(selectedTicket.ticket_title);
+    if (selectedCategory) parts.push(`🏟️ ${selectedCategory.category_name}`);
+    if (selectedEvent && !selectedCategory) parts.push(selectedEvent.event_name);
+    if (selectedTicket && !selectedCategory) parts.push(selectedTicket.ticket_title);
     return parts;
   };
 
@@ -492,6 +551,7 @@ const HospitalityManagement: React.FC = () => {
       case 'sport': return '#8b5cf6';
       case 'tournament': return '#3b82f6';
       case 'team': return '#10b981';
+      case 'category': return '#0ea5e9';
       case 'event': return '#f59e0b';
       case 'ticket': return '#ef4444';
       default: return '#64748b';
@@ -643,6 +703,10 @@ const HospitalityManagement: React.FC = () => {
       error('Please select a team for team-level assignment');
       return;
     }
+    if (targetLevel === 'category' && !selectedCategory) {
+      error('Please select a venue category for category-level assignment');
+      return;
+    }
     if (targetLevel === 'event' && !selectedEvent) {
       error('Please select an event for event-level assignment');
       return;
@@ -665,9 +729,15 @@ const HospitalityManagement: React.FC = () => {
         scopeData.tournament_id = selectedTournament.tournament_id;
         scopeData.tournament_name = selectedTournament.official_name || selectedTournament.name;
       }
-      if (['team', 'event', 'ticket'].includes(targetLevel) && selectedTeam) {
+      if (['team', 'category', 'event', 'ticket'].includes(targetLevel) && selectedTeam) {
         scopeData.team_id = selectedTeam.team_id;
         scopeData.team_name = selectedTeam.official_name || selectedTeam.name;
+      }
+      // Category level: use category_id but NOT event_id (venue-scoped assignment)
+      if (targetLevel === 'category' && selectedCategory) {
+        scopeData.category_id = selectedCategory.category_id;
+        scopeData.category_name = selectedCategory.category_name;
+        // Deliberately omit event_id — category is venue-scoped, not event-scoped
       }
       if (['event', 'ticket'].includes(targetLevel) && selectedEvent) {
         scopeData.event_id = selectedEvent.event_id;
@@ -1017,7 +1087,8 @@ const HospitalityManagement: React.FC = () => {
                   Step {hasTeams ? '4' : '3'}: Select Event (Optional)
                 </h2>
                 <p className={styles.helpText}>
-                  Skip this to assign hospitalities at the {selectedTeam ? 'team' : 'tournament'} level
+                  Skip this to assign hospitalities at the {selectedTeam ? 'team' : 'tournament'} level.
+                  Selecting an event also loads available venue categories for category-level assignment.
                 </p>
                 <div className={styles.selectWrapper}>
                   <select
@@ -1040,14 +1111,68 @@ const HospitalityManagement: React.FC = () => {
               </Card>
             )}
 
-            {/* Step: Ticket Selection */}
+            {/* Step: Venue Category Selection (NEW — category level) */}
             {selectedEvent && (
               <Card className={styles.selectionCard}>
                 <h2 className={styles.cardTitle}>
-                  Step {hasTeams ? '5' : '4'}: Select Ticket Category (Optional)
+                  Step {hasTeams ? '5a' : '4a'}: Assign at Venue Category Level ⭐ Recommended
                 </h2>
                 <p className={styles.helpText}>
-                  Skip this to assign hospitalities at the event level to all tickets
+                  Select a venue section (XS2Event Category) to assign hospitality services that apply
+                  automatically across <strong>all events</strong> at this venue using that section —
+                  no per-event configuration needed. Category IDs are stable and venue-scoped.
+                </p>
+                {loading && categories.length === 0 ? (
+                  <div className={styles.loading}>Loading venue categories...</div>
+                ) : categories.length === 0 ? (
+                  <div className={styles.helpText}>No categories found for this event.</div>
+                ) : (
+                  <div className={styles.selectWrapper}>
+                    <select
+                      className={styles.select}
+                      value={selectedCategory?.category_id || ''}
+                      onChange={(e) => handleCategorySelect(e.target.value)}
+                    >
+                      <option value="">-- Select Venue Category (optional) --</option>
+                      {categories
+                        .slice()
+                        .sort((a, b) => {
+                          // Surface hospitality/premium types first
+                          const priority = ['hospitality', 'offsite_hospitality'];
+                          const aP = priority.includes(a.category_type) ? 0 : 1;
+                          const bP = priority.includes(b.category_type) ? 0 : 1;
+                          return aP - bP || a.category_name.localeCompare(b.category_name);
+                        })
+                        .map(c => (
+                          <option key={c.category_id} value={c.category_id}>
+                            {['hospitality', 'offsite_hospitality'].includes(c.category_type)
+                              ? `⭐ ${c.category_name} [${c.category_type}]`
+                              : `${c.category_name} [${c.category_type}]`}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+                {selectedCategory && (
+                  <div className={styles.helpText} style={{ marginTop: '8px', color: '#0ea5e9' }}>
+                    ℹ️ Category <strong>{selectedCategory.category_name}</strong>
+                    &nbsp;(ID: <code>{selectedCategory.category_id}</code>) is venue-scoped.
+                    Assigning here applies to <strong>all events at {selectedEvent.venue_name || 'this venue'}</strong>
+                    that include this section.
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {/* Step: Ticket Selection (only shown if no category selected) */}
+            {selectedEvent && !selectedCategory && (
+              <Card className={styles.selectionCard}>
+                <h2 className={styles.cardTitle}>
+                  Step {hasTeams ? '5b' : '4b'}: Select Specific Ticket (Optional — event-scoped)
+                </h2>
+                <p className={styles.helpText}>
+                  Use this for one-off assignments to a specific supplier ticket within this event only.
+                  For recurring hospitality on all similar events, use the Category Level above instead.
                 </p>
                 <div className={styles.selectWrapper}>
                   <select
@@ -1219,7 +1344,7 @@ const HospitalityManagement: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className={styles.scopeCell}>
+                        <div>
                           {assignment.sport_name && <span className={styles.scopeItem}>{assignment.sport_name}</span>}
                           {assignment.tournament_name && (
                             <>
@@ -1231,6 +1356,14 @@ const HospitalityManagement: React.FC = () => {
                             <>
                               <ChevronRight size={12} />
                               <span className={styles.scopeItem}>{assignment.team_name}</span>
+                            </>
+                          )}
+                          {assignment.category_name && (
+                            <>
+                              <ChevronRight size={12} />
+                              <span className={styles.scopeItem} style={{ color: '#0ea5e9' }}>
+                                🏟️ {assignment.category_name}
+                              </span>
                             </>
                           )}
                           {assignment.event_name && (
@@ -1288,7 +1421,7 @@ const HospitalityManagement: React.FC = () => {
                 <div className={styles.priorityItem}>
                   <span className={styles.priorityBadge} style={{ backgroundColor: '#ef4444' }}>1</span>
                   <div>
-                    <strong>Ticket Category Level</strong> — Most specific. Services assigned directly to a ticket category.
+                    <strong>Ticket Level</strong> — Most specific. Services assigned to a specific supplier ticket within one event.
                   </div>
                 </div>
                 <div className={styles.priorityItem}>
@@ -1298,26 +1431,37 @@ const HospitalityManagement: React.FC = () => {
                   </div>
                 </div>
                 <div className={styles.priorityItem}>
-                  <span className={styles.priorityBadge} style={{ backgroundColor: '#10b981' }}>3</span>
+                  <span className={styles.priorityBadge} style={{ backgroundColor: '#0ea5e9' }}>3</span>
+                  <div>
+                    <strong>Venue Category Level</strong> ⭐ — Services linked to a venue section (XS2Event category_id).
+                    Applies automatically across <em>all</em> events at the venue that include that section.
+                    <br />
+                    <small style={{ opacity: 0.7 }}>Use this for recurring hospitality (e.g., a VIP lounge that exists in every home match).</small>
+                  </div>
+                </div>
+                <div className={styles.priorityItem}>
+                  <span className={styles.priorityBadge} style={{ backgroundColor: '#10b981' }}>4</span>
                   <div>
                     <strong>Team Level</strong> — Services available for all events/tickets for a team (team sports only).
                   </div>
                 </div>
                 <div className={styles.priorityItem}>
-                  <span className={styles.priorityBadge} style={{ backgroundColor: '#3b82f6' }}>4</span>
+                  <span className={styles.priorityBadge} style={{ backgroundColor: '#3b82f6' }}>5</span>
                   <div>
                     <strong>Tournament Level</strong> — Services available for all events/tickets in a tournament.
                   </div>
                 </div>
                 <div className={styles.priorityItem}>
-                  <span className={styles.priorityBadge} style={{ backgroundColor: '#8b5cf6' }}>5</span>
+                  <span className={styles.priorityBadge} style={{ backgroundColor: '#8b5cf6' }}>6</span>
                   <div>
                     <strong>Sport Level</strong> — Least specific. Services available for ALL events/tickets under a sport type.
                   </div>
                 </div>
               </div>
               <p className={styles.priorityNote}>
-                <strong>Additive Model:</strong> Services are collected from ALL matching levels. A ticket inherits services from its event, team, tournament, and sport levels. If the same service appears at multiple levels, the most specific assignment is used.
+                <strong>Additive Model:</strong> Services are collected from ALL matching levels. A ticket inherits
+                services from its event, venue category, team, tournament, and sport levels. If the same service
+                appears at multiple levels, the most specific assignment is used.
               </p>
             </Card>
           </>

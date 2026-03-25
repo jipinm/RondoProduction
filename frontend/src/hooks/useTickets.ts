@@ -32,8 +32,16 @@ export const useTickets = (params: UseTicketsParams): UseTicketsResult => {
 
         const endpoint = `${API_ENDPOINTS.TICKETS}?${queryParams.toString()}`;
         const response = await apiClient.request<TicketsResponse>(endpoint);
-        
-        setTickets(response.data.tickets || []);
+
+        // API returns prices in cents (e.g. 40000 = £400.00). Normalize to standard
+        // currency units here so all consumers (display, calculations, checkout) are correct.
+        const normalized = (response.data.tickets || []).map(ticket => ({
+          ...ticket,
+          face_value: ticket.face_value != null ? ticket.face_value / 100 : ticket.face_value,
+          net_rate: ticket.net_rate != null ? ticket.net_rate / 100 : ticket.net_rate,
+        }));
+
+        setTickets(normalized);
       } catch (err: any) {
         const errorMessage = err?.message || 'Failed to fetch tickets';
         setError(errorMessage);

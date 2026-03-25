@@ -197,7 +197,7 @@ const EventsPage: React.FC = () => {
       });
     }
 
-    // Price sorting
+    // Price sorting (overrides default date sort when active)
     if (priceFilter === 'Low to High') {
       filteredEvents.sort((a, b) => {
         const priceA = a.min_ticket_price_eur || 0;
@@ -209,6 +209,19 @@ const EventsPage: React.FC = () => {
         const priceA = a.min_ticket_price_eur || 0;
         const priceB = b.min_ticket_price_eur || 0;
         return priceB - priceA;
+      });
+    } else {
+      // Default: sort by date_start ascending — nearest upcoming event first.
+      // Events with missing or invalid date_start are pushed to the end.
+      filteredEvents.sort((a, b) => {
+        const tA = a.date_start ? new Date(a.date_start).getTime() : NaN;
+        const tB = b.date_start ? new Date(b.date_start).getTime() : NaN;
+        const validA = !isNaN(tA);
+        const validB = !isNaN(tB);
+        if (!validA && !validB) return 0;
+        if (!validA) return 1;
+        if (!validB) return -1;
+        return tA - tB;
       });
     }
 
