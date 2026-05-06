@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiClient, API_ENDPOINTS } from '../services/apiRoutes';
 import { getCurrentSeason } from '../utils/dateUtils';
 import { apiCache } from '../utils/apiCache';
 import type { Tournament, TournamentsResponse, Team, TeamsResponse } from '../services/apiRoutes';
+import type { DisplaySettings } from './useDisplaySettings';
 
 interface MenuHierarchy {
   tournaments: Tournament[];
@@ -22,18 +23,34 @@ interface UseMenuHierarchyReturn {
   clearMenuCache: () => void;
 }
 
+interface UseMenuHierarchyProps {
+  /** Pass display settings to apply tournament and team filtering. */
+  displaySettings?: DisplaySettings;
+}
+
 /**
  * Custom hook for managing complete menu hierarchy with caching
  * Handles tournaments, teams, and navigation links in a unified cache
  */
-export const useMenuHierarchy = (): UseMenuHierarchyReturn => {
+export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarchyReturn => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teamsMap, setTeamsMap] = useState<Record<string, Team[]>>({});
   const [linksMap, setLinksMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const displaySettings = props?.displaySettings;
   const currentSeason = getCurrentSeason();
+
+  // Use a ref for the in-flight guard so it doesn't appear in useCallback deps
+  // (which would cause fetchCompleteHierarchy to recreate and re-trigger effects).
+  const fetchingRef = useRef(false);
+
+  // Keep a ref of displaySettings so the async fetch closure in Step 5 always
+  // reads the *latest* value — not a stale closure capture from when the fetch
+  // was initiated (before useDisplaySettings may have resolved).
+  const displaySettingsRef = useRef(displaySettings);
+  displaySettingsRef.current = displaySettings;
 
   const generateTeamLink = useCallback((tournamentId: string, teamId: string, season: string): string => {
     return `/events?tournament_id=${tournamentId}&team_id=${teamId}&season=${season}`;
@@ -51,92 +68,127 @@ export const useMenuHierarchy = (): UseMenuHierarchyReturn => {
   }, [currentSeason]);
 
   const fetchCompleteHierarchy = useCallback(async (): Promise<void> => {
-    // Check cache first
+    // Check cache first — cache stores the full unfiltered hierarchy so
+    // display-settings filtering is always applied fresh on top of it.
     const cachedHierarchy = loadFromCache();
     if (cachedHierarchy) {
-      setTournaments(cachedHierarchy.tournaments);
-      setTeamsMap(cachedHierarchy.teamsMap);
-      setLinksMap(cachedHierarchy.linksMap);
+      const visibleTournamentIds = displaySettings?.football_visible_tournaments ?? [];
+      const cachedTournaments = visibleTournamentIds.length > 0
+        ? cachedHierarchy.tournaments.filter(t => visibleTournamentIds.includes(t.tournament_id))
+        : cachedHierarchy.tournaments;
+
+      const filteredTeamsMap: Record<string, Team[]> = {};
+      const filteredLinksMap: Record<string, string> = {};
+      cachedTournaments.forEach(t => {
+        const excludedIds = displaySettings?.excluded_teams?.[t.tournament_id] ?? [];
+        const allTeams = cachedHierarchy.teamsMap[t.tournament_id] ?? [];
+        const visibleTeams = excludedIds.length > 0
+          ? allTeams.filter(team => !excludedIds.includes(team.team_id))
+          : allTeams;
+        filteredTeamsMap[t.tournament_id] = visibleTeams;
+        visibleTeams.forEach(team => {
+          filteredLinksMap[`${t.tournament_id}_${team.team_id}`] =
+            cachedHierarchy.linksMap[`${t.tournament_id}_${team.team_id}`] ||
+            generateTeamLink(t.tournament_id, team.team_id, currentSeason);
+        });
+      });
+
+      setTournaments(cachedTournaments);
+      setTeamsMap(filteredTeamsMap);
+      setLinksMap(filteredLinksMap);
       return;
     }
 
-    if (loading) return;
-    
+    // Guard against concurrent fetches using a ref (not state, to avoid
+    // adding `loading` to this callback's deps which would cause infinite loops).
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
-      // Step 1: Fetch tournaments
+      // Step 1: Fetch all tournaments for the current season
       const tournamentsUrl = `${API_ENDPOINTS.TOURNAMENTS}?page_size=50&page=1&sport_type=soccer&season=${currentSeason}`;
-      const tournamentsResponse = await apiClient.get<TournamentsResponse>(
-        tournamentsUrl
-      );
+      const tournamentsResponse = await apiClient.get<TournamentsResponse>(tournamentsUrl);
 
       const allTournaments = tournamentsResponse.data.tournaments || [];
-      const filteredTournaments = allTournaments.filter(tournament => 
+      const filteredTournaments = allTournaments.filter(tournament =>
         (tournament.number_events ?? 0) >= 1
       );
 
-      // Step 2: Fetch teams for all tournaments in parallel
+      // Step 2: Fetch teams for ALL tournaments so the cache is fully populated
+      // and can be re-filtered when display settings change.
       const teamsPromises = filteredTournaments.map(async (tournament) => {
         try {
           const teamsUrl = `${API_ENDPOINTS.TEAMS}?club_logo=true&sport_type=soccer&tournament_id=${tournament.tournament_id}&popular=true`;
-          const teamsResponse = await apiClient.get<TeamsResponse>(
-            teamsUrl
-          );
-          
-          const teams = teamsResponse.data.teams || [];
-          return {
-            tournamentId: tournament.tournament_id,
-            teams
-          };
-        } catch (error) {
-          return {
-            tournamentId: tournament.tournament_id,
-            teams: []
-          };
+          const teamsResponse = await apiClient.get<TeamsResponse>(teamsUrl);
+          return { tournamentId: tournament.tournament_id, teams: teamsResponse.data.teams || [] };
+        } catch {
+          return { tournamentId: tournament.tournament_id, teams: [] };
         }
       });
 
       const teamsResults = await Promise.all(teamsPromises);
 
-      // Step 3: Build teams map and links map
-      const newTeamsMap: Record<string, Team[]> = {};
-      const newLinksMap: Record<string, string> = {};
-
+      // Step 3: Build RAW (unfiltered) maps for caching
+      const rawTeamsMap: Record<string, Team[]> = {};
+      const rawLinksMap: Record<string, string> = {};
       teamsResults.forEach(({ tournamentId, teams }) => {
-        newTeamsMap[tournamentId] = teams;
-        
-        // Generate links for all teams
+        rawTeamsMap[tournamentId] = teams;
         teams.forEach(team => {
-          const linkKey = `${tournamentId}_${team.team_id}`;
-          newLinksMap[linkKey] = generateTeamLink(tournamentId, team.team_id, currentSeason);
+          rawLinksMap[`${tournamentId}_${team.team_id}`] =
+            generateTeamLink(tournamentId, team.team_id, currentSeason);
         });
       });
 
-      // Step 4: Create complete hierarchy object
+      // Step 4: Cache the FULL unfiltered hierarchy
       const hierarchy: MenuHierarchy = {
         tournaments: filteredTournaments,
-        teamsMap: newTeamsMap,
-        linksMap: newLinksMap,
+        teamsMap: rawTeamsMap,
+        linksMap: rawLinksMap,
         season: currentSeason,
         lastUpdated: Date.now()
       };
-
-      // Step 5: Save to cache and update state
       saveToCache(hierarchy);
-      setTournaments(filteredTournaments);
-      setTeamsMap(newTeamsMap);
-      setLinksMap(newLinksMap);
 
-      setLoading(false);
+      // Step 5: Apply current display settings filter for this render.
+      // Read from the ref so we always use the *latest* settings, even if
+      // they resolved while this async fetch was in-flight.
+      const latestSettings = displaySettingsRef.current;
+      const settingIds = latestSettings?.football_visible_tournaments ?? [];
+      const visibleForRender = settingIds.length > 0
+        ? filteredTournaments.filter(t => settingIds.includes(t.tournament_id))
+        : filteredTournaments;
 
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch menu hierarchy';
+      const renderTeamsMap: Record<string, Team[]> = {};
+      const renderLinksMap: Record<string, string> = {};
+      visibleForRender.forEach(t => {
+        const excludedIds = latestSettings?.excluded_teams?.[t.tournament_id] ?? [];
+        const rawTeams = rawTeamsMap[t.tournament_id] ?? [];
+        const visibleTeams = excludedIds.length > 0
+          ? rawTeams.filter(team => !excludedIds.includes(team.team_id))
+          : rawTeams;
+        renderTeamsMap[t.tournament_id] = visibleTeams;
+        visibleTeams.forEach(team => {
+          renderLinksMap[`${t.tournament_id}_${team.team_id}`] =
+            rawLinksMap[`${t.tournament_id}_${team.team_id}`] ||
+            generateTeamLink(t.tournament_id, team.team_id, currentSeason);
+        });
+      });
+
+      setTournaments(visibleForRender);
+      setTeamsMap(renderTeamsMap);
+      setLinksMap(renderLinksMap);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch menu hierarchy';
       setError(errorMessage);
+    } finally {
+      fetchingRef.current = false;
       setLoading(false);
     }
-  }, [loading, currentSeason, loadFromCache, saveToCache, generateTeamLink]);
+  // NOTE: `loading` state is intentionally omitted — fetchingRef guards against
+  // concurrent calls without causing this callback to re-create on state change.
+  }, [currentSeason, loadFromCache, saveToCache, generateTeamLink, displaySettings]);
 
   const getTeamsForTournament = useCallback((tournamentId: string): Team[] => {
     return teamsMap[tournamentId] || [];
@@ -164,10 +216,11 @@ export const useMenuHierarchy = (): UseMenuHierarchyReturn => {
     setError(null);
   }, [currentSeason]);
 
-  // Load menu hierarchy on component mount
+  // Re-run whenever fetchCompleteHierarchy changes — which happens whenever
+  // displaySettings changes — so the filtered list is always up to date.
   useEffect(() => {
     fetchCompleteHierarchy();
-  }, []);
+  }, [fetchCompleteHierarchy]);
 
   return {
     tournaments,

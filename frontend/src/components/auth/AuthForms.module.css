@@ -81,7 +81,7 @@
 }
 
 .input:disabled {
-  background-color: #f9fafb;
+  background-color: var(--color-neutral-light);
   color: #9ca3af;
   cursor: not-allowed;
 }

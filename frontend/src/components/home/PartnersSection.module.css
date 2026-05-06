@@ -26,12 +26,23 @@
   transform: translate(-50%, -50%);
   font-size: 27px;
   font-weight: 700;
-  color: #6A89A7;
+  color: var(--color-secondary-1);
   background-color: white;
   padding: 0 2rem;
   text-align: center;
   letter-spacing: 3px;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.partnersTitleLogo {
+  height: 1.8em;
+  width: auto;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
 }
 
 .partnersLogos {
@@ -86,7 +97,7 @@
 }
 
 .sliderDotActive {
-  background-color: #6A89A7;
+  background-color: var(--color-secondary-1);
   width: 12px;
   height: 12px;
 }

@@ -16,9 +16,34 @@
 .sectionTitle {
   text-align: center;
   font-size: var(--font-size-3xl);
-  font-weight: 700;
+  font-weight: 400;
   color: var(--primary);
   margin-bottom: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.titleText {
+  display: inline-block;
+  font-size: 1.5em;
+  font-weight: 400;
+}
+
+.titleLogomark {
+  height: 1.05em;
+  width: auto;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
+}
+
+.titleSuffix {
+  display: inline-block;
+  font-size: 1.5em;
+  font-weight: 400;
+  margin-left: 0.05em;
 }
 
 .featuresGrid {
@@ -72,7 +97,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: var(--secondary);
+  background-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;

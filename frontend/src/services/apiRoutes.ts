@@ -263,6 +263,9 @@ export const apiClient = new XS2EventAPI();
 
 // API Endpoints Constants
 export const API_ENDPOINTS = {
+  // Display settings (public)
+  DISPLAY_SETTINGS: '/api/v1/display-settings',
+
   // Sports & Tournaments
   SPORTS: '/v1/sports',
   TOURNAMENTS: '/v1/tournaments',
@@ -274,6 +277,8 @@ export const API_ENDPOINTS = {
   EVENTS: '/v1/events',
   EVENT_DETAILS: (eventId: string) => `/v1/events/${eventId}`,
   VENUES: '/v1/venues',
+  CITIES: '/v1/cities',
+  COUNTRIES: '/v1/countries',
   
   // Tickets & Categories
   CATEGORIES: '/v1/categories',
@@ -570,6 +575,33 @@ export interface EventsResponse {
   pagination: {
     total_size: number;
     page_size: number;
+    next_page?: string;
+    previous_page?: string;
+  };
+}
+
+export interface CityItem {
+  city: string;
+  country: string;
+}
+
+export interface CitiesResponse {
+  cities: CityItem[];
+  pagination: {
+    total_size: number;
+    page_size: number;
+    page_number: number;
+    next_page?: string;
+    previous_page?: string;
+  };
+}
+
+export interface CountriesResponse {
+  countries: Array<{ country: string }>;
+  pagination: {
+    total_size: number;
+    page_size: number;
+    page_number: number;
     next_page?: string;
     previous_page?: string;
   };

@@ -207,7 +207,7 @@
 }
 
 .tertiaryButton:hover {
-  background: #f9fafb;
+  background: var(--color-neutral-light);
   border-color: #9ca3af;
   transform: translateY(-2px);
 }

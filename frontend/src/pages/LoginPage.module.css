@@ -4,7 +4,7 @@
 
 /* Hero Section */
 .heroSection {
-  background: linear-gradient(135deg, #384959 0%, #57B9FF 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary-1) 100%);
   padding: 4rem 0;
   color: white;
   position: relative;
@@ -59,7 +59,7 @@
 }
 
 .titleHighlight {
-  color: #ff6b35;
+  color: var(--color-accent);
   margin-left: 2rem;
 }
 
@@ -85,7 +85,7 @@
 }
 
 .featureIcon {
-  color: #ff6b35;
+  color: var(--color-accent);
   font-size: 1.5rem;
   flex-shrink: 0;
 }
@@ -103,7 +103,7 @@
   padding: 2.5rem;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  color: #384959;
+  color: var(--color-primary);
   z-index: 3;
   position: relative;
 }
@@ -114,7 +114,7 @@
 }
 
 .formHeader h2 {
-  color: #384959;
+  color: var(--color-primary);
   margin: 0;
   font-size: 1.75rem;
   font-weight: 600;
@@ -144,7 +144,7 @@
 
 .formGroup label {
   font-weight: 500;
-  color: #384959;
+  color: var(--color-primary);
   font-size: 0.9rem;
 }
 
@@ -161,7 +161,7 @@
 .formInput:focus,
 .formSelect:focus {
   outline: none;
-  border-color: #51A2DD;
+  border-color: var(--color-secondary-1);
   box-shadow: 0 0 0 3px rgba(81, 162, 221, 0.1);
 }
 
@@ -197,7 +197,7 @@
 }
 
 .checkboxLabel a {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
   text-decoration: none;
 }
 
@@ -207,7 +207,7 @@
 
 .submitButton {
   width: 100%;
-  background: linear-gradient(135deg, #51A2DD 0%, #384959 100%);
+  background: linear-gradient(135deg, var(--color-secondary-1) 0%, var(--color-primary) 100%);
   color: white;
   padding: 0.875rem 1.5rem;
   border: none;
@@ -273,7 +273,7 @@
 .switchButton {
   background: none;
   border: none;
-  color: #51A2DD;
+  color: var(--color-secondary-1);
   cursor: pointer;
   text-decoration: underline;
   font-size: 0.95rem;
@@ -282,7 +282,7 @@
 }
 
 .switchButton:hover {
-  color: #ff6b35;
+  color: var(--color-accent);
 }
 
 .imageOverlay {
@@ -323,7 +323,7 @@
 
 /* Trust Section */
 .trustSection {
-  background: #f8f9fa;
+  background: var(--color-neutral-light);
   padding: 4rem 0;
 }
 
@@ -352,7 +352,7 @@
   justify-content: center;
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #ff6b35, #e55a2b);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent));
   color: white;
   border-radius: 50%;
   font-size: 1.5rem;
@@ -362,7 +362,7 @@
 .trustItem h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -377,7 +377,7 @@
   padding: 3rem;
   color: #ffffff;
   font-size: 1.2rem;
-  background: linear-gradient(135deg, #384959 0%, #57B9FF 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary-1) 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;

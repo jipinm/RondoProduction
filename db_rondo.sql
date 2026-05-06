@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `admin_users` (
 -- Dumping data for table rondo.admin_users: ~4 rows (approximately)
 INSERT INTO `admin_users` (`id`, `name`, `email`, `password_hash`, `role_id`, `role`, `status`, `permissions`, `last_login_at`, `password_changed_at`, `email_verified_at`, `two_fa_enabled`, `two_fa_secret`, `failed_login_attempts`, `locked_until`, `created_by`, `created_at`, `updated_at`) VALUES
 	(1, 'Super Administrator', 'superadmin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2, 'admin', 'active', NULL, '2025-10-14 06:20:52', NULL, '2025-10-01 12:39:22', 0, NULL, 0, NULL, NULL, '2025-10-01 12:39:22', '2025-10-14 06:20:52'),
-	(3, 'Administrator', 'admin@example.com', '$2y$10$nrSSAKGq92Tu2JKtKiCvMeRnGkgP/dVzIBGNlAZfQ7Lg7Lvw9IDHS', 1, 'super_admin', 'active', NULL, '2026-03-10 07:03:03', '2025-10-20 10:30:18', NULL, 0, NULL, 0, NULL, NULL, '2025-10-01 13:09:32', '2026-03-10 07:03:03'),
+	(3, 'Administrator', 'admin@example.com', '$2y$10$nrSSAKGq92Tu2JKtKiCvMeRnGkgP/dVzIBGNlAZfQ7Lg7Lvw9IDHS', 1, 'super_admin', 'active', NULL, '2026-04-20 07:55:50', '2025-10-20 10:30:18', NULL, 0, NULL, 0, NULL, NULL, '2025-10-01 13:09:32', '2026-04-20 07:55:50'),
 	(6, 'Viewer', 'viewer@example.com', '$2y$10$SqepbywijmC5N1FDI6buKOqrPx77nIL9BLSWLCJ5/0cFOo2EQcasK', 3, 'manager', 'active', NULL, NULL, '2025-10-02 09:05:14', NULL, 0, NULL, 0, NULL, NULL, '2025-10-02 09:05:14', '2025-10-12 19:16:37'),
 	(8, 'Staff', 'staff@example.com', '$2y$10$CFw5.Rm69NmpK1PpVWambuBKALJmVVzuXB6L.F7ct2BaurqvHdZ2S', 4, 'staff', 'inactive', NULL, NULL, '2025-10-02 09:33:46', NULL, 0, NULL, 0, NULL, NULL, '2025-10-02 09:33:46', '2025-10-18 22:21:45');
 
@@ -110,17 +110,17 @@ CREATE TABLE IF NOT EXISTS `banners` (
 
 -- Dumping data for table rondo.banners: ~11 rows (approximately)
 INSERT INTO `banners` (`id`, `title`, `description`, `image_url`, `mobile_image_url`, `link_url`, `link_target`, `position_order`, `status`, `location`, `event_date`, `click_count`, `impression_count`, `created_by`, `created_at`, `updated_at`, `price_tag`) VALUES
-	(7, 'Wimbledon 2026', 'Live from the All England Club', 'https://apix2.redberries.ae/images/banners/WIMBLEDON_LOGO_693cf29d5f7e4_1765601949.jpeg', 'https://apix2.redberries.ae/images/banners/WIMBLEDON_LOGO_693cf29d5f7e4_1765601949.jpeg', 'https://rondosport.redberries.ae/events?sport_type=tennis', '_self', 2, 'active', 'homepage_secondary', NULL, 0, 0, 3, '2025-10-21 07:39:29', '2025-12-13 09:32:44', NULL),
-	(8, 'Arsenal vs Liverpool', 'Top of the table clash in North London', 'https://apix2.redberries.ae/images/banners/Emirates_Day_693cf2e73fde6_1765602023.jpg', 'https://apix2.redberries.ae/images/banners/Emirates_Day_693cf2e73fde6_1765602023.jpg', 'https://rondosport.redberries.ae/events/b3c684e67d6a405b9e9ab3a60191111d_gnr/tickets', '_blank', 4, 'active', 'homepage_secondary', '2026-01-01', 0, 0, 3, '2025-10-21 07:40:39', '2025-12-21 11:06:38', NULL),
-	(9, 'Premier League', 'Top-Tier English Football Action', 'https://apix2.redberries.ae/images/banners/PREMIERSHIP_691daace63876_1763551950_main.jpg', 'https://apix2.redberries.ae/images/banners/PREMIERSHIP_691daace63876_1763551950_mobile.jpg', 'https://rondosport.redberries.ae/teams?tournament_id=f306f395644a42e09821253d13637d70_trn&sport_type=soccer&page=1&page_size=50', '_self', 0, 'active', 'homepage_hero', '2025-12-18', 0, 0, 3, '2025-11-19 11:32:21', '2025-12-21 11:06:38', NULL),
-	(10, 'La Liga', 'Elite Football, Spanish Style', 'https://apix2.redberries.ae/images/banners/Barcelona_Stadium_Day_693d58150b20b_1765627925.jpg', 'https://apix2.redberries.ae/images/banners/Barcelona_Stadium_Day_693d58150b20b_1765627925.jpg', 'https://rondosport.redberries.ae/teams?tournament_id=42407e31113847d3ba90dbae62e7fa65_trn&sport_type=soccer&page=1&page_size=50', '_self', 1, 'active', 'homepage_hero', '2026-02-19', 0, 0, 3, '2025-11-19 11:33:55', '2025-12-21 11:06:38', NULL),
-	(11, 'Bundesliga', 'Germany’s Premier Football Action', 'https://apix2.redberries.ae/images/banners/BUNDESLIGA_691dab927c987_1763552146_main.jpg', 'https://apix2.redberries.ae/images/banners/BUNDESLIGA_691dab927c987_1763552146_mobile.jpg', 'https://rondosport.redberries.ae/teams?tournament_id=7a1ab967321244759f91645f40e4249d_trn&sport_type=soccer&page=1&page_size=50', '_self', 2, 'active', 'homepage_hero', NULL, 0, 0, 3, '2025-11-19 11:35:38', '2025-12-12 07:27:54', NULL),
-	(12, 'Grand Slam Tennis', 'Unmissable Tennis Moments Here', 'https://apix2.redberries.ae/images/banners/GRAND_SLAM_TENNIS_691dac1ab5cc0_1763552282_main.jpg', 'https://apix2.redberries.ae/images/banners/GRAND_SLAM_TENNIS_691dac1ab5cc0_1763552282_mobile.jpg', 'https://rondosport.redberries.ae/events?sport_type=tennis', '_self', 3, 'active', 'homepage_hero', NULL, 0, 0, 3, '2025-11-19 11:37:54', '2025-12-12 07:27:54', NULL),
-	(13, 'Rugby', 'Watch the world\'s best go head to head', 'https://apix2.redberries.ae/images/banners/RUGBY_691dac6a5a6ef_1763552362_main.jpg', 'https://apix2.redberries.ae/images/banners/RUGBY_691dac6a5a6ef_1763552362_mobile.jpg', 'https://rondosport.redberries.ae/events?sport_type=rugby', '_blank', 4, 'active', 'homepage_hero', NULL, 0, 0, 3, '2025-11-19 11:39:20', '2025-12-14 12:12:52', NULL),
-	(14, 'Cheltenham Festival 2026', 'World Class Horse Racing at the Cheltenham Festival', 'https://apix2.redberries.ae/images/banners/Cheltenham_693cf1ea28667_1765601770.jpg', 'https://apix2.redberries.ae/images/banners/Cheltenham_693cf1ea28667_1765601770.jpg', 'https://rondosport.redberries.ae/events?sport_type=horseracing', '_self', 3, 'active', 'homepage_secondary', NULL, 0, 0, 3, '2025-12-11 12:06:49', '2025-12-13 04:56:10', NULL),
-	(15, 'El Clasico - Barcelona vs Real Madrid', 'Watch one of Europe\'s fiercest rivalries live from Barcelona\'s Camp Nou', 'https://apix2.redberries.ae/images/banners/Barcelona_Stadium_693d57e978780_1765627881.jpg', 'https://apix2.redberries.ae/images/banners/Barcelona_Stadium_693d57e978780_1765627881.jpg', 'https://rondosport.redberries.ae/events/c6cd8fa7138745c991b11121a729d61f_gnr/tickets', '_self', 0, 'active', 'homepage_secondary', '2025-12-24', 0, 0, 3, '2025-12-11 12:14:45', '2025-12-21 11:06:38', 'From £80'),
-	(16, 'The Australian Grand Prix', 'Watch the 2026 season get underway in Melbourne', 'https://apix2.redberries.ae/images/banners/Autralian_GP_693d572d81f8f_1765627693.jpg', 'https://apix2.redberries.ae/images/banners/Autralian_GP_693d572d81f8f_1765627693.jpg', 'https://rondosport.redberries.ae/events/68241bedeb8247e689ac140ab100f5d1_spp/tickets', '_self', 1, 'active', 'homepage_secondary', '2025-12-18', 0, 0, 3, '2025-12-12 03:45:40', '2025-12-21 11:06:38', NULL),
-	(17, 'Six Nations Rugby', 'The Northern Hemisphere\'s finest go head-to-head', 'https://apix2.redberries.ae/images/banners/Stade_de_France_Stadium_693d57b2c9a5f_1765627826.jpg', 'https://apix2.redberries.ae/images/banners/Stade_de_France_Stadium_693d57b2c9a5f_1765627826.jpg', 'https://rondosport.redberries.ae/events?sport_type=rugby', '_self', 5, 'active', 'homepage_secondary', NULL, 0, 0, 3, '2025-12-12 07:32:43', '2025-12-13 12:10:26', NULL);
+	(7, 'Wimbledon 2026', 'Live from the All England Club', 'http://rondoapi.local/images/banners/WIMBLEDON_LOGO_693cf29d5f7e4_1765601949.jpeg', 'http://rondoapi.local/images/banners/WIMBLEDON_LOGO_693cf29d5f7e4_1765601949.jpeg', 'https://rondosport.redberries.ae/events?sport_type=tennis', '_self', 2, 'active', 'homepage_secondary', NULL, 0, 0, 3, '2025-10-21 07:39:29', '2025-12-13 09:32:44', NULL),
+	(8, 'Arsenal vs Liverpool', 'Top of the table clash in North London', 'http://rondoapi.local/images/banners/Emirates_Day_693cf2e73fde6_1765602023.jpg', 'http://rondoapi.local/images/banners/Emirates_Day_693cf2e73fde6_1765602023.jpg', 'https://rondosport.redberries.ae/events/b3c684e67d6a405b9e9ab3a60191111d_gnr/tickets', '_blank', 4, 'active', 'homepage_secondary', '2026-01-01', 0, 0, 3, '2025-10-21 07:40:39', '2025-12-21 11:06:38', NULL),
+	(9, 'Premier League', 'Top-Tier English Football Action', 'http://rondoapi.local/images/banners/PREMIERSHIP_691daace63876_1763551950_main.jpg', 'http://rondoapi.local/images/banners/PREMIERSHIP_691daace63876_1763551950_mobile.jpg', 'https://rondosport.redberries.ae/teams?tournament_id=f306f395644a42e09821253d13637d70_trn&sport_type=soccer&page=1&page_size=50', '_self', 0, 'active', 'homepage_hero', '2025-12-18', 0, 0, 3, '2025-11-19 11:32:21', '2025-12-21 11:06:38', NULL),
+	(10, 'La Liga', 'Elite Football, Spanish Style', 'http://rondoapi.local/images/banners/Barcelona_Stadium_Day_693d58150b20b_1765627925.jpg', 'http://rondoapi.local/images/banners/Barcelona_Stadium_Day_693d58150b20b_1765627925.jpg', 'https://rondosport.redberries.ae/teams?tournament_id=42407e31113847d3ba90dbae62e7fa65_trn&sport_type=soccer&page=1&page_size=50', '_self', 1, 'active', 'homepage_hero', '2026-02-19', 0, 0, 3, '2025-11-19 11:33:55', '2025-12-21 11:06:38', NULL),
+	(11, 'Bundesliga', 'Germany’s Premier Football Action', 'http://rondoapi.local/images/banners/BUNDESLIGA_691dab927c987_1763552146_main.jpg', 'http://rondoapi.local/images/banners/BUNDESLIGA_691dab927c987_1763552146_mobile.jpg', 'https://rondosport.redberries.ae/teams?tournament_id=7a1ab967321244759f91645f40e4249d_trn&sport_type=soccer&page=1&page_size=50', '_self', 2, 'active', 'homepage_hero', NULL, 0, 0, 3, '2025-11-19 11:35:38', '2025-12-12 07:27:54', NULL),
+	(12, 'Grand Slam Tennis', 'Unmissable Tennis Moments Here', 'http://rondoapi.local/images/banners/GRAND_SLAM_TENNIS_691dac1ab5cc0_1763552282_main.jpg', 'http://rondoapi.local/images/banners/GRAND_SLAM_TENNIS_691dac1ab5cc0_1763552282_mobile.jpg', 'https://rondosport.redberries.ae/events?sport_type=tennis', '_self', 3, 'active', 'homepage_hero', NULL, 0, 0, 3, '2025-11-19 11:37:54', '2025-12-12 07:27:54', NULL),
+	(13, 'Rugby', 'Watch the world\'s best go head to head', 'http://rondoapi.local/images/banners/RUGBY_691dac6a5a6ef_1763552362_main.jpg', 'http://rondoapi.local/images/banners/RUGBY_691dac6a5a6ef_1763552362_mobile.jpg', 'https://rondosport.redberries.ae/events?sport_type=rugby', '_blank', 4, 'active', 'homepage_hero', NULL, 0, 0, 3, '2025-11-19 11:39:20', '2025-12-14 12:12:52', NULL),
+	(14, 'Cheltenham Festival 2026', 'World Class Horse Racing at the Cheltenham Festival', 'http://rondoapi.local/images/banners/Cheltenham_693cf1ea28667_1765601770.jpg', 'http://rondoapi.local/images/banners/Cheltenham_693cf1ea28667_1765601770.jpg', 'https://rondosport.redberries.ae/events?sport_type=horseracing', '_self', 3, 'active', 'homepage_secondary', NULL, 0, 0, 3, '2025-12-11 12:06:49', '2025-12-13 04:56:10', NULL),
+	(15, 'El Clasico - Barcelona vs Real Madrid', 'Watch one of Europe\'s fiercest rivalries live from Barcelona\'s Camp Nou', 'http://rondoapi.local/images/banners/Barcelona_Stadium_693d57e978780_1765627881.jpg', 'http://rondoapi.local/images/banners/Barcelona_Stadium_693d57e978780_1765627881.jpg', 'https://rondosport.redberries.ae/events/c6cd8fa7138745c991b11121a729d61f_gnr/tickets', '_self', 0, 'active', 'homepage_secondary', '2025-12-24', 0, 0, 3, '2025-12-11 12:14:45', '2025-12-21 11:06:38', 'From £80'),
+	(16, 'The Australian Grand Prix', 'Watch the 2026 season get underway in Melbourne', 'http://rondoapi.local/images/banners/Autralian_GP_693d572d81f8f_1765627693.jpg', 'http://rondoapi.local/images/banners/Autralian_GP_693d572d81f8f_1765627693.jpg', 'https://rondosport.redberries.ae/events/68241bedeb8247e689ac140ab100f5d1_spp/tickets', '_self', 1, 'active', 'homepage_secondary', '2025-12-18', 0, 0, 3, '2025-12-12 03:45:40', '2025-12-21 11:06:38', NULL),
+	(17, 'Six Nations Rugby', 'The Northern Hemisphere\'s finest go head-to-head', 'http://rondoapi.local/images/banners/Stade_de_France_Stadium_693d57b2c9a5f_1765627826.jpg', 'http://rondoapi.local/images/banners/Stade_de_France_Stadium_693d57b2c9a5f_1765627826.jpg', 'https://rondosport.redberries.ae/events?sport_type=rugby', '_self', 5, 'active', 'homepage_secondary', NULL, 0, 0, 3, '2025-12-12 07:32:43', '2025-12-13 12:10:26', NULL);
 
 -- Dumping structure for table rondo.booking_cancellation_requests
 CREATE TABLE IF NOT EXISTS `booking_cancellation_requests` (
@@ -685,11 +685,11 @@ CREATE TABLE IF NOT EXISTS `customer_sessions` (
   KEY `idx_expires_at` (`expires_at`),
   KEY `idx_token_hash` (`token_hash`),
   CONSTRAINT `customer_sessions_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customer_users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Customer JWT session management';
+) ENGINE=InnoDB AUTO_INCREMENT=66 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Customer JWT session management';
 
--- Dumping data for table rondo.customer_sessions: ~1 rows (approximately)
+-- Dumping data for table rondo.customer_sessions: ~0 rows (approximately)
 INSERT INTO `customer_sessions` (`id`, `customer_id`, `token_hash`, `refresh_token_hash`, `device_info`, `ip_address`, `expires_at`, `created_at`, `updated_at`) VALUES
-	(64, 1, '9b218a09a86255b3f674069ecd75563eaf6c3915a69b520b1c922905c5fed4c2', '421875569537a6da525ae2afc0ae5a3f16fb271516ec0fc7e83ddd77af099a74', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0', '127.0.0.1', '2026-02-11 19:56:02', '2026-02-11 18:56:02', '2026-02-11 18:56:02');
+	(65, 1, 'ee6c629bba6f1c4349a52fdaf6d30cd8c0e37a33f2d19a6f15780adafd8f13e0', '390a218574dd9c8a322fd64f36e2a930d7b431ee54bcad0fd15f8bbe11bce136', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0', '127.0.0.1', '2026-03-25 09:57:11', '2026-03-25 08:57:11', '2026-03-25 08:57:11');
 
 -- Dumping structure for table rondo.customer_users
 CREATE TABLE IF NOT EXISTS `customer_users` (
@@ -753,7 +753,7 @@ CREATE TABLE IF NOT EXISTS `customer_users` (
 
 -- Dumping data for table rondo.customer_users: ~8 rows (approximately)
 INSERT INTO `customer_users` (`id`, `customer_id`, `first_name`, `last_name`, `email`, `phone`, `status`, `total_bookings`, `total_spent`, `average_booking_value`, `last_booking_at`, `first_booking_at`, `preferred_sports`, `marketing_consent`, `notes`, `blocked_reason`, `blocked_by`, `blocked_at`, `created_at`, `updated_at`, `password_hash`, `email_verified`, `email_verification_token`, `password_reset_token`, `password_reset_expires`, `last_login`, `street`, `house_number`, `zipcode`, `city`, `country_code`, `failed_login_attempts`, `locked_until`, `two_factor_enabled`, `two_factor_secret`, `date_of_birth`, `gender`) VALUES
-	(1, 'CUST76619439', 'Jipin', 'Kumar M', 'jipinm@gmail.com', '8129836080', 'active', 0, 0.00, 0.00, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2025-10-18 07:20:06', '2026-02-11 18:56:02', '$2y$10$GllV7B9/jx.TsaAsH3G1ru/mONMjpdrz4w9ZFNQ0/sngddxSYZ0aC', 1, NULL, NULL, NULL, '2026-02-11 14:26:02', 'Pallickal', 'BP 2/668', '690503', 'Kayamkulam', 'IND', 0, NULL, 0, NULL, NULL, NULL),
+	(1, 'CUST76619439', 'Jipin', 'Kumar M', 'jipinm@gmail.com', '8129836080', 'active', 0, 0.00, 0.00, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2025-10-18 07:20:06', '2026-03-25 08:57:11', '$2y$10$GllV7B9/jx.TsaAsH3G1ru/mONMjpdrz4w9ZFNQ0/sngddxSYZ0aC', 1, NULL, NULL, NULL, '2026-03-25 04:27:11', 'Pallickal', 'BP 2/668', '690503', 'Kayamkulam', 'IND', 0, NULL, 0, NULL, NULL, NULL),
 	(13, 'CUST49829128', 'user', 'two', 'usertwo@example.com', NULL, 'active', 0, 0.00, 0.00, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2025-10-20 19:05:23', '2025-10-20 19:06:07', '$2y$10$rAJjiVS14tsiqbE.PEGUwu5GrcAvpeDtTDQQqhCgzONZyUvIU5wPe', 1, NULL, NULL, NULL, '2025-10-20 23:06:07', 'User street', 'User 467', '56215', 'London', 'GBR', 0, NULL, 0, NULL, NULL, NULL),
 	(14, 'CUST15259082', 'John', 'Doe', 'test@example.com', '', 'active', 0, 0.00, 0.00, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2025-10-20 21:34:06', '2025-10-20 21:34:06', '', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, NULL, NULL),
 	(15, 'CUST91698813', 'Frontend', 'Test', 'frontend@test.com', '', 'active', 0, 0.00, 0.00, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '2025-10-20 21:34:37', '2025-10-20 21:34:37', '', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, NULL, NULL),
@@ -806,7 +806,7 @@ CREATE TABLE IF NOT EXISTS `hospitalities` (
   CONSTRAINT `fk_hospitality_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Hospitality services management';
 
--- Dumping data for table rondo.hospitalities: ~1 rows (approximately)
+-- Dumping data for table rondo.hospitalities: ~0 rows (approximately)
 INSERT INTO `hospitalities` (`id`, `name`, `description`, `price_usd`, `is_active`, `sort_order`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
 	(1, 'VIP lounge Access', '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, urna eu tincidunt consectetur, nisi nisl aliquam nunc, vitae facilisis lorem justo nec sapien. Integer ac eros vel justo fermentum luctus. Suspendisse potenti. Vivamus vel sapien sed nulla tincidunt feugiat. Curabitur at felis nec velit volutpat tincidunt. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, urna eu tincidunt consectetur, nisi nisl aliquam nunc, vitae facilisis lorem justo nec sapien. Integer ac eros vel justo fermentum luctus. Suspendisse potenti. Vivamus vel sapien sed nulla tincidunt feugiat. Curabitur at felis nec velit volutpat tincidunt.</p><ul><li><p>Lorem ipsum dolo</p></li><li><p>Lorem ipsum dolor sit amet</p></li><li><p>Suspendisse potenti</p></li><li><p>Vivamus vel sapien</p></li></ul><p></p>', 100.00, 1, 1, 3, 3, '2026-01-22 06:52:13', '2026-02-18 07:44:01');
 
@@ -817,21 +817,23 @@ CREATE TABLE IF NOT EXISTS `hospitality_assignments` (
   `sport_type` varchar(100) DEFAULT NULL COMMENT 'XS2Event sport type slug (e.g., soccer, motorsport, tennis)',
   `tournament_id` varchar(100) DEFAULT NULL COMMENT 'XS2Event tournament ID',
   `team_id` varchar(100) DEFAULT NULL COMMENT 'XS2Event team ID (only for team-based sports)',
+  `category_id` varchar(100) DEFAULT NULL COMMENT 'XS2Event category ID — venue-scoped section identifier (e.g. "7df2fbc7f06e4985be92fb263b1f9c63_ctg")',
   `event_id` varchar(100) DEFAULT NULL COMMENT 'XS2Event event ID',
   `ticket_id` varchar(100) DEFAULT NULL COMMENT 'XS2Event ticket ID (most specific level)',
   `sport_name` varchar(255) DEFAULT NULL COMMENT 'Display name for the sport',
   `tournament_name` varchar(255) DEFAULT NULL COMMENT 'Display name for the tournament',
   `team_name` varchar(255) DEFAULT NULL COMMENT 'Display name for the team',
+  `category_name` varchar(255) DEFAULT NULL COMMENT 'Display name for the XS2Event category (e.g. "VIP Tribune"), stored for admin display',
   `event_name` varchar(255) DEFAULT NULL COMMENT 'Display name for the event',
   `ticket_name` varchar(255) DEFAULT NULL COMMENT 'Display name for the ticket category',
-  `level` enum('sport','tournament','team','event','ticket') NOT NULL COMMENT 'The hierarchy level this assignment targets',
+  `level` enum('sport','tournament','team','category','event','ticket') NOT NULL COMMENT 'The hierarchy level this assignment targets',
   `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Whether this assignment is currently active',
   `created_by` bigint(20) unsigned DEFAULT NULL,
   `updated_by` bigint(20) unsigned DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_hospitality_scope` (`hospitality_id`,`sport_type`,`tournament_id`,`team_id`,`event_id`,`ticket_id`),
+  UNIQUE KEY `unique_hospitality_scope` (`hospitality_id`,`sport_type`,`tournament_id`,`team_id`,`category_id`,`event_id`,`ticket_id`),
   KEY `idx_hospitality_id` (`hospitality_id`),
   KEY `idx_ha_sport_type` (`sport_type`),
   KEY `idx_ha_tournament_id` (`tournament_id`),
@@ -842,17 +844,15 @@ CREATE TABLE IF NOT EXISTS `hospitality_assignments` (
   KEY `idx_ha_is_active` (`is_active`),
   KEY `idx_ha_created_by` (`created_by`),
   KEY `idx_ha_updated_by` (`updated_by`),
+  KEY `idx_ha_category_id` (`category_id`),
   CONSTRAINT `fk_ha_created_by` FOREIGN KEY (`created_by`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_ha_hospitality` FOREIGN KEY (`hospitality_id`) REFERENCES `hospitalities` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_ha_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Hierarchical hospitality service assignments (sport > tournament > team > event > ticket)';
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Hierarchical hospitality service assignments (sport > tournament > team > event > ticket)';
 
--- Dumping data for table rondo.hospitality_assignments: ~4 rows (approximately)
-INSERT INTO `hospitality_assignments` (`id`, `hospitality_id`, `sport_type`, `tournament_id`, `team_id`, `event_id`, `ticket_id`, `sport_name`, `tournament_name`, `team_name`, `event_name`, `ticket_name`, `level`, `is_active`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
-	(32, 1, 'soccer', 'f306f395644a42e09821253d13637d70_trn', '6aa902ed038b4e64b3905372a943c614_tms', '9b0856d9aa964f259999212d121ff006_gnr', '742952afd8104a92b857c13132066ee2_spp', 'Soccer', 'Premier League', 'Manchester United', 'Manchester United vs Nottingham Forest', 'Executive Lounge', 'ticket', 1, 3, 3, '2026-02-12 17:13:22', '2026-02-12 17:13:22'),
-	(35, 1, 'soccer', 'f306f395644a42e09821253d13637d70_trn', '6aa902ed038b4e64b3905372a943c614_tms', '9b0856d9aa964f259999212d121ff006_gnr', NULL, 'Soccer', 'Premier League', 'Manchester United', 'Manchester United vs Nottingham Forest', NULL, 'event', 1, 3, 3, '2026-02-12 17:15:09', '2026-02-12 17:15:09'),
-	(37, 1, 'soccer', 'f306f395644a42e09821253d13637d70_trn', '6aa902ed038b4e64b3905372a943c614_tms', NULL, NULL, 'Soccer', 'Premier League', 'Manchester United', NULL, NULL, 'team', 1, 3, 3, '2026-02-12 17:15:19', '2026-02-12 17:15:19'),
-	(39, 1, 'soccer', 'f306f395644a42e09821253d13637d70_trn', NULL, NULL, NULL, 'Soccer', 'Premier League', NULL, NULL, NULL, 'tournament', 1, 3, 3, '2026-02-12 17:15:33', '2026-02-12 17:15:33');
+-- Dumping data for table rondo.hospitality_assignments: ~0 rows (approximately)
+INSERT INTO `hospitality_assignments` (`id`, `hospitality_id`, `sport_type`, `tournament_id`, `team_id`, `category_id`, `event_id`, `ticket_id`, `sport_name`, `tournament_name`, `team_name`, `category_name`, `event_name`, `ticket_name`, `level`, `is_active`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
+	(41, 1, 'soccer', 'f306f395644a42e09821253d13637d70_trn', '7841dbb553b74476b9236a92f56f27e9_tms', 'g020a1a7d1254f35a536ed9b7a99472d_ctg', NULL, NULL, 'Soccer', 'Premier League', 'Liverpool FC', 'Village at the Sandon', NULL, NULL, 'category', 1, 3, 3, '2026-03-25 05:12:24', '2026-03-25 05:12:24');
 
 -- Dumping structure for table rondo.markup_rules
 CREATE TABLE IF NOT EXISTS `markup_rules` (
@@ -1215,9 +1215,9 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
   KEY `idx_is_public` (`is_public`),
   KEY `fk_setting_updated_by` (`updated_by`),
   CONSTRAINT `fk_setting_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table rondo.system_settings: ~20 rows (approximately)
+-- Dumping data for table rondo.system_settings: ~23 rows (approximately)
 INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_type`, `category`, `description`, `is_public`, `validation_rules`, `default_value`, `updated_by`, `created_at`, `updated_at`) VALUES
 	(1, 'site_name', 'Rondo Sports Admin', 'string', 'general', 'Application name displayed in admin panel', 1, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22'),
 	(2, 'site_url', 'https://admin.rondosports.com', 'string', 'general', 'Admin panel URL for email links and notifications', 1, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22'),
@@ -1238,7 +1238,10 @@ INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_ty
 	(17, 'require_password_change_days', '90', 'number', 'security', 'Require password change every N days (0 to disable)', 0, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22'),
 	(18, 'backup_retention_days', '30', 'number', 'system', 'Database backup retention period in days', 0, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22'),
 	(19, 'log_retention_days', '365', 'number', 'system', 'Activity log retention period in days', 0, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22'),
-	(20, 'items_per_page', '25', 'number', 'ui', 'Default items per page in admin lists', 1, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22');
+	(20, 'items_per_page', '25', 'number', 'ui', 'Default items per page in admin lists', 1, NULL, NULL, NULL, '2025-10-01 12:39:22', '2025-10-01 12:39:22'),
+	(21, 'football_visible_tournaments', '["f306f395644a42e09821253d13637d70_trn","42407e31113847d3ba90dbae62e7fa65_trn","64923b0d1e6a4dfc8fbb98f02a18349d_trn","7a1ab967321244759f91645f40e4249d_trn","8663a21ea6914f029cf59cbc257aba75_trn","440ca574861446cc97b9556ab9d00f49_trn"]', 'json', 'display', 'JSON array of football tournament IDs to display in the main navigation menu. An empty array means all tournaments with available events are shown (default behaviour).', 1, NULL, '[]', 3, '2026-04-20 07:22:35', '2026-04-20 08:16:12'),
+	(22, 'excluded_teams', '{"42407e31113847d3ba90dbae62e7fa65_trn":["f7c136fc263945aeb51952cc2f0078bb_tms","d4495bb275974074b944dc48cc43e113_tms"],"f306f395644a42e09821253d13637d70_trn":["56c96f16091d4ad193bb322902740209_tms","ff62745b46da424687546a8706d75a73_tms","02dea97445dc4d178970725f2a8b55e6_tms","21ca7fd4b28446fea330a207dca79280_tms","08a14e774b1545788e162b86db6f1e21_tms"]}', 'json', 'display', 'JSON object mapping tournament IDs to arrays of team IDs that should be hidden from that tournament listing. An empty object means no teams are excluded (default behaviour). Example: {"tournament_id_1": ["team_id_a", "team_id_b"]}', 1, NULL, '{}', 3, '2026-04-20 07:22:35', '2026-04-20 07:53:04'),
+	(23, 'other_sports_visible', '["basketball","cricket","boxing","dtm","nba"]', 'json', 'display', 'JSON array of sport IDs to display in the Other Sports dropdown menu. An empty array means all available sports (excluding fixed main-menu sports) are shown (default behaviour).', 1, NULL, '[]', 3, '2026-04-20 07:22:35', '2026-04-20 07:55:57');
 
 -- Dumping structure for table rondo.team_credentials
 CREATE TABLE IF NOT EXISTS `team_credentials` (

@@ -1,7 +1,7 @@
 /* Booking Confirmation Page Styles - Matches EventsPage structure exactly */
 .confirmationPage {
   min-height: calc(100vh - 120px);
-  background-color: #EEF3F8;
+  background-color: var(--color-secondary-2);
   padding: 0;
 }
 
@@ -40,7 +40,7 @@
   text-align: center;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 2rem;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .confirmationDetails h2 {
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 1rem;
   font-size: 1.25rem;
 }
@@ -105,7 +105,7 @@
 }
 
 .primaryButton {
-  background: #57B9FF;
+  background: var(--color-secondary-1);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -116,7 +116,7 @@
 }
 
 .primaryButton:hover {
-  background: #4aa8ee;
+  background: var(--color-secondary-1);
 }
 
 .secondaryButton {

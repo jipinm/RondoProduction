@@ -43,7 +43,6 @@ const Footer: React.FC = () => {
             <div className={styles.linksColumn}>
               <Link to="/" className={styles.footerLink}>Home</Link>
               <Link to="/about-us" className={styles.footerLink}>About Us</Link>
-              <Link to="/faq" className={styles.footerLink}>Faq</Link>
               <Link to="/contact-us" className={styles.footerLink}>Contact Us</Link>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAllTeams } from '../hooks/useAllTeams';
+import { useDisplaySettings } from '../hooks/useDisplaySettings';
 import { ArrowLeft, Users, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './TeamsPage.module.css';
 
@@ -14,12 +15,20 @@ const TeamsPage: React.FC = () => {
   const pageSize = parseInt(searchParams.get('page_size') || '50');
 
   // Fetch teams data - NO CACHING
-  const { teams, loading, error, pagination } = useAllTeams({
+  const { teams: rawTeams, loading, error, pagination } = useAllTeams({
     tournament_id,
     sport_type,
     page_size: pageSize,
     page: currentPage
   });
+
+  // Apply admin-configured team exclusions.
+  // An empty array for a tournament means "exclude none" — default behaviour preserved.
+  const { settings: displaySettings } = useDisplaySettings();
+  const excludedIds = tournament_id ? (displaySettings.excluded_teams[tournament_id] ?? []) : [];
+  const teams = excludedIds.length > 0
+    ? rawTeams.filter(team => !excludedIds.includes(team.team_id))
+    : rawTeams;
 
   // Debug: Log API request details for TeamsPage only
   React.useEffect(() => {

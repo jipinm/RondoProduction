@@ -1,12 +1,20 @@
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  width: 100%;
+}
+
 .topBar {
   display: flex;
   justify-content: center;
   align-items: center;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
   height: 100px;
   width: 100%;
-  background-color: #384959;
+  background-color: var(--color-primary);
 }
 
 .wrapper {
@@ -48,7 +56,7 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background-color: #384959;
+  background-color: var(--color-primary);
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   width: 150px;
@@ -58,6 +66,11 @@
   z-index: 1000;
   border-radius: 4px;
   overflow: hidden;
+}
+
+.accountSubmenuLeft {
+  right: auto;
+  left: 0;
 }
 
 /* Desktop only: hover to show dropdown */
@@ -80,7 +93,7 @@
   transition: all 0.2s ease;
   text-align: left;
   border-bottom: 1px solid #4a5a6b;
-  background-color: #384959;
+  background-color: var(--color-primary);
   width: 100%;
   box-sizing: border-box;
 }
@@ -90,7 +103,7 @@
 }
 
 .accountSubmenuItem:hover {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
   background-color: #2a3441;
 }
 
@@ -112,7 +125,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #384959;
+  background-color: var(--color-primary);
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   min-width: 200px;
@@ -148,7 +161,7 @@
   text-align: left;
   border: none;
   border-bottom: 1px solid #4a5a6b;
-  background-color: #384959;
+  background-color: var(--color-primary);
   cursor: pointer;
   box-sizing: border-box;
 }
@@ -158,13 +171,13 @@
 }
 
 .currencySubmenuItem:hover {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
   background-color: #2a3441;
 }
 
 .currencySelected {
   background-color: #2a3441;
-  color: #51A2DD;
+  color: var(--color-secondary-1);
 }
 
 .currencyItemSymbol {
@@ -184,13 +197,13 @@
 }
 
 .navigation {
-  background-color: #384959;
+  background-color: var(--color-primary);
   padding: 0;
   width: 100%;
   display: flex;
   justify-content: center;
   height: 55px;
-  border-top: 1px solid #525F6C;
+  border-top: none;
   position: relative;
   z-index: 999;
 }
@@ -198,6 +211,9 @@
 
 
 .logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,14 +224,14 @@
 }
 
 .logoImg {
-  width: 150px;
-  height: 68px;
+  width: 180px;
+  height: auto;
+  max-height: 80px;
   display: block !important;
   object-fit: contain;
   opacity: 1 !important;
   visibility: visible !important;
   max-width: 100%;
-  max-height: 100%;
 }
 
 .navItems {
@@ -231,7 +247,8 @@
 .navItem {
   color: #ffffff;
   transition: opacity 0.3s ease;
-  font-size: 14.5px;
+  font-size: 15px;
+  font-weight: 600;
   line-height: normal;
   letter-spacing: 1.5px;
   text-decoration: none;
@@ -243,13 +260,7 @@
 }
 
 .navItem::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: #525F6C;
+  display: none;
 }
 
 .navItem:last-child::after {
@@ -257,7 +268,7 @@
 }
 
 .navItem:hover {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
 }
 
 .navItemWithSubmenu {
@@ -268,20 +279,15 @@
   align-items: center;
   color: #ffffff;
   transition: opacity 0.3s ease;
-  font-size: 14.5px;
+  font-size: 15px;
+  font-weight: 600;
   line-height: normal;
   letter-spacing: 1.5px;
   text-decoration: none;
 }
 
 .navItemWithSubmenu::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: #525F6C;
+  display: none;
 }
 
 .navItemWithSubmenu .navItem {
@@ -302,14 +308,14 @@
 }
 
 .navItemWithSubmenu:hover .navItem {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
 }
 
 .submenu {
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #384959 !important;
+  background-color: var(--color-primary) !important;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   width: 200px;
@@ -337,7 +343,7 @@
   transition: color 0.3s ease;
   text-align: left;
   border-bottom: 1px solid #4a5a6b;
-  background-color: #384959 !important;
+  background-color: var(--color-primary) !important;
   opacity: 1 !important;
 }
 
@@ -346,7 +352,7 @@
 }
 
 .submenuItem:hover {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
 }
 
 .submenuItemWithNested {
@@ -362,7 +368,7 @@
   border-bottom: 1px solid #4a5a6b;
   position: relative;
   cursor: pointer;
-  background-color: #384959 !important;
+  background-color: var(--color-primary) !important;
   opacity: 1 !important;
 }
 
@@ -371,7 +377,7 @@
 }
 
 .submenuItemWithNested:hover {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
 }
 
 .nestedSubmenu {
@@ -421,7 +427,7 @@
 }
 
 .nestedSubmenuItem:hover {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
 }
 
 .nestedSubmenuSection {
@@ -437,7 +443,7 @@
 }
 
 .nestedSubmenuSectionTitle {
-  color: #51A2DD;
+  color: var(--color-secondary-1);
   font-size: 12px;
   font-weight: 600;
   padding: 8px 16px 4px 16px;
@@ -460,7 +466,7 @@
   width: 14px;
   height: 14px;
   border: 2px solid #3a434c;
-  border-top: 2px solid #51A2DD;
+  border-top: 2px solid var(--color-secondary-1);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -476,7 +482,7 @@
 
 .showAllTeamsLink {
   display: block;
-  color: #51A2DD;
+  color: var(--color-secondary-1);
   font-size: 13px;
   font-weight: 500;
   padding: 10px 16px;
@@ -488,7 +494,7 @@
 
 .showAllTeamsLink:hover {
   color: #ffffff;
-  background-color: #51A2DD;
+  background-color: var(--color-secondary-1);
 }
 
 .navItemHighlighted {
@@ -497,7 +503,7 @@
   gap: 0.5rem;
   padding: 0.3rem 1rem;
   border-radius: 50px;
-  background-color: #497CDA;
+  background-color: var(--color-accent);
   color: #ffffff;
   font-size: 14px;
   margin-left: 1rem;
@@ -511,7 +517,7 @@
 }
 
 .navItemHighlighted:hover {
-  background-color: #51A2DD;
+  background-color: var(--color-secondary-1);
 }
 
 .starIcon {
@@ -528,7 +534,7 @@
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid #4a5a6b;
-  background-color: #384959 !important;
+  background-color: var(--color-primary) !important;
   animation: skeletonPulse 1.5s ease-in-out infinite;
 }
 

@@ -16,12 +16,12 @@
 
 .input:focus {
   outline: none;
-  border-color: #4dabf7;
+  border-color: var(--color-secondary-1);
   box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
 }
 
 .input:disabled {
-  background-color: #f8f9fa;
+  background-color: var(--color-neutral-light);
   color: #6c757d;
   cursor: not-allowed;
 }
@@ -70,11 +70,11 @@
 }
 
 .option:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-neutral-light);
 }
 
 .option.selected {
-  background-color: #4dabf7;
+  background-color: var(--color-secondary-1);
   color: white;
 }
 

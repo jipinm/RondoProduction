@@ -1,14 +1,29 @@
 :root {
-  /* Color scheme */
-  --primary: #57B9FF;
-  --secondary: #F9FAFB;
-  --accent: #FF6200;
-  --text: #384959;
-  --text-light: #6A89A7;
+  /* === RONDO Color Palette 2026 === */
+  --color-primary:        #245388; /* Atlantic Blue  – primary brand */
+  --color-secondary-1:    #83ACDC; /* Skyward Blue   – secondary */
+  --color-secondary-2:    #C7D9ED; /* Mist Blue      – secondary light */
+  --color-accent:         #C0504C; /* Heritage Red   – CTAs & highlights */
+  --color-accent-soft:    #DD938C; /* Blush Coral    – soft accent */
+  --color-neutral-light:  #F7F7F7; /* Cloud White    – backgrounds */
+  --color-neutral-mid:    #808080; /* Graphite Gray  – supporting text */
+  --color-neutral-dark:   #1C191D; /* Black          – primary text */
+
+  /* === RONDO Typography 2026 === */
+  --font-primary:   'Gilroy', sans-serif;
+  --font-secondary: 'Proxima Nova', sans-serif;
+
+  /* Legacy aliases (kept for backward compatibility with existing var() usages) */
+  --primary: var(--color-primary);
+  --secondary: var(--color-neutral-light);
+  --accent: var(--color-accent);
+  --text: var(--color-neutral-dark);
+  --text-light: var(--color-neutral-mid);
   --white: #FFFFFF;
-  --nav-bg: #6A89A7;
-  --footer-bg: #384959;
-  --footer-text: #D9D9D9;
+  --nav-bg: var(--color-primary);
+  --footer-bg: var(--color-primary);
+  --footer-text: var(--color-secondary-2);
+  --font-family: var(--font-secondary);
 
   /* Layout */
   --container-max-width: 1700px;
@@ -20,7 +35,6 @@
   --spacing-xl: 4rem;
 
   /* Typography */
-  --font-family: 'Montserrat', sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;

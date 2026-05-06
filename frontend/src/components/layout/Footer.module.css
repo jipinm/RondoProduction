@@ -1,5 +1,5 @@
 .footer {
-  background-color: #384959;
+  background-color: var(--color-primary);
   color: #ffffff;
   padding: 4rem 0 2rem;
 }
@@ -73,7 +73,7 @@
 }
 
 .contactIcon {
-  color: #57B9FF;
+  color: var(--color-secondary-1);
   font-size: 1.2rem;
 }
 
@@ -84,14 +84,14 @@
 }
 
 .footerLink {
-  color: #D9D9D9;
+  color: var(--color-secondary-2);
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.3s ease;
 }
 
 .footerLink:hover {
-  color: #4dabf7;
+  color: var(--color-secondary-1);
 }
 
 .newsletterTitle {
@@ -105,7 +105,7 @@
   font-size: 0.7rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
-  color: #e2e8f0;
+  color: var(--color-secondary-2);
 }
 
 .newsletterForm {
@@ -119,20 +119,20 @@
   border-radius: 4px;
   border: none;
   outline: none;
-  background-color: #2D3E4D;
-  color: #6A89A7;
+  background-color: #1a3a5c;
+  color: var(--color-secondary-1);
   width: 100%;
 }
 
 .newsletterInput::placeholder {
-  color: #9ca3af;
+  color: var(--color-neutral-mid);
 }
 
 .newsletterButton {
   border: 1px solid #FFF;
-  background: #384959;
+  background: var(--color-primary);
   padding: 0.75rem 2.5rem;
-  color: #D9D9D9;
+  color: var(--color-secondary-2);
   font-size: 16px;
   font-weight: 500;
  line-height: normal;
@@ -142,7 +142,7 @@
 }
 
 .newsletterButton:hover {
-  background-color: #6A89A7;
+  background-color: var(--color-secondary-1);
 }
 
 .socialIcons {
@@ -155,7 +155,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #6A89A7;
+  background-color: var(--color-secondary-1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,13 +166,13 @@
 
 .socialIcon:hover {
   background-color: #ffffff;
-  color: #364049;
+  color: var(--color-primary);
 }
 
 .copyright {
   margin-top: 4rem;
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--color-neutral-mid);
   padding-top: 2rem;
 }
 

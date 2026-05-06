@@ -15,7 +15,7 @@
 .bookingSummary {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background-color: #4dabf7;
+  background-color: var(--color-secondary-1);
   border-radius: 12px;
   color: white;
   box-shadow: 0 8px 25px rgba(77, 171, 247, 0.3);

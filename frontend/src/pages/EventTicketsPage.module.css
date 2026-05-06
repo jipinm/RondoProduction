@@ -1,7 +1,7 @@
 /* Event Tickets Page Styles */
 .eventTicketsPage {
   min-height: 100vh;
-  background-color: #EEF3F8;
+  background-color: var(--color-secondary-2);
 }
 
 .container {
@@ -612,7 +612,7 @@
 }
 
 .ticketsSubtitle svg {
-  color: #BDDDFC;
+  color: var(--color-secondary-2);
 }
 
 .ticketFilters {
@@ -679,7 +679,7 @@
 }
 
 .ticketCard:hover {
-  border-color: #BDDDFC;
+  border-color: var(--color-secondary-2);
   background-color: rgba(189, 221, 252, 0.03);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(189, 221, 252, 0.2);
@@ -1122,7 +1122,7 @@
 
 /* Registration Section (Bottom Right) */
 .registrationSection {
-  background-color: #4dabf7;
+  background-color: var(--color-secondary-1);
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);

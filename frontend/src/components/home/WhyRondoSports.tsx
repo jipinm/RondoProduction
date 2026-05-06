@@ -55,7 +55,9 @@ const WhyRondoSports: React.FC = () => {
   return (
     <section className={styles.whyRondoSports}>
       <div className={styles.container}>
-        <h2 className={styles.sectionTitle}>Why Rondo Sports?</h2>
+        <h2 className={styles.sectionTitle}>
+          <span className={styles.titleText}>How we&nbsp;</span><img src="/logomark-blue.png" alt="Ro" className={styles.titleLogomark} /><span className={styles.titleSuffix}>ll?</span>
+        </h2>
         
         <div className={styles.featuresGrid}>
           {features.map((feature) => (

@@ -80,7 +80,7 @@ const PartnersSection: React.FC = () => {
       <section className={styles.partnersSection}>
         <div className={styles.container}>
           <div className={styles.partnersContent}>
-            <h3 className={styles.partnersTitle}>RONDO SPORTS IS PROUD TO WORK WITH</h3>
+            <h3 className={styles.partnersTitle}><img src="/logo-blue-medium.png" alt="Rondo Sports" className={styles.partnersTitleLogo} /> IS PROUD TO WORK WITH</h3>
             <div className={styles.partnersLogos}>
               <p>Loading featured teams...</p>
             </div>
@@ -98,7 +98,7 @@ const PartnersSection: React.FC = () => {
     <section className={styles.partnersSection}>
       <div className={styles.container}>
         <div className={styles.partnersContent}>
-          <h3 className={styles.partnersTitle}>RONDO SPORTS IS PROUD TO WORK WITH</h3>
+          <h3 className={styles.partnersTitle}><img src="/logo-blue-medium.png" alt="Rondo Sports" className={styles.partnersTitleLogo} /> IS PROUD TO WORK WITH</h3>
           <div className={styles.partnersLogos}>
             {isMobile ? (
               // Mobile: Show one logo at a time with slider

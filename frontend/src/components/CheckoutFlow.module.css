@@ -44,7 +44,7 @@
 .headerContent h1 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -60,7 +60,7 @@
 
 .closeButton:hover {
   background: #f1f5f9;
-  color: #57B9FF;
+  color: var(--color-secondary-1);
 }
 
 /* Step Indicator */
@@ -113,8 +113,8 @@
 }
 
 .stepItem.active .stepIcon {
-  border-color: #57B9FF;
-  background: #57B9FF;
+  border-color: var(--color-secondary-1);
+  background: var(--color-secondary-1);
   color: white;
 }
 
@@ -131,7 +131,7 @@
 }
 
 .stepItem.active .stepLabel {
-  color: #57B9FF;
+  color: var(--color-secondary-1);
   font-weight: 600;
 }
 
@@ -145,7 +145,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background-color: #f9fafb;
+  background-color: var(--color-neutral-light);
 }
 
 .stepContent {
@@ -161,7 +161,7 @@
 .stepHeader h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin: 0 0 0.5rem 0;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .leadBadge {
-  background: #57B9FF;
+  background: var(--color-secondary-1);
   color: white;
   padding: 4px 12px;
   border-radius: 12px;
@@ -288,7 +288,7 @@
 .formGroup input:focus,
 .formGroup select:focus {
   outline: none;
-  border-color: #57B9FF;
+  border-color: var(--color-secondary-1);
   box-shadow: 0 0 0 3px rgba(87, 185, 255, 0.1);
 }
 
@@ -369,7 +369,7 @@
 .guestsSummary h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin: 0 0 1rem 0;
 }
 
@@ -391,7 +391,7 @@
 
 .ticketTitle {
   font-weight: 500;
-  color: #384959;
+  color: var(--color-primary);
 }
 
 .ticketDetails {
@@ -401,7 +401,7 @@
 
 .ticketPrice {
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
 }
 
 .guestItem {
@@ -462,7 +462,7 @@
 .paymentCard h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin: 0 0 0.5rem 0;
 }
 
@@ -511,7 +511,7 @@
 .confirmationHeader h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin: 0 0 0.5rem 0;
 }
 
@@ -549,7 +549,7 @@
 .nextSteps h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin: 0 0 1rem 0;
 }
 
@@ -570,7 +570,7 @@
   content: '•';
   position: absolute;
   left: 0;
-  color: #57B9FF;
+  color: var(--color-secondary-1);
   font-weight: bold;
 }
 
@@ -603,13 +603,13 @@
 }
 
 .primaryButton {
-  background: linear-gradient(135deg, #57B9FF 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--color-secondary-1) 0%, #3b82f6 100%);
   color: white;
   box-shadow: 0 4px 14px 0 rgba(87, 185, 255, 0.4);
 }
 
 .primaryButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4aa8ee 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--color-secondary-1) 0%, #2563eb 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(87, 185, 255, 0.5);
 }
@@ -630,8 +630,8 @@
 
 .secondaryButton:hover {
   background: #f8fafc;
-  border-color: #57B9FF;
-  color: #57B9FF;
+  border-color: var(--color-secondary-1);
+  color: var(--color-secondary-1);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(87, 185, 255, 0.15);
 }

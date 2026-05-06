@@ -1,7 +1,7 @@
 .policyPage {
   min-height: 100vh;
   padding: 2rem 0;
-  background: #f8f9fa;
+  background: var(--color-neutral-light);
 }
 
 .container {
@@ -22,7 +22,7 @@
 .title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -51,10 +51,10 @@
 .section h2 {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #57B9FF;
+  border-bottom: 2px solid var(--color-secondary-1);
 }
 
 .section p {
@@ -75,7 +75,7 @@
 }
 
 .contactInfo {
-  background: #f8f9fa;
+  background: var(--color-neutral-light);
   padding: 1.5rem;
   border-radius: 8px;
   margin-top: 1rem;
@@ -133,7 +133,7 @@
   width: 50px;
   height: 50px;
   border: 4px solid #f3f4f6;
-  border-top-color: #57B9FF;
+  border-top-color: var(--color-secondary-1);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
@@ -176,24 +176,24 @@
 .content h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 1.5rem;
 }
 
 .content h2 {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin-top: 2rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #57B9FF;
+  border-bottom: 2px solid var(--color-secondary-1);
 }
 
 .content h3 {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
@@ -201,7 +201,7 @@
 .content h4 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
 }

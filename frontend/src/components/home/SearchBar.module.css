@@ -38,12 +38,12 @@
 }
 
 .buyText {
-  color: #384959;
+  color: var(--color-primary);
   margin-right: 0.25rem;
 }
 
 .ticketsText {
-  color: #57B9FF;
+  color: var(--color-secondary-1);
 }
 
 .searchFields {
@@ -102,7 +102,7 @@
 }
 
 .calendarIconWrapper:hover .calendarIcon {
-  color: #57B9FF;
+  color: var(--color-secondary-1);
 }
 
 
@@ -124,7 +124,7 @@
 }
 
 .searchButton {
-  background-color: #3498db;
+  background-color: var(--color-secondary-1);
   color: white;
   padding: 0 1.5rem;
   border-radius: 5px;
@@ -142,7 +142,7 @@
 
 
 .searchButton:hover {
-  background-color: #4aa8ee;
+  background-color: var(--color-secondary-1);
 }
 
 /* Custom Date Picker Styles */
@@ -173,7 +173,7 @@
 .monthYear {
   font-weight: 600;
   font-size: 16px;
-  color: #384959;
+  color: var(--color-primary);
 }
 
 .navButton {
@@ -185,14 +185,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #57B9FF;
+  color: var(--color-secondary-1);
   transition: all 0.2s ease;
   width: 32px;
   height: 32px;
 }
 
 .navButton:hover:not(:disabled) {
-  background-color: #57B9FF;
+  background-color: var(--color-secondary-1);
   color: white;
 }
 
@@ -239,17 +239,17 @@
 }
 
 .calendarDay.available {
-  color: #384959;
+  color: var(--color-primary);
   background-color: transparent;
 }
 
 .calendarDay.available:hover {
   background-color: #e0f2fe;
-  color: #57B9FF;
+  color: var(--color-secondary-1);
 }
 
 .calendarDay.selected {
-  background-color: #57B9FF;
+  background-color: var(--color-secondary-1);
   color: white;
   font-weight: 600;
 }
@@ -270,8 +270,8 @@
 
 .clearButton {
   background: none;
-  border: 1px solid #ff6b35;
-  color: #ff6b35;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
   padding: 6px 16px;
   border-radius: 6px;
   font-size: 12px;
@@ -280,7 +280,7 @@
 }
 
 .clearButton:hover {
-  background-color: #ff6b35;
+  background-color: var(--color-accent);
   color: white;
 }
 
@@ -323,12 +323,12 @@
 
 .tournamentDropdownItem:hover {
   background-color: #f8fafc;
-  border-left: 3px solid #57B9FF;
+  border-left: 3px solid var(--color-secondary-1);
 }
 
 .tournamentName {
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   font-size: 14px;
   line-height: 1.4;
 }

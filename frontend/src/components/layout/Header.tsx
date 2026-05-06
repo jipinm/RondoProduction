@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Header.module.css';
-import { FaSearch, FaUser } from 'react-icons/fa';
+import { FaUser } from 'react-icons/fa';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSports } from '../../hooks/useSports';
 import { useMenuHierarchy } from '../../hooks/useMenuHierarchy';
 import { useTennisTournaments } from '../../hooks/useTennisTournaments';
+import { useGolfTournaments } from '../../hooks/useGolfTournaments';
+import { useDisplaySettings } from '../../hooks/useDisplaySettings';
 import { useAuth } from '../../services/customerAuth';
 import { useSelectedCurrency } from '../../contexts/CurrencyContext';
 
@@ -15,7 +17,7 @@ const sportDisplayNames: Record<string, string> = {
   formula1: 'FORMULA ONE',
   rugby: 'RUGBY',
   tennis: 'TENNIS',
-  cricket: 'CRICKET',
+  golf: 'GOLF',
   motorsport: 'MOTORSPORT',
   basketball: 'BASKETBALL',
   nba: 'NBA',
@@ -33,7 +35,7 @@ const sportDisplayNames: Record<string, string> = {
 };
 
 // Fixed navigation sports (must remain in exact positions)
-const FIXED_SPORTS = ['soccer', 'formula1', 'rugby', 'tennis', 'cricket'];
+const FIXED_SPORTS = ['soccer', 'formula1', 'rugby', 'tennis', 'golf'];
 
 // Helper functions to generate event links with proper parameters
 // Note: Removed season parameter - using date_start filtering in API instead
@@ -50,18 +52,28 @@ const getTennisEventsLink = (tournamentId: string): string => {
   return `/events?sport_type=tennis&tournament_id=${tournamentId}`;
 };
 
+const getGolfEventsLink = (tournamentId: string): string => {
+  return `/events?sport_type=golf&tournament_id=${tournamentId}`;
+};
+
 const Header: React.FC = () => {
   const { sports, loading, error } = useSports();
+  const { settings: displaySettings } = useDisplaySettings();
   const { 
     tournaments: footballTournaments, 
     loading: tournamentsLoading, 
     error: tournamentsError
-  } = useMenuHierarchy();
+  } = useMenuHierarchy({ displaySettings });
   const {
     tournaments: tennisTournaments,
     loading: tennisTournamentsLoading,
     error: tennisTournamentsError
   } = useTennisTournaments();
+  const {
+    tournaments: golfTournaments,
+    loading: golfTournamentsLoading,
+    error: golfTournamentsError
+  } = useGolfTournaments();
   const { isAuthenticated, logout } = useAuth();
   const { currencies, selectedCurrency, loading: currenciesLoading, setSelectedCurrency } = useSelectedCurrency();
   const [logoLoaded, setLogoLoaded] = React.useState(false);
@@ -188,6 +200,12 @@ const Header: React.FC = () => {
 
   // Filter sports for "OTHER SPORTS" dropdown (exclude fixed sports)
   const otherSports = sports.filter(sport => !FIXED_SPORTS.includes(sport.sport_id));
+
+  // Apply admin-configured Other Sports visibility.
+  // Empty array = show all — default behaviour preserved.
+  const visibleOtherSports = displaySettings.other_sports_visible.length > 0
+    ? otherSports.filter(s => displaySettings.other_sports_visible.includes(s.sport_id))
+    : otherSports;
 
   // Log filtered sports for debugging
   React.useEffect(() => {
@@ -317,6 +335,58 @@ const Header: React.FC = () => {
         </div>
       );
     }
+
+    // Special handling for golf with tournaments submenu
+    if (sportId === 'golf') {
+      return (
+        <div
+          className={styles.navItemWithSubmenu}
+          key={sportId}
+        >
+          <Link
+            to={getEventLinkBySport(sportId)}
+            className={styles.navItem}
+            data-sport-id={sportId}
+            onClick={(e) => handleMenuClick(e, 'golf', true)}
+          >
+            {displayName}
+            {isMobile && <MdArrowDropDown style={{ marginLeft: '4px', fontSize: '16px' }} />}
+          </Link>
+          <div className={`${styles.submenu} ${isMobile && activeSubmenu === 'golf' ? styles.submenuActive : ''}`}>
+            {golfTournamentsLoading && (
+              <>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`golf-skeleton-${index}`} className={styles.submenuItemSkeleton}>
+                    <div className={styles.skeletonTournamentName}></div>
+                    <div className={styles.skeletonArrow}></div>
+                  </div>
+                ))}
+              </>
+            )}
+            {golfTournamentsError && (
+              <div className={styles.submenuItem} style={{ fontStyle: 'italic', color: '#ff6b6b' }}>
+                Error loading tournaments
+              </div>
+            )}
+            {!golfTournamentsLoading && !golfTournamentsError && golfTournaments.length === 0 && (
+              <div className={styles.submenuItem} style={{ fontStyle: 'italic', color: '#666' }}>
+                No tournaments available
+              </div>
+            )}
+            {!golfTournamentsLoading && !golfTournamentsError && golfTournaments.map((tournament) => (
+              <Link
+                key={tournament.tournament_id}
+                to={getGolfEventsLink(tournament.tournament_id)}
+                className={styles.submenuItem}
+                onClick={handleSubmenuItemClick}
+              >
+                {tournament.official_name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      );
+    }
     
     // Regular sport items without submenu - now with proper links
     return (
@@ -333,7 +403,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header>
+    <header className={styles.stickyHeader}>
       <div className={styles.topBar}>
         <div className={styles.wrapper}>
           <div className={styles.topBarLeft}>
@@ -366,37 +436,6 @@ const Header: React.FC = () => {
                 ))}
               </div>
             </div>
-          </div>
-          <Link to="/" className={styles.logo}>
-              {!logoError ? (
-                <img 
-                  src="/logo.png" 
-                  alt="RONDO Sports Tickets" 
-                  className={styles.logoImg}
-                  onLoad={() => {
-                    setLogoLoaded(true);
-                  }}
-                  onError={() => {
-                    setLogoError(true);
-                  }}
-                  style={{
-                    display: logoLoaded ? 'block' : 'block',
-                    visibility: 'visible',
-                    opacity: 1
-                  }}
-                />
-              ) : (
-                <div style={{ 
-                  color: '#ffffff', 
-                  fontSize: '24px', 
-                  fontWeight: 'bold',
-                  letterSpacing: '2px'
-                }}>
-                  RONDO
-                </div>
-              )}
-          </Link>
-          <div className={styles.topBarRight}>
             <div className={styles.topBarItemWithSubmenu}>
               <div 
                 className={styles.topBarItem}
@@ -408,7 +447,7 @@ const Header: React.FC = () => {
                 <MdArrowDropDown className={styles.icon} />
               </div>
               <div 
-                className={`${styles.accountSubmenu} ${isMobile && accountDropdownOpen ? styles.accountSubmenuActive : ''}`}
+                className={`${styles.accountSubmenu} ${styles.accountSubmenuLeft} ${isMobile && accountDropdownOpen ? styles.accountSubmenuActive : ''}`}
               >
                 {!isAuthenticated ? (
                   <Link 
@@ -455,9 +494,40 @@ const Header: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className={styles.topBarItem}>
-              <FaSearch className={styles.icon} />
-            </div>
+          </div>
+          <Link to="/" className={styles.logo}>
+              {!logoError ? (
+                <img 
+                  src="/logo.png" 
+                  alt="RONDO Sports Tickets" 
+                  className={styles.logoImg}
+                  onLoad={() => {
+                    setLogoLoaded(true);
+                  }}
+                  onError={() => {
+                    setLogoError(true);
+                  }}
+                  style={{
+                    display: logoLoaded ? 'block' : 'block',
+                    visibility: 'visible',
+                    opacity: 1
+                  }}
+                />
+              ) : (
+                <div style={{ 
+                  color: '#ffffff', 
+                  fontSize: '24px', 
+                  fontWeight: 'bold',
+                  letterSpacing: '2px'
+                }}>
+                  RONDO
+                </div>
+              )}
+          </Link>
+          <div className={styles.topBarRight}>
+            <Link to="/about-us" className={styles.topBarItem} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <span>About Us</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -469,7 +539,7 @@ const Header: React.FC = () => {
             {renderFixedSportItem('formula1')}
             {renderFixedSportItem('rugby')}
             {renderFixedSportItem('tennis')}
-            {renderFixedSportItem('cricket')}
+            {renderFixedSportItem('golf')}
             
             {/* OTHER SPORTS dropdown with dynamic content */}
             <div 
@@ -507,12 +577,12 @@ const Header: React.FC = () => {
                     Error loading sports
                   </div>
                 )}
-                {!loading && !error && otherSports.length === 0 && (
+                {!loading && !error && visibleOtherSports.length === 0 && (
                   <div className={styles.submenuItem} style={{ fontStyle: 'italic', color: '#666' }}>
                     No other sports available
                   </div>
                 )}
-                {!loading && !error && [...otherSports]
+                {!loading && !error && [...visibleOtherSports]
                   .sort((a, b) => getDisplayName(a.sport_id).localeCompare(getDisplayName(b.sport_id)))
                   .map((sport) => (
                   <Link 
@@ -529,9 +599,9 @@ const Header: React.FC = () => {
             </div>
             
             {/* RONDO PLATINUM - keep as is */}
-            <a href="#" className={styles.navItemHighlighted}>
+            <a href="/contact-us" className={styles.navItemHighlighted}>
               <img src="/images/icons/star.png" alt="Star" className={styles.starIcon} />
-              <span>RONDO PLATINUM</span>
+              <span>CONTACT US</span>
             </a>
           </div>
         </div>

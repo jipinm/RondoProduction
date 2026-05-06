@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styles from './AboutUsPage.module.css';
 import { staticPagesService } from '../services/staticPagesService';
 import type { StaticPage } from '../types/staticPages';
+import AboutPhotoCollage from './AboutPhotoCollage';
 
 const AboutUsPage: React.FC = () => {
   const [page, setPage] = useState<StaticPage | null>(null);
@@ -69,6 +70,8 @@ const AboutUsPage: React.FC = () => {
           dangerouslySetInnerHTML={{ __html: page.content }}
         />
       </div>
+
+      <AboutPhotoCollage />
     </div>
   );
 };

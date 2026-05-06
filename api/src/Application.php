@@ -49,6 +49,7 @@ use XS2EventProxy\Controller\CustomerCancellationController;
 use XS2EventProxy\Controller\AdminCancellationController;
 use XS2EventProxy\Controller\PaymentController;
 use XS2EventProxy\Controller\WhyRondoSportsController;
+use XS2EventProxy\Controller\ContactPageController;
 use XS2EventProxy\Controller\PublicTicketEnhancementsController;
 use XS2EventProxy\Controller\LocalBookingController;
 use XS2EventProxy\Controller\CountryController;
@@ -60,6 +61,8 @@ use XS2EventProxy\Controller\TicketMarkupController;
 use XS2EventProxy\Controller\MarkupRuleController;
 use XS2EventProxy\Controller\HospitalityController;
 use XS2EventProxy\Controller\CurrencyController;
+use XS2EventProxy\Controller\ExchangeRateController;
+use XS2EventProxy\Controller\DisplaySettingsController;
 use XS2EventProxy\Middleware\CustomerAuthMiddleware;
 use XS2EventProxy\Service\DatabaseService;
 use XS2EventProxy\Service\JWTService;
@@ -87,6 +90,8 @@ use XS2EventProxy\Repository\MarkupRuleRepository;
 use XS2EventProxy\Repository\HospitalityRepository;
 use XS2EventProxy\Repository\CurrencyRepository;
 use XS2EventProxy\Repository\WhyRondoSportsRepository;
+use XS2EventProxy\Repository\ContactPageRepository;
+use XS2EventProxy\Repository\SystemSettingsRepository;
 use XS2EventProxy\Service\TeamCredentialsService;
 use XS2EventProxy\Service\BannersService;
 use XS2EventProxy\Service\DashboardService;
@@ -110,6 +115,7 @@ class Application
     private XS2EventBookingBridge $xs2eventBridge;
     private ETicketService $eTicketService;
     private WhyRondoSportsRepository $whyRondoRepository;
+    private SystemSettingsRepository $systemSettingsRepository;
 
     public function __construct() {
         // Create Slim app instance
@@ -222,6 +228,9 @@ class Application
 
         // Why Rondo Sports repository
         $this->whyRondoRepository = new WhyRondoSportsRepository($this->database->getConnection(), $this->logger);
+
+        // System Settings repository
+        $this->systemSettingsRepository = new SystemSettingsRepository($this->database->getConnection(), $this->logger);
     }
     
     private function setupRoutes(): void
@@ -612,6 +621,14 @@ class Application
             $group->patch('/currencies/{id:[0-9]+}/set-default', [$currencyController, 'setDefault']);
             $group->patch('/currencies/{id:[0-9]+}/toggle-active', [$currencyController, 'toggleActive']);
 
+            // Display Settings Management (Admin)
+            $displaySettingsController = new DisplaySettingsController(
+                $this->systemSettingsRepository,
+                $this->logger
+            );
+            $group->get('/display-settings', [$displaySettingsController, 'getAdminSettings']);
+            $group->put('/display-settings/{key}', [$displaySettingsController, 'updateSetting']);
+
             // Why Rondo Sports Management (Admin)
             $whyRondoAdminController = new WhyRondoSportsController(
                 $this->whyRondoRepository,
@@ -624,6 +641,18 @@ class Application
             $group->put('/why-rondo-sports/{id}', [$whyRondoAdminController, 'updateItem']);
             $group->delete('/why-rondo-sports/{id}', [$whyRondoAdminController, 'deleteItem']);
             $group->post('/why-rondo-sports/{id}/upload-icon', [$whyRondoAdminController, 'uploadIcon']);
+
+            // Contact Page Management (Admin)
+            $contactPageRepository = new ContactPageRepository($this->database, $this->logger);
+            $contactPageController = new ContactPageController(
+                $contactPageRepository,
+                $this->logger,
+                __DIR__ . '/../public/images/contact',
+                $this->config->getAppUrl()
+            );
+            $group->get('/contact-page', [$contactPageController, 'getSettings']);
+            $group->put('/contact-page', [$contactPageController, 'updateSettings']);
+            $group->post('/contact-page/banner', [$contactPageController, 'uploadBanner']);
             
         })->add(new AuthMiddleware(
             $this->jwtService,
@@ -666,6 +695,10 @@ class Application
         $publicCurrencyRepository = new CurrencyRepository($this->database->getConnection(), $this->logger);
         $publicCurrencyController = new CurrencyController($publicCurrencyRepository, $this->logger);
         $this->app->get('/api/v1/currencies', [$publicCurrencyController, 'getActiveCurrencies']);
+
+        // Exchange Rate Routes (public - proxy to Frankfurter, avoids browser CORS)
+        $exchangeRateController = new ExchangeRateController($this->httpClient, $this->logger);
+        $this->app->get('/api/v1/exchange-rates', [$exchangeRateController, 'getRates']);
 
         // Payment Routes (public and authenticated)
         $paymentController = new PaymentController(
@@ -713,6 +746,23 @@ class Application
             $group->post('/{id}/click', [$bannersController, 'trackBannerClick']);
             $group->post('/{id}/impression', [$bannersController, 'trackBannerImpression']);
         });
+
+        // Public Display Settings Route (for frontend consumption)
+        $publicDisplaySettingsController = new DisplaySettingsController(
+            $this->systemSettingsRepository,
+            $this->logger
+        );
+        $this->app->get('/api/v1/display-settings', [$publicDisplaySettingsController, 'getPublicSettings']);
+
+        // Contact Page public API endpoint
+        $publicContactPageRepository = new ContactPageRepository($this->database, $this->logger);
+        $publicContactPageController = new ContactPageController(
+            $publicContactPageRepository,
+            $this->logger,
+            __DIR__ . '/../public/images/contact',
+            $this->config->getAppUrl()
+        );
+        $this->app->get('/api/v1/contact-page', [$publicContactPageController, 'getPublicSettings']);
 
         // Static Pages public API endpoints
         $publicStaticPagesRepository = new StaticPagesRepository($this->database, $this->logger);

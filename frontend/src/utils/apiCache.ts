@@ -129,6 +129,14 @@ class ApiCache {
   }
 
   /**
+   * Generate cache key for golf tournaments
+   * @returns Cache key
+   */
+  getGolfTournamentsKey(): string {
+    return 'tournaments_golf';
+  }
+
+  /**
    * Generate cache key for navigation links
    * @param tournamentId - Tournament ID
    * @param teamId - Team ID

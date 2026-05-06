@@ -1,6 +1,6 @@
 .container {
   min-height: 90vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--color-neutral-light) 0%, #e9ecef 100%);
 }
 
 .content {
@@ -10,7 +10,7 @@
 }
 
 .content h1 {
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 2rem;
   text-align: center;
   font-size: 2.5rem;
@@ -30,13 +30,13 @@
   margin: 0;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #384959;
+  color: var(--color-primary);
 }
 
 .backButton,
 .loginButton,
 .exploreButton {
-  background: linear-gradient(135deg, #51A2DD 0%, #384959 100%);
+  background: linear-gradient(135deg, var(--color-secondary-1) 0%, var(--color-primary) 100%);
   color: white;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -143,7 +143,7 @@
 .bookingHeader {
   padding: 1.5rem 1.5rem 1rem 1.5rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, #fafbfc 0%, var(--color-neutral-light) 100%);
 }
 
 .bookingTitle {
@@ -460,7 +460,7 @@
 }
 
 .detailRow strong {
-  color: #384959;
+  color: var(--color-primary);
   display: block;
   margin-bottom: 0.25rem;
   font-size: 0.9rem;
@@ -486,7 +486,7 @@
 }
 
 .viewButton {
-  background: linear-gradient(135deg, #51A2DD 0%, #384959 100%);
+  background: linear-gradient(135deg, var(--color-secondary-1) 0%, var(--color-primary) 100%);
   color: white;
 }
 

@@ -4,7 +4,7 @@
 
 /* Hero Section */
 .heroSection {
-  background: linear-gradient(135deg, #384959 0%, #57B9FF 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary-1) 100%);
   padding: 4rem 0;
   color: white;
   position: relative;
@@ -50,7 +50,7 @@
 }
 
 .titleHighlight {
-  color: #ff6b35;
+  color: var(--color-accent);
 }
 
 .heroDescription {
@@ -106,7 +106,7 @@
 /* FAQ Content Section */
 .faqContentSection {
   padding: 4rem 0;
-  background: #f8f9fa;
+  background: var(--color-neutral-light);
 }
 
 .resultsHeader {
@@ -117,7 +117,7 @@
 .resultsTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -142,7 +142,7 @@
 }
 
 .faqItem:hover {
-  border-color: #ff6b35;
+  border-color: var(--color-accent);
   box-shadow: 0 4px 15px rgba(255, 107, 53, 0.1);
 }
 
@@ -161,18 +161,18 @@
 }
 
 .faqQuestion:hover {
-  background: #f8f9fa;
+  background: var(--color-neutral-light);
 }
 
 .faqQuestion[aria-expanded="true"] {
-  background: #f8f9fa;
+  background: var(--color-neutral-light);
   border-bottom: 1px solid #e0e0e0;
 }
 
 .questionText {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   line-height: 1.4;
   flex: 1;
 }
@@ -186,7 +186,7 @@
 
 .expandIcon {
   font-size: 1.5rem;
-  color: #ff6b35;
+  color: var(--color-accent);
   transition: transform 0.3s ease;
 }
 
@@ -233,7 +233,7 @@
 .noResults h3 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #384959;
+  color: var(--color-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -243,7 +243,7 @@
 }
 
 .resetButton {
-  background: #ff6b35;
+  background: var(--color-accent);
   color: white;
   border: none;
   padding: 1rem 2rem;
@@ -255,7 +255,7 @@
 }
 
 .resetButton:hover {
-  background: #e55a2b;
+  background: var(--color-accent);
   transform: translateY(-2px);
 }
 
@@ -332,7 +332,7 @@
   width: 50px;
   height: 50px;
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ff6b35;
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;

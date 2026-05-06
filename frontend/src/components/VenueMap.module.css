@@ -128,7 +128,7 @@
 .categoryItem:hover,
 .categoryItem.active {
   background: rgba(87, 185, 255, 0.1); /* Light primary brand blue background */
-  border-color: #57B9FF; /* Primary brand blue border */
+  border-color: var(--color-secondary-1); /* Primary brand blue border */
   transform: translateX(4px);
 }
 
@@ -149,52 +149,52 @@
 
 .categoryPrice {
   font-size: 0.8rem;
-  color: #FF6200; /* Brand accent orange for price */
+  color: var(--color-accent); /* Brand accent orange for price */
   font-weight: 600;
 }
 
 /* Category Type Colors - Using specified seat color */
 .category_grandstand,
 .category_default {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_suite {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_general_admission {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_hospitality {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_premium {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_vip {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 /* Additional category variations using seat color */
 .category_terrace {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_club {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 .category_family {
-  background: #BDDDFC; /* Seats color as specified */
+  background: var(--color-secondary-2); /* Seats color as specified */
 }
 
 /* SVG Styling for Venue Elements */
 .svgContainer :global(.soccerfield) {
-  fill: #4dabf7; /* Ground color as specified */
+  fill: var(--color-secondary-1); /* Ground color as specified */
 }
 
 .svgContainer :global(.svg-background) {
@@ -236,48 +236,48 @@
 }
 
 .svgContainer :global(.grandstand) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.suite) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.general-admission) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.hospitality) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.premium) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.vip) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 /* Additional category variations */
 .svgContainer :global(.terrace) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.club) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
 .svgContainer :global(.family) {
-  fill: #BDDDFC; /* Seats color as specified */
+  fill: var(--color-secondary-2); /* Seats color as specified */
   transition: fill 0.2s ease;
 }
 
@@ -296,13 +296,13 @@
 .svgContainer :global(.terrace):hover,
 .svgContainer :global(.club):hover,
 .svgContainer :global(.family):hover {
-  fill: #FF6200; /* Brand accent orange for hover */
+  fill: var(--color-accent); /* Brand accent orange for hover */
   stroke: #fff;
   stroke-width: 2px;
 }
 
 .svgContainer :global(.highlighted) {
-  fill: #FF6200 !important; /* Brand accent orange for highlight */
+  fill: var(--color-accent) !important; /* Brand accent orange for highlight */
   stroke: #fff !important;
   stroke-width: 3px !important;
   filter: drop-shadow(0 0 8px rgba(255, 98, 0, 0.6)); /* Orange glow effect */

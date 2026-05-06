@@ -1,10 +1,12 @@
 // filepath: e:\RondoSportsAdminCopilot\src\pages\Content.tsx
 import React, { useState, useEffect } from 'react';
-import { File, Edit, Save, Image, AlertCircle, Loader } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { File, Edit, Save, Image, AlertCircle, Loader, Phone } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import RichTextEditor from '../components/RichTextEditor';
 import { BannerList } from '../components/banners';
 import WhyRondoManager from '../components/WhyRondoManager';
+import ContactPageManager from '../components/ContactPageManager';
 import staticPagesService, { type StaticPage } from '../services/staticPagesService';
 import styles from './Content.module.css';
 
@@ -14,7 +16,9 @@ const sanitizeHtml = (html: string): string => {
 };
 
 const Content: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'pages' | 'banners' | 'whyrondo'>('pages');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as 'pages' | 'banners' | 'whyrondo' | 'contact') || 'pages';
+  const [activeTab, setActiveTab] = useState<'pages' | 'banners' | 'whyrondo' | 'contact'>(initialTab);
   const [selectedPage, setSelectedPage] = useState<'terms' | 'privacy' | 'about' | 'faq'>('terms');
   const [isEditing, setIsEditing] = useState(false);
   const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
@@ -67,7 +71,7 @@ const Content: React.FC = () => {
     }
   };
 
-  const handleTabChange = (tab: 'pages' | 'banners' | 'whyrondo') => {
+  const handleTabChange = (tab: 'pages' | 'banners' | 'whyrondo' | 'contact') => {
     setActiveTab(tab);
     setIsEditing(false);
     
@@ -163,6 +167,13 @@ const Content: React.FC = () => {
         >
           <AlertCircle size={18} />
           <span>Why Rondo Sports</span>
+        </button>
+        <button 
+          className={`${styles.tabButton} ${activeTab === 'contact' ? styles.activeTab : ''}`}
+          onClick={() => handleTabChange('contact')}
+        >
+          <Phone size={18} />
+          <span>Contact Page</span>
         </button>
       </div>
       
@@ -279,6 +290,8 @@ const Content: React.FC = () => {
         </div>
       ) : activeTab === 'banners' ? (
         <BannerList />
+      ) : activeTab === 'contact' ? (
+        <ContactPageManager />
       ) : (
         <WhyRondoManager />
       )}

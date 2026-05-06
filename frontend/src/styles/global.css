@@ -1,5 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 @import './variables.css';
+
+/* === RONDO Fonts 2026 === */
+
+/* Gilroy — Primary Typeface */
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/fonts/Gilroy-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Proxima Nova — Secondary Typeface */
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/Proxima-Nova-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/Proxima-Nova-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/Proxima-Nova-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 
 * {
   margin: 0;
@@ -8,10 +68,43 @@
 }
 
 body {
-  font-family: var(--font-family);
-  color: var(--text);
+  font-family: var(--font-secondary);
+  color: var(--color-neutral-dark);
   line-height: 1.5;
-  background-color: var(--secondary);
+  background-color: var(--color-neutral-light);
+}
+
+h1 {
+  font-family: var(--font-primary);
+  font-weight: 600;
+}
+
+h2,
+h3 {
+  font-family: var(--font-primary);
+  font-weight: 500;
+}
+
+h4,
+h5,
+h6 {
+  font-family: var(--font-primary);
+  font-weight: 500;
+}
+
+p,
+li,
+blockquote {
+  font-family: var(--font-secondary);
+  font-weight: 400;
+}
+
+label,
+caption,
+figcaption,
+small {
+  font-family: var(--font-secondary);
+  font-weight: 500;
 }
 
 a {
@@ -61,7 +154,7 @@ img {
 }
 
 .btn-primary:hover {
-  background-color: #4aa8ee;
+  background-color: var(--color-secondary-1);
 }
 
 .btn-secondary {
