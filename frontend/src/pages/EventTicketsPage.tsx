@@ -99,7 +99,7 @@ const EventTicketsPage: React.FC = () => {
   // Fetch event details and tickets
   const { event, loading: eventLoading, error: eventError } = useEventDetails(eventId);
   // Apply SEO – use the event name as a dynamic title suffix once loaded
-  useSEO('event-tickets', { titleSuffix: event?.name ?? undefined });
+  useSEO('event-tickets', { titleSuffix: event?.event_name ?? undefined });
   const { tickets, loading: ticketsLoading, error: ticketsError } = useTickets({ event_id: eventId });
   
   // Get user-selected currency from global context

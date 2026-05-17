@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Footer.module.css';
 import { FaFacebookF, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
-import { FiPhone, FiMail } from 'react-icons/fi';
+
 
 const Footer: React.FC = () => {
   return (
