@@ -4,8 +4,10 @@ import { useSports } from '../hooks/useSports';
 import styles from './AllSportsPage.module.css';
 import { FaFutbol, FaBasketballBall, FaTableTennis, FaVolleyballBall } from 'react-icons/fa';
 import { MdSports, MdArrowForward } from 'react-icons/md';
+import { useSEO } from '../hooks/useSEO';
 
 const AllSportsPage: React.FC = () => {
+  useSEO('sports');
   const { sports, loading, error } = useSports();
 
   const getSportIcon = (sportId: string) => {

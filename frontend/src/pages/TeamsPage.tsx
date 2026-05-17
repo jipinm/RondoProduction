@@ -4,8 +4,10 @@ import { useAllTeams } from '../hooks/useAllTeams';
 import { useDisplaySettings } from '../hooks/useDisplaySettings';
 import { ArrowLeft, Users, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './TeamsPage.module.css';
+import { useSEO } from '../hooks/useSEO';
 
 const TeamsPage: React.FC = () => {
+  useSEO('teams');
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Extract URL parameters

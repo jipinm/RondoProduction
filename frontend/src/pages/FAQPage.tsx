@@ -3,6 +3,7 @@ import { MdExpandMore, MdExpandLess, MdSearch } from 'react-icons/md';
 import styles from './FAQPage.module.css';
 import { staticPagesService } from '../services/staticPagesService';
 import type { StaticPage } from '../types/staticPages';
+import { useSEO } from '../hooks/useSEO';
 
 interface FAQItem {
   id: number;
@@ -73,6 +74,7 @@ const parseFAQContent = (htmlContent: string): FAQItem[] => {
 };
 
 const FAQPage: React.FC = () => {
+  useSEO('faq');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [faqData, setFaqData] = useState<FAQItem[]>([]);

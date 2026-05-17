@@ -8,8 +8,10 @@ import { useMultiCurrencyConversion } from '../hooks/useMultiCurrencyConversion'
 import { useSelectedCurrency } from '../contexts/CurrencyContext';
 import type { Event } from '../services/apiRoutes';
 import styles from './EventsPage.module.css';
+import { useSEO } from '../hooks/useSEO';
 
 const EventsPage: React.FC = () => {
+  useSEO('events');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   

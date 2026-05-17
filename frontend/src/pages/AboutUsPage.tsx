@@ -3,8 +3,10 @@ import styles from './AboutUsPage.module.css';
 import { staticPagesService } from '../services/staticPagesService';
 import type { StaticPage } from '../types/staticPages';
 import AboutPhotoCollage from './AboutPhotoCollage';
+import { useSEO } from '../hooks/useSEO';
 
 const AboutUsPage: React.FC = () => {
+  useSEO('about-us');
   const [page, setPage] = useState<StaticPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

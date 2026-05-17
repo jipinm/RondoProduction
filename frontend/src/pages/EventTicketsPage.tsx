@@ -26,6 +26,7 @@ import VenueMap from '../components/VenueMap';
 import CartPanel from '../components/CartPanel';
 import type { Ticket } from '../services/apiRoutes';
 import styles from './EventTicketsPage.module.css';
+import { useSEO } from '../hooks/useSEO';
 
 // CartItem — hospitality is now informational only (included with ticket)
 export interface CartItem {
@@ -97,6 +98,8 @@ const EventTicketsPage: React.FC = () => {
   
   // Fetch event details and tickets
   const { event, loading: eventLoading, error: eventError } = useEventDetails(eventId);
+  // Apply SEO – use the event name as a dynamic title suffix once loaded
+  useSEO('event-tickets', { titleSuffix: event?.name ?? undefined });
   const { tickets, loading: ticketsLoading, error: ticketsError } = useTickets({ event_id: eventId });
   
   // Get user-selected currency from global context

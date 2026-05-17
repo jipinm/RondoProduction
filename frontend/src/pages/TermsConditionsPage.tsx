@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import styles from './TermsConditionsPage.module.css';
 import { staticPagesService } from '../services/staticPagesService';
 import type { StaticPage } from '../types/staticPages';
+import { useSEO } from '../hooks/useSEO';
 
 const TermsConditionsPage: React.FC = () => {
+  useSEO('terms-conditions');
   const [page, setPage] = useState<StaticPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

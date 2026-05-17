@@ -6,8 +6,10 @@ import contactPagePublicService, {
   DEFAULT_SETTINGS,
 } from '../services/contactPageService';
 import styles from './ContactUsPage.module.css';
+import { useSEO } from '../hooks/useSEO';
 
 const ContactUsPage: React.FC = () => {
+  useSEO('contact-us');
   const [s, setS] = useState<ContactPageSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {

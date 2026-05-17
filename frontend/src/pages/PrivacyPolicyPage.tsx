@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import styles from './PrivacyPolicyPage.module.css';
 import { staticPagesService } from '../services/staticPagesService';
 import type { StaticPage } from '../types/staticPages';
+import { useSEO } from '../hooks/useSEO';
 
 const PrivacyPolicyPage: React.FC = () => {
+  useSEO('privacy-policy');
   const [page, setPage] = useState<StaticPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

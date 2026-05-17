@@ -92,6 +92,8 @@ use XS2EventProxy\Repository\CurrencyRepository;
 use XS2EventProxy\Repository\WhyRondoSportsRepository;
 use XS2EventProxy\Repository\ContactPageRepository;
 use XS2EventProxy\Repository\SystemSettingsRepository;
+use XS2EventProxy\Repository\SeoSettingsRepository;
+use XS2EventProxy\Controller\SeoSettingsController;
 use XS2EventProxy\Service\TeamCredentialsService;
 use XS2EventProxy\Service\BannersService;
 use XS2EventProxy\Service\DashboardService;
@@ -629,6 +631,15 @@ class Application
             $group->get('/display-settings', [$displaySettingsController, 'getAdminSettings']);
             $group->put('/display-settings/{key}', [$displaySettingsController, 'updateSetting']);
 
+            // SEO Settings Management (Admin)
+            $seoSettingsAdminController = new SeoSettingsController(
+                new SeoSettingsRepository($this->database, $this->logger),
+                $this->logger
+            );
+            $group->get('/seo-settings', [$seoSettingsAdminController, 'adminGetAll']);
+            $group->get('/seo-settings/{id:[0-9]+}', [$seoSettingsAdminController, 'adminGetOne']);
+            $group->put('/seo-settings/{id:[0-9]+}', [$seoSettingsAdminController, 'adminUpdate']);
+
             // Why Rondo Sports Management (Admin)
             $whyRondoAdminController = new WhyRondoSportsController(
                 $this->whyRondoRepository,
@@ -763,6 +774,14 @@ class Application
             $this->config->getAppUrl()
         );
         $this->app->get('/api/v1/contact-page', [$publicContactPageController, 'getPublicSettings']);
+
+        // SEO Settings public API endpoints
+        $publicSeoController = new SeoSettingsController(
+            new SeoSettingsRepository($this->database, $this->logger),
+            $this->logger
+        );
+        $this->app->get('/api/v1/seo-settings', [$publicSeoController, 'publicGetAll']);
+        $this->app->get('/api/v1/seo-settings/{pageKey}', [$publicSeoController, 'publicGetByKey']);
 
         // Static Pages public API endpoints
         $publicStaticPagesRepository = new StaticPagesRepository($this->database, $this->logger);
