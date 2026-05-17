@@ -668,7 +668,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
           z-index: 9999;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-family: 'Proxima Nova', 'Gilroy', sans-serif;
           font-size: 14px;
           font-weight: 500;
           max-width: 350px;

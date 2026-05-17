@@ -23,9 +23,10 @@
 }
 
 .sectionTitle {
-  font-size: var(--font-size-2xl);
+  font-size: 2.75rem;
   font-weight: 700;
-  color: #333;
+  color: var(--color-primary);
+  font-family: var(--font-primary);
   margin: 0;
   text-align: center;
 }
@@ -259,7 +260,7 @@
   }
 
   .sectionTitle {
-    font-size: 28px;
+    font-size: 2rem;
   }
 
   .sectionDescription {
@@ -326,7 +327,7 @@
   }
 
   .sectionTitle {
-    font-size: 24px;
+    font-size: 1.75rem;
   }
 
   .sectionDescription {

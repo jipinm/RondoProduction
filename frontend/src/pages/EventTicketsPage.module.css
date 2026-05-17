@@ -1091,7 +1091,7 @@
 }
 
 .addTicketButton {
-  background: #f97316;
+  background: var(--color-accent);
   color: white;
   border: none;
   padding: 0.65rem 1.25rem;
@@ -1099,13 +1099,15 @@
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   min-width: 110px;
   white-space: nowrap;
 }
 
 .addTicketButton:hover:not(:disabled) {
-  background: #ea580c;
+  background: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(192, 80, 76, 0.35);
+  transform: translateY(-1px);
 }
 
 .addTicketButton:disabled {

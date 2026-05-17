@@ -15,17 +15,6 @@ const Footer: React.FC = () => {
               <img src="/logo-footer.png" alt="RONDO Sports Tickets" className={styles.footerLogoImg} />
             </div>
             
-            <div className={styles.contactInfo}>
-              <div className={styles.contactItem}>
-                <FiPhone className={styles.contactIcon} />
-                <span>800 000 0000</span>
-              </div>
-              <div className={styles.contactItem}>
-                <FiMail className={styles.contactIcon} />
-                <span>info@bascompalmer.com</span>
-              </div>
-            </div>
-            
             <div className={styles.socialIcons}>
               <a href="#" className={styles.socialIcon}>
                 <FaFacebookF />
@@ -68,7 +57,7 @@ const Footer: React.FC = () => {
         
         <div className={styles.copyright}>
           <div className={styles.copyrightContent}>
-            <span>© 2025 Rondo Sports Travel. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} Rondo Sports Travel. All rights reserved.</span>
             <div className={styles.copyrightLine}></div>
           </div>
         </div>

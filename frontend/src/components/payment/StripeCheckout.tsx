@@ -280,7 +280,7 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = (props) => {
         colorBackground: '#ffffff',
         colorText: '#1e293b',
         colorDanger: '#ef4444',
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: "'Proxima Nova', 'Gilroy', sans-serif",
         spacingUnit: '6px',
         borderRadius: '8px',
       },

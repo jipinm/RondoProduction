@@ -1,9 +1,9 @@
 :root {
-  font-family: 'Proxima Nova', 'Gilroy', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Gilroy', 'Proxima Nova', system-ui, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: light;
   color: #1C191D;
   background-color: #F7F7F7;
 

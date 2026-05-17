@@ -60,10 +60,6 @@ const TermsConditionsPage: React.FC = () => {
   return (
     <div className={styles.policyPage}>
       <div className={styles.container}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>{page.title}</h1>
-        </header>
-
         <div 
           className={styles.content}
           dangerouslySetInnerHTML={{ __html: page.content }}

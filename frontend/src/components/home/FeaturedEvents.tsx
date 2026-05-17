@@ -59,7 +59,7 @@ const FeaturedEvents: React.FC = () => {
   const [priceFilter, setPriceFilter] = useState('Price');
 
   // Fetch all events (no sport/team filter — show everything)
-  const { events, loading } = useEvents({});
+  const { events, loading, totalSize, hasMore, loadMore, loadingMore } = useEvents({});
 
   const { selectedCurrencyCode } = useSelectedCurrency();
   const { convertAmount, isLoading: currencyLoading } = useMultiCurrencyConversion(
@@ -169,6 +169,8 @@ const FeaturedEvents: React.FC = () => {
     setPriceFilter('Price');
   };
 
+  const isFiltered = locationFilter !== 'All Locations' || dateFilter !== 'All Dates' || priceFilter !== 'Price';
+
   // ── Skeleton ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -216,7 +218,9 @@ const FeaturedEvents: React.FC = () => {
           <div className={styles.headerLeft}>
             <h2 className={styles.sectionTitle}>Buy Now</h2>
             <p className={styles.eventsCount}>
-              {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} found
+              {isFiltered
+                ? `${filteredEvents.length} event${filteredEvents.length !== 1 ? 's' : ''} found`
+                : `${totalSize ?? filteredEvents.length} event${(totalSize ?? filteredEvents.length) !== 1 ? 's' : ''} available`}
             </p>
           </div>
           <div className={styles.filtersRow}>
@@ -313,6 +317,18 @@ const FeaturedEvents: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {hasMore && (
+          <div className={styles.loadMoreWrapper}>
+            <button
+              className={styles.loadMoreButton}
+              onClick={loadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Loading more…' : 'Load More Events'}
+            </button>
           </div>
         )}
 

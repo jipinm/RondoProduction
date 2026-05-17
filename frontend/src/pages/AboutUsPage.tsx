@@ -61,10 +61,6 @@ const AboutUsPage: React.FC = () => {
   return (
     <div className={styles.aboutPage}>
       <div className={styles.container}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>{page.title}</h1>
-        </header>
-
         <div 
           className={styles.content}
           dangerouslySetInnerHTML={{ __html: page.content }}

@@ -68,11 +68,7 @@ const UpcomingEvents: React.FC = () => {
       <section className={styles.upcomingEvents}>
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Upcoming Events</h2>
-            <p className={styles.sectionDescription}>
-              Explore top upcoming matches across sports.
-              From football to motorsports – grab your seat before it's gone!
-            </p>
+            <h2 className={styles.sectionTitle}>Featured Events</h2>
           </div>
           
           <div className={styles.eventsGrid}>
@@ -107,11 +103,7 @@ const UpcomingEvents: React.FC = () => {
       <section className={styles.upcomingEvents}>
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Upcoming Events</h2>
-            <p className={styles.sectionDescription}>
-              Explore top upcoming matches across sports.
-              From football to motorsports – grab your seat before it's gone!
-            </p>
+            <h2 className={styles.sectionTitle}>Featured Events</h2>
           </div>
           <div className={styles.emptyState}>
             <p>No upcoming events at this time. Check back soon!</p>
@@ -125,11 +117,7 @@ const UpcomingEvents: React.FC = () => {
     <section className={styles.upcomingEvents}>
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Upcoming Events</h2>
-          <p className={styles.sectionDescription}>
-            Explore top upcoming matches across sports.
-            From football to motorsports – grab your seat before it's gone!
-          </p>
+          <h2 className={styles.sectionTitle}>Featured Events</h2>
         </div>
         
         <div className={styles.eventsGrid}>

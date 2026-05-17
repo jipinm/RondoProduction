@@ -20,13 +20,6 @@ use Slim\Psr7\Response;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->load();
 
-// Load production overrides (.env.production) if the file exists.
-// Uses createMutable so it can override values already loaded from .env.
-if (file_exists(__DIR__ . '/../.env.production')) {
-    $dotenvProd = Dotenv\Dotenv::createMutable(__DIR__ . '/..', '.env.production');
-    $dotenvProd->load();
-}
-
 // Create configuration
 $config = new AppConfig($_ENV);
 
