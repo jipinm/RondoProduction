@@ -20,7 +20,8 @@ import {
   Coins,
   Eye,
   Phone,
-  SearchCheck
+  SearchCheck,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './DashboardLayout.module.css';
@@ -154,6 +155,13 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/seo-management" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
                 <SearchCheck size={20} />
                 {sidebarOpen && <span>SEO Management</span>}
+              </NavLink>
+            )}
+
+            {user && (
+              <NavLink to="/email-management" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
+                <Mail size={20} />
+                {sidebarOpen && <span>Email Management</span>}
               </NavLink>
             )}
 

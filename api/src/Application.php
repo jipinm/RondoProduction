@@ -94,6 +94,8 @@ use XS2EventProxy\Repository\ContactPageRepository;
 use XS2EventProxy\Repository\SystemSettingsRepository;
 use XS2EventProxy\Repository\SeoSettingsRepository;
 use XS2EventProxy\Controller\SeoSettingsController;
+use XS2EventProxy\Repository\EmailTemplateRepository;
+use XS2EventProxy\Controller\EmailTemplateController;
 use XS2EventProxy\Service\TeamCredentialsService;
 use XS2EventProxy\Service\BannersService;
 use XS2EventProxy\Service\DashboardService;
@@ -204,7 +206,10 @@ class Application
         $this->permissionService = new PermissionService($this->logger, $this->database);
         
         // Email service for sending notifications
-        $this->emailService = new EmailService($this->logger);
+        $this->emailService = new EmailService(
+            $this->logger,
+            new EmailTemplateRepository($this->database, $this->logger)
+        );
         
         // XS2Event integration services
         $xs2eventBaseUrl = $_ENV['XS2EVENT_BASE_URL'] ?? 'https://api.xs2event.com';
@@ -664,6 +669,16 @@ class Application
             $group->get('/contact-page', [$contactPageController, 'getSettings']);
             $group->put('/contact-page', [$contactPageController, 'updateSettings']);
             $group->post('/contact-page/banner', [$contactPageController, 'uploadBanner']);
+
+            // Email Template Management (Admin)
+            $emailTemplateController = new EmailTemplateController(
+                new EmailTemplateRepository($this->database, $this->logger),
+                $this->logger
+            );
+            $group->get('/email-templates', [$emailTemplateController, 'getAll']);
+            $group->get('/email-templates/{id:[0-9]+}', [$emailTemplateController, 'getOne']);
+            $group->put('/email-templates/{id:[0-9]+}', [$emailTemplateController, 'update']);
+            $group->post('/email-templates/{id:[0-9]+}/reset', [$emailTemplateController, 'reset']);
             
         })->add(new AuthMiddleware(
             $this->jwtService,

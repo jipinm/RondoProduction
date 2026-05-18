@@ -6,6 +6,7 @@ namespace XS2EventProxy\Service;
 
 use SendGrid\Mail\Mail;
 use Psr\Log\LoggerInterface;
+use XS2EventProxy\Repository\EmailTemplateRepository;
 
 class EmailService
 {
@@ -14,11 +15,63 @@ class EmailService
     private string $fromEmail;
     private string $fromName;
     private string $frontendUrl;
+    private ?EmailTemplateRepository $templateRepo;
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger, ?EmailTemplateRepository $templateRepo = null)
     {
-        $this->logger = $logger;
+        $this->logger       = $logger;
+        $this->templateRepo = $templateRepo;
         $this->loadConfiguration();
+    }
+
+    /**
+     * Attempt to render a dynamic template from the database.
+     * Returns an array with keys 'subject', 'html', 'text', or null when no
+     * active DB template exists for the given event key.
+     *
+     * Placeholders use {{variable_name}} syntax and are replaced with the
+     * values supplied in $vars.  Unknown placeholders are left untouched.
+     *
+     * @param  string  $eventKey  e.g. 'email_verification'
+     * @param  array   $vars      Associative map of placeholder => value
+     * @return array{subject:string,html:string,text:string}|null
+     */
+    private function renderTemplate(string $eventKey, array $vars): ?array
+    {
+        if ($this->templateRepo === null) {
+            return null;
+        }
+
+        try {
+            $tpl = $this->templateRepo->getActiveByEventKey($eventKey);
+        } catch (\Exception $e) {
+            $this->logger->warning('EmailService: failed to load template from DB, using hardcoded fallback', [
+                'event_key' => $eventKey,
+                'error'     => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if ($tpl === null) {
+            return null;
+        }
+
+        $subject = $this->interpolate($tpl['subject'],   $vars);
+        $html    = $this->interpolate($tpl['body_html'], $vars);
+        $text    = $this->interpolate($tpl['body_text'], $vars);
+
+        return ['subject' => $subject, 'html' => $html, 'text' => $text];
+    }
+
+    /**
+     * Replace {{placeholder}} tokens in $template with values from $vars.
+     */
+    private function interpolate(string $template, array $vars): string
+    {
+        foreach ($vars as $key => $value) {
+            $template = str_replace('{{' . $key . '}}', (string) $value, $template);
+        }
+        return $template;
     }
 
     private function loadConfiguration(): void
@@ -63,12 +116,36 @@ class EmailService
                 ($bookingData['customer_last_name']  ?? '')
             ) ?: 'Valued Customer';
 
+            $formattedDate   = $this->formatDate((string)($bookingData['event_date'] ?? ''));
+            $formattedAmount = $this->formatAmount($bookingData['total_amount'] ?? 0, (string)($bookingData['currency'] ?? 'USD'));
+
+            $vars = [
+                'customer_name'     => $customerFullName,
+                'booking_id'        => (string)($bookingData['booking_id'] ?? ''),
+                'booking_reference' => (string)($bookingData['booking_reference'] ?? ''),
+                'event_name'        => (string)($bookingData['event_name'] ?? 'Event'),
+                'event_date'        => $formattedDate,
+                'venue_name'        => (string)($bookingData['venue_name'] ?? ''),
+                'ticket_count'      => (string)(int)($bookingData['ticket_count'] ?? 1),
+                'total_amount'      => $formattedAmount,
+                'currency'          => (string)($bookingData['currency'] ?? 'USD'),
+            ];
+
+            $tpl = $this->renderTemplate('booking_confirmation', $vars);
+
             $mail = new Mail();
             $mail->setFrom($this->fromEmail, $this->fromName);
-            $mail->setSubject('Booking Confirmation - ' . ($bookingData['booking_reference'] ?? ''));
             $mail->addTo($bookingData['customer_email'], $customerFullName);
-            $mail->addContent('text/html',  $this->generateBookingConfirmationHTML($bookingData));
-            $mail->addContent('text/plain', $this->generateBookingConfirmationText($bookingData));
+
+            if ($tpl !== null) {
+                $mail->setSubject($tpl['subject']);
+                $mail->addContent('text/html',  $tpl['html']);
+                $mail->addContent('text/plain', $tpl['text']);
+            } else {
+                $mail->setSubject('Booking Confirmation - ' . ($bookingData['booking_reference'] ?? ''));
+                $mail->addContent('text/html',  $this->generateBookingConfirmationHTML($bookingData));
+                $mail->addContent('text/plain', $this->generateBookingConfirmationText($bookingData));
+            }
 
             $sent = $this->dispatch($mail);
 
@@ -99,32 +176,57 @@ class EmailService
 
             $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
 
-            $html = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e293b;">'
-                . '<h2>Verify your email address</h2>'
-                . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
-                . '<p>Thank you for registering with Rondo Sport. Please click the button below to verify your email address.</p>'
-                . '<p><a href="' . htmlspecialchars($verifyUrl) . '" '
-                .    'style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;'
-                .    'text-decoration:none;border-radius:8px;font-weight:600;">Verify Email</a></p>'
-                . '<p>Or copy and paste this link into your browser:<br><a href="' . htmlspecialchars($verifyUrl) . '">'
-                . htmlspecialchars($verifyUrl) . '</a></p>'
-                . '<p>This link expires in 24 hours.</p>'
-                . '<p>If you did not create an account, you can safely ignore this email.</p>'
-                . '<p>— The Rondo Sport Team</p>'
-                . '</body></html>';
+            $vars = [
+                'customer_name' => $name,
+                'verify_url'    => $verifyUrl,
+            ];
 
-            $text = "Verify your email address\n\n"
-                . "Hi {$name},\n\n"
-                . "Please verify your email by visiting:\n{$verifyUrl}\n\n"
-                . "This link expires in 24 hours.\n"
-                . "If you did not create an account, ignore this email.";
+            $tpl = $this->renderTemplate('email_verification', $vars);
 
             $mail = new Mail();
             $mail->setFrom($this->fromEmail, $this->fromName);
-            $mail->setSubject('Verify your email address — Rondo Sport');
             $mail->addTo($customer['email'], $name);
-            $mail->addContent('text/html',  $html);
-            $mail->addContent('text/plain', $text);
+
+            if ($tpl !== null) {
+                $mail->setSubject($tpl['subject']);
+                $mail->addContent('text/html',  $tpl['html']);
+                $mail->addContent('text/plain', $tpl['text']);
+            } else {
+                $html = '<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:sans-serif;background:#F7F7F7;">'
+                    . '<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">'
+                    . '<div style="background:#245388;padding:1rem 1.5rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:44px;max-width:170px;display:inline-block;" />'
+                    . '</div>'
+                    . '<div style="padding:2rem;color:#1C191D;">'
+                    . '<h2>Verify your email address</h2>'
+                    . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                    . '<p>Thank you for registering with Rondo Sport. Please click the button below to verify your email address.</p>'
+                    . '<p><a href="' . htmlspecialchars($verifyUrl) . '" '
+                    .    'style="display:inline-block;padding:12px 24px;background:#C0504C;color:#fff;'
+                    .    'text-decoration:none;border-radius:8px;font-weight:600;">Verify Email</a></p>'
+                    . '<p>Or copy and paste this link into your browser:<br><a href="' . htmlspecialchars($verifyUrl) . '">'
+                    . htmlspecialchars($verifyUrl) . '</a></p>'
+                    . '<p>This link expires in 24 hours.</p>'
+                    . '<p>If you did not create an account, you can safely ignore this email.</p>'
+                    . '</div>'
+                    . '<div style="background:#245388;padding:1rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:32px;max-width:130px;display:inline-block;margin-bottom:.35rem;" /><br>'
+                    . '<span style="color:rgba(255,255,255,.8);font-size:.8rem;">Rondo Sports Travel</span>'
+                    . '</div>'
+                    . '</div>'
+                    . '</body></html>';
+
+                $text = "Verify your email address\n\n"
+                    . "Hi {$name},\n\n"
+                    . "Please verify your email by visiting:\n{$verifyUrl}\n\n"
+                    . "This link expires in 24 hours.\n"
+                    . "If you did not create an account, ignore this email.\n\n"
+                    . '— Rondo Sports Travel';
+
+                $mail->setSubject('Verify your email address — Rondo Sport');
+                $mail->addContent('text/html',  $html);
+                $mail->addContent('text/plain', $text);
+            }
 
             return $this->dispatch($mail);
         } catch (\Exception $e) {
@@ -145,31 +247,56 @@ class EmailService
 
             $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
 
-            $html = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e293b;">'
-                . '<h2>Reset your password</h2>'
-                . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
-                . '<p>We received a request to reset the password for your Rondo Sport account.</p>'
-                . '<p><a href="' . htmlspecialchars($resetUrl) . '" '
-                .    'style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;'
-                .    'text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a></p>'
-                . '<p>Or copy and paste this link:<br><a href="' . htmlspecialchars($resetUrl) . '">'
-                . htmlspecialchars($resetUrl) . '</a></p>'
-                . '<p>This link expires in 1 hour. If you did not request a password reset, '
-                . 'you can safely ignore this email — your password will not be changed.</p>'
-                . '<p>— The Rondo Sport Team</p>'
-                . '</body></html>';
+            $vars = [
+                'customer_name' => $name,
+                'reset_url'     => $resetUrl,
+            ];
 
-            $text = "Reset your password\n\n"
-                . "Hi {$name},\n\n"
-                . "Visit the link below to reset your password (expires in 1 hour):\n{$resetUrl}\n\n"
-                . "If you did not request this, ignore this email.";
+            $tpl = $this->renderTemplate('password_reset', $vars);
 
             $mail = new Mail();
             $mail->setFrom($this->fromEmail, $this->fromName);
-            $mail->setSubject('Reset your password — Rondo Sport');
             $mail->addTo($customer['email'], $name);
-            $mail->addContent('text/html',  $html);
-            $mail->addContent('text/plain', $text);
+
+            if ($tpl !== null) {
+                $mail->setSubject($tpl['subject']);
+                $mail->addContent('text/html',  $tpl['html']);
+                $mail->addContent('text/plain', $tpl['text']);
+            } else {
+                $html = '<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:sans-serif;background:#F7F7F7;">'
+                    . '<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">'
+                    . '<div style="background:#245388;padding:1rem 1.5rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:44px;max-width:170px;display:inline-block;" />'
+                    . '</div>'
+                    . '<div style="padding:2rem;color:#1C191D;">'
+                    . '<h2>Reset your password</h2>'
+                    . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                    . '<p>We received a request to reset the password for your Rondo Sport account.</p>'
+                    . '<p><a href="' . htmlspecialchars($resetUrl) . '" '
+                    .    'style="display:inline-block;padding:12px 24px;background:#C0504C;color:#fff;'
+                    .    'text-decoration:none;border-radius:8px;font-weight:600;">Reset Password</a></p>'
+                    . '<p>Or copy and paste this link:<br><a href="' . htmlspecialchars($resetUrl) . '">'
+                    . htmlspecialchars($resetUrl) . '</a></p>'
+                    . '<p>This link expires in 1 hour. If you did not request a password reset, '
+                    . 'you can safely ignore this email — your password will not be changed.</p>'
+                    . '</div>'
+                    . '<div style="background:#245388;padding:1rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:32px;max-width:130px;display:inline-block;margin-bottom:.35rem;" /><br>'
+                    . '<span style="color:rgba(255,255,255,.8);font-size:.8rem;">Rondo Sports Travel</span>'
+                    . '</div>'
+                    . '</div>'
+                    . '</body></html>';
+
+                $text = "Reset your password\n\n"
+                    . "Hi {$name},\n\n"
+                    . "Visit the link below to reset your password (expires in 1 hour):\n{$resetUrl}\n\n"
+                    . "If you did not request this, ignore this email.\n\n"
+                    . '— Rondo Sports Travel';
+
+                $mail->setSubject('Reset your password — Rondo Sport');
+                $mail->addContent('text/html',  $html);
+                $mail->addContent('text/plain', $text);
+            }
 
             return $this->dispatch($mail);
         } catch (\Exception $e) {
@@ -190,34 +317,60 @@ class EmailService
 
             $name = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
 
-            $html = '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e293b;">'
-                . '<h2>Verify your new email address</h2>'
-                . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
-                . '<p>You recently requested to change the email address on your Rondo Sport account '
-                . 'to <strong>' . htmlspecialchars($newEmail) . '</strong>.</p>'
-                . '<p>Please click the button below to confirm this change.</p>'
-                . '<p><a href="' . htmlspecialchars($verifyUrl) . '" '
-                .    'style="display:inline-block;padding:12px 24px;background:#3b82f6;color:#fff;'
-                .    'text-decoration:none;border-radius:8px;font-weight:600;">Confirm Email Change</a></p>'
-                . '<p>Or copy and paste this link:<br><a href="' . htmlspecialchars($verifyUrl) . '">'
-                . htmlspecialchars($verifyUrl) . '</a></p>'
-                . '<p>This link expires in 24 hours. If you did not request this change, '
-                . 'please contact support immediately.</p>'
-                . '<p>— The Rondo Sport Team</p>'
-                . '</body></html>';
+            $vars = [
+                'customer_name' => $name,
+                'new_email'     => $newEmail,
+                'verify_url'    => $verifyUrl,
+            ];
 
-            $text = "Verify your new email address\n\n"
-                . "Hi {$name},\n\n"
-                . "You requested to change your email to: {$newEmail}\n\n"
-                . "Confirm this change by visiting:\n{$verifyUrl}\n\n"
-                . "If you did not request this, contact support immediately.";
+            $tpl = $this->renderTemplate('email_change_verification', $vars);
 
             $mail = new Mail();
             $mail->setFrom($this->fromEmail, $this->fromName);
-            $mail->setSubject('Confirm your new email address — Rondo Sport');
             $mail->addTo($newEmail, $name);
-            $mail->addContent('text/html',  $html);
-            $mail->addContent('text/plain', $text);
+
+            if ($tpl !== null) {
+                $mail->setSubject($tpl['subject']);
+                $mail->addContent('text/html',  $tpl['html']);
+                $mail->addContent('text/plain', $tpl['text']);
+            } else {
+                $html = '<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:sans-serif;background:#F7F7F7;">'
+                    . '<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">'
+                    . '<div style="background:#245388;padding:1rem 1.5rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:44px;max-width:170px;display:inline-block;" />'
+                    . '</div>'
+                    . '<div style="padding:2rem;color:#1C191D;">'
+                    . '<h2>Verify your new email address</h2>'
+                    . '<p>Hi ' . htmlspecialchars($name) . ',</p>'
+                    . '<p>You recently requested to change the email address on your Rondo Sport account '
+                    . 'to <strong>' . htmlspecialchars($newEmail) . '</strong>.</p>'
+                    . '<p>Please click the button below to confirm this change.</p>'
+                    . '<p><a href="' . htmlspecialchars($verifyUrl) . '" '
+                    .    'style="display:inline-block;padding:12px 24px;background:#C0504C;color:#fff;'
+                    .    'text-decoration:none;border-radius:8px;font-weight:600;">Confirm Email Change</a></p>'
+                    . '<p>Or copy and paste this link:<br><a href="' . htmlspecialchars($verifyUrl) . '">'
+                    . htmlspecialchars($verifyUrl) . '</a></p>'
+                    . '<p>This link expires in 24 hours. If you did not request this change, '
+                    . 'please contact support immediately.</p>'
+                    . '</div>'
+                    . '<div style="background:#245388;padding:1rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:32px;max-width:130px;display:inline-block;margin-bottom:.35rem;" /><br>'
+                    . '<span style="color:rgba(255,255,255,.8);font-size:.8rem;">Rondo Sports Travel</span>'
+                    . '</div>'
+                    . '</div>'
+                    . '</body></html>';
+
+                $text = "Verify your new email address\n\n"
+                    . "Hi {$name},\n\n"
+                    . "You requested to change your email to: {$newEmail}\n\n"
+                    . "Confirm this change by visiting:\n{$verifyUrl}\n\n"
+                    . "If you did not request this, contact support immediately.\n\n"
+                    . '— Rondo Sports Travel';
+
+                $mail->setSubject('Confirm your new email address — Rondo Sport');
+                $mail->addContent('text/html',  $html);
+                $mail->addContent('text/plain', $text);
+            }
 
             return $this->dispatch($mail);
         } catch (\Exception $e) {
@@ -254,7 +407,7 @@ class EmailService
         $formattedEventDate = $this->formatDate($eventDate);
         $formattedEventTime = $this->formatTime($eventStartTime);
 
-        return '
+        $html = '
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -266,8 +419,8 @@ class EmailService
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #EEF3F8;
-            color: #1e293b;
+            background-color: #F7F7F7;
+            color: #1C191D;
             line-height: 1.6;
         }
         
@@ -286,7 +439,7 @@ class EmailService
         }
         
         .header {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #245388 0%, #83ACDC 100%);
             padding: 2rem;
             text-align: center;
         }
@@ -324,16 +477,16 @@ class EmailService
         
         .greeting {
             font-size: 1.25rem;
-            color: #1e293b;
+            color: #1C191D;
             margin-bottom: 1.5rem;
         }
         
         .booking-details {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(135deg, #F7F7F7 0%, #F7F7F7 100%);
             border-radius: 12px;
             padding: 1.5rem;
             margin: 2rem 0;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #C7D9ED;
         }
         
         .detail-row {
@@ -341,7 +494,7 @@ class EmailService
             justify-content: space-between;
             align-items: center;
             padding: 0.75rem 0;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #C7D9ED;
             font-size: 1rem;
         }
         
@@ -350,20 +503,20 @@ class EmailService
         }
         
         .detail-label {
-            color: #64748b;
+            color: #808080;
             font-weight: 500;
         }
         
         .detail-value {
             font-weight: 600;
-            color: #1e293b;
+            color: #1C191D;
         }
         
         .booking-id {
             font-family: "Courier New", monospace;
             font-weight: 700;
-            color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
+            color: #245388;
+            background: rgba(36, 83, 136, 0.1);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
         }
@@ -371,8 +524,8 @@ class EmailService
         .booking-reference {
             font-family: "Courier New", monospace;
             font-weight: 600;
-            color: #7c3aed;
-            background: rgba(124, 58, 237, 0.1);
+            color: #83ACDC;
+            background: rgba(131, 172, 220, 0.1);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
         }
@@ -380,8 +533,8 @@ class EmailService
         .reservation-id {
             font-family: "Courier New", monospace;
             font-weight: 600;
-            color: #dc2626;
-            background: rgba(220, 38, 38, 0.1);
+            color: #C0504C;
+            background: rgba(192, 80, 76, 0.1);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
         }
@@ -389,20 +542,20 @@ class EmailService
         .amount {
             font-size: 1.25rem;
             font-weight: 700;
-            color: #059669;
+            color: #245388;
         }
         
         .next-steps {
-            background: linear-gradient(135deg, #fef7ed 0%, #fed7aa 100%);
+            background: #C7D9ED;
             border-radius: 12px;
             padding: 1.5rem;
             margin: 2rem 0;
-            border: 1px solid #fdba74;
+            border: 1px solid #DD938C;
         }
         
         .next-steps h3 {
             margin: 0 0 1rem 0;
-            color: #ea580c;
+            color: #C0504C;
             font-size: 1.25rem;
             font-weight: 600;
         }
@@ -410,7 +563,7 @@ class EmailService
         .next-steps ul {
             margin: 0;
             padding-left: 1.5rem;
-            color: #9a3412;
+            color: #1C191D;
         }
         
         .next-steps li {
@@ -425,26 +578,26 @@ class EmailService
         .cta-button {
             display: inline-block;
             padding: 1rem 2rem;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: #C0504C;
             color: white;
             text-decoration: none;
             border-radius: 12px;
             font-size: 1rem;
             font-weight: 600;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 15px rgba(192, 80, 76, 0.3);
             transition: all 0.3s ease;
         }
         
         .cta-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 8px 25px rgba(192, 80, 76, 0.4);
         }
         
         .footer {
-            background: #1e293b;
+            background: #245388;
             padding: 2rem;
             text-align: center;
-            color: #94a3b8;
+            color: rgba(255,255,255,.8);
         }
         
         .footer p {
@@ -453,7 +606,7 @@ class EmailService
         }
         
         .footer .company-name {
-            color: white;
+            color: rgba(255,255,255,.9);
             font-weight: 600;
         }
     </style>
@@ -461,6 +614,9 @@ class EmailService
 <body>
     <div class="container">
         <div class="email-card">
+            <div style="background:#245388;padding:1rem 1.5rem;text-align:center;">
+                <img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:44px;max-width:170px;display:inline-block;" />
+            </div>
             <div class="header">
                 <div class="success-icon">✓</div>
                 <h1>Booking Confirmed!</h1>
@@ -543,7 +699,7 @@ class EmailService
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Payment Status:</span>
-                        <span class="detail-value" style="color: #059669; font-weight: 600;">CONFIRMED</span>
+                        <span class="detail-value" style="color: #245388; font-weight: 600;">CONFIRMED</span>
                     </div>
                 </div>
                 
@@ -575,11 +731,12 @@ class EmailService
                 <p>We look forward to seeing you at the event!</p>
                 
                 <p>Best regards,<br>
-                <strong>The Rondo Sport Team</strong></p>
+                <strong>Rondo Sports Travel</strong></p>
             </div>
             
             <div class="footer">
-                <p>&copy; ' . date('Y') . ' <span class="company-name">Rondo Sport</span>. All rights reserved.</p>
+                <img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:36px;max-width:140px;display:inline-block;margin-bottom:.5rem;" /><br>
+                <p>&copy; ' . date('Y') . ' <span class="company-name">Rondo Sports Travel</span>. All rights reserved.</p>
                 <p>This is an automated message. Please do not reply to this email.</p>
             </div>
         </div>
@@ -664,8 +821,8 @@ class EmailService
         
         $text .= "We look forward to seeing you at the event!\n\n";
         $text .= "Best regards,\n";
-        $text .= "The Rondo Sport Team\n\n";
-        $text .= "© " . date('Y') . " Rondo Sport. All rights reserved.\n";
+        $text .= "Rondo Sports Travel\n\n";
+        $text .= '© ' . date('Y') . " Rondo Sports Travel. All rights reserved.\n";
         $text .= "This is an automated message. Please do not reply to this email.";
 
         return $text;

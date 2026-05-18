@@ -22,6 +22,7 @@ import HospitalityManagement from './pages/HospitalityManagement';
 import CurrencyManagement from './pages/CurrencyManagement';
 import DisplaySettings from './pages/DisplaySettings';
 import SeoManagement from './pages/SeoManagement';
+import EmailManagement from './pages/EmailManagement';
 import './App.css';
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/currencies" element={<CurrencyManagement />} />
                 <Route path="/display-settings" element={<DisplaySettings />} />
                 <Route path="/seo-management" element={<SeoManagement />} />
+                <Route path="/email-management" element={<EmailManagement />} />
                 <Route path="/refunds" element={<Refunds />} />
                 <Route path="/cancellation-requests" element={<CancellationRequests />} />
                 <Route path="/content" element={<Content />} />
