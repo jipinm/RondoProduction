@@ -15,6 +15,7 @@ export interface StaticPage {
   updated_by?: number;
   created_at: string;
   updated_at: string;
+  image_url?: string | null;
 }
 
 export interface StaticPageResponse {
@@ -301,6 +302,50 @@ class StaticPagesService {
         success: false,
         error: 'Network error. Please check your connection and try again.',
       };
+    }
+  }
+
+  /**
+   * Upload an image for a static page (Admin only)
+   */
+  async uploadPageImage(id: number, file: File): Promise<{ success: boolean; image_url?: string; error?: string }> {
+    try {
+      const accessToken = authService.getAccessToken();
+
+      if (!accessToken) {
+        return { success: false, error: 'No authentication token found. Please log in again.' };
+      }
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`${this.API_BASE_URL}/admin/static-pages/${id}/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-Api-Key': this.API_KEY
+          // No Content-Type – browser sets multipart/form-data with boundary
+        },
+        body: formData,
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
+        return { success: true, image_url: responseData.data?.image_url };
+      }
+
+      if (response.status === 401) {
+        const refreshResult = await authService.refreshToken();
+        if (refreshResult.success) {
+          return this.uploadPageImage(id, file);
+        }
+      }
+
+      return { success: false, error: responseData.error || 'Failed to upload image' };
+    } catch (error) {
+      console.error('Upload page image error:', error);
+      return { success: false, error: 'Network error. Please check your connection and try again.' };
     }
   }
 

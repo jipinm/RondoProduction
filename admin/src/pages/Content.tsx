@@ -5,6 +5,7 @@ import { File, Edit, Save, Image, AlertCircle, Loader, Phone } from 'lucide-reac
 import DOMPurify from 'dompurify';
 import RichTextEditor from '../components/RichTextEditor';
 import { BannerList } from '../components/banners';
+import { BannerImageUpload } from '../components/banners/BannerImageUpload';
 import WhyRondoManager from '../components/WhyRondoManager';
 import ContactPageManager from '../components/ContactPageManager';
 import staticPagesService, { type StaticPage } from '../services/staticPagesService';
@@ -28,6 +29,12 @@ const Content: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // About Us image upload state
+  const [aboutImageFile, setAboutImageFile] = useState<File | null>(null);
+  const [aboutImageUploading, setAboutImageUploading] = useState(false);
+  const [aboutImageError, setAboutImageError] = useState<string | null>(null);
+  const [aboutImageSuccess, setAboutImageSuccess] = useState<string | null>(null);
 
   // Load static pages on component mount
   useEffect(() => {
@@ -85,6 +92,10 @@ const Content: React.FC = () => {
     setIsEditing(false);
     setError(null);
     setSuccess(null);
+    // Reset about image state when switching pages
+    setAboutImageFile(null);
+    setAboutImageError(null);
+    setAboutImageSuccess(null);
     
     // Content will be set via useEffect when selectedPage changes
   };
@@ -139,6 +150,37 @@ const Content: React.FC = () => {
       console.error('Error saving content:', err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAboutImageUpload = async () => {
+    if (!currentPage || !aboutImageFile) return;
+
+    setAboutImageUploading(true);
+    setAboutImageError(null);
+    setAboutImageSuccess(null);
+
+    try {
+      const result = await staticPagesService.uploadPageImage(currentPage.id, aboutImageFile);
+
+      if (result.success && result.image_url) {
+        setAboutImageSuccess('Image uploaded successfully!');
+        setAboutImageFile(null);
+        // Update current page state with new image_url
+        const updatedPage = { ...currentPage, image_url: result.image_url };
+        setCurrentPage(updatedPage);
+        setStaticPages(prev =>
+          prev.map(p => p.id === updatedPage.id ? updatedPage : p)
+        );
+        setTimeout(() => setAboutImageSuccess(null), 3000);
+      } else {
+        setAboutImageError(result.error || 'Failed to upload image');
+      }
+    } catch (err) {
+      setAboutImageError('Failed to upload image');
+      console.error('Error uploading about page image:', err);
+    } finally {
+      setAboutImageUploading(false);
     }
   };
 
@@ -286,6 +328,69 @@ const Content: React.FC = () => {
                 />
               )}
             </div>
+
+            {selectedPage === 'about' && !loading && (
+              <div className={styles.imageUploadSection}>
+                <h3 className={styles.imageUploadTitle}>
+                  <Image size={18} />
+                  About Us Page Image
+                </h3>
+                <p className={styles.imageUploadDimensions}>
+                  Recommended dimensions: <strong>1200 × 800px</strong> (3:2 ratio) &mdash; max 10 MB
+                </p>
+
+                {currentPage?.image_url && (
+                  <div className={styles.currentImagePreview}>
+                    <p className={styles.currentImageLabel}>Current image:</p>
+                    <img
+                      src={currentPage.image_url}
+                      alt="About Us page image"
+                      className={styles.currentImageThumb}
+                    />
+                  </div>
+                )}
+
+                <BannerImageUpload
+                  key={currentPage?.image_url || 'no-image'}
+                  currentImageUrl={undefined}
+                  onImageChange={(file) => {
+                    setAboutImageFile(file);
+                    setAboutImageError(null);
+                    setAboutImageSuccess(null);
+                  }}
+                  maxSizeMessage="Maximum file size: 10MB · Recommended: 1200×800px"
+                />
+
+                {aboutImageError && (
+                  <div className={styles.errorMessage}>
+                    <AlertCircle size={16} />
+                    <span>{aboutImageError}</span>
+                  </div>
+                )}
+
+                {aboutImageSuccess && (
+                  <div className={styles.successMessage}>
+                    <span>✅ {aboutImageSuccess}</span>
+                  </div>
+                )}
+
+                <button
+                  className={styles.saveButton}
+                  onClick={handleAboutImageUpload}
+                  disabled={!aboutImageFile || aboutImageUploading}
+                >
+                  {aboutImageUploading ? (
+                    <>
+                      <Loader size={16} className={styles.spinner} /> Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} /> Upload Image
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : activeTab === 'banners' ? (

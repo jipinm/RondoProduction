@@ -16,6 +16,7 @@ export interface StaticPage {
   updated_by?: number | null;
   created_at: string;
   updated_at: string;
+  image_url?: string | null;
 }
 
 /**

@@ -69,7 +69,7 @@ const AboutUsPage: React.FC = () => {
         />
       </div>
 
-      <AboutPhotoCollage />
+      <AboutPhotoCollage imageUrl={page.image_url ?? null} />
     </div>
   );
 };

@@ -41,7 +41,7 @@ class StaticPagesRepository
                     CASE WHEN status = 'published' THEN 'active' ELSE 'inactive' END as status, 
                     CASE WHEN status = 'published' THEN 1 ELSE 0 END as is_published, 
                     slug, last_edited_by as created_by, last_edited_by as updated_by,
-                    created_at, updated_at
+                    created_at, updated_at, image_url
                 FROM cms_pages 
                 ORDER BY page_key ASC
             ");
@@ -82,7 +82,7 @@ class StaticPagesRepository
                     CASE WHEN status = 'published' THEN 'active' ELSE 'inactive' END as status, 
                     CASE WHEN status = 'published' THEN 1 ELSE 0 END as is_published, 
                     slug, last_edited_by as created_by, last_edited_by as updated_by,
-                    created_at, updated_at
+                    created_at, updated_at, image_url
                 FROM cms_pages 
                 WHERE page_key = ?
             ");
@@ -131,7 +131,7 @@ class StaticPagesRepository
                     CASE WHEN status = 'published' THEN 'active' ELSE 'inactive' END as status, 
                     CASE WHEN status = 'published' THEN 1 ELSE 0 END as is_published, 
                     slug, last_edited_by as created_by, last_edited_by as updated_by,
-                    created_at, updated_at
+                    created_at, updated_at, image_url
                 FROM cms_pages 
                 WHERE id = ?
             ");
@@ -186,6 +186,7 @@ class StaticPagesRepository
                 'meta_keywords' => 'meta_keywords',
                 'slug' => 'slug',
                 'status' => 'status',
+                'image_url' => 'image_url',
                 'is_published' => null // Will be handled via status field
             ];
             
@@ -265,6 +266,46 @@ class StaticPagesRepository
                 'updated_by' => $updatedBy,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Update only the image_url for a static page
+     * 
+     * @param int $id Page ID
+     * @param string $imageUrl The new image URL
+     * @return bool Success status
+     */
+    public function updatePageImage(int $id, string $imageUrl): bool
+    {
+        try {
+            $pdo = $this->database->getConnection();
+
+            $stmt = $pdo->prepare(
+                "UPDATE cms_pages SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+            );
+            $result = $stmt->execute([$imageUrl, $id]);
+
+            if ($result && $stmt->rowCount() > 0) {
+                $this->logger->info('Static page image updated', ['id' => $id, 'image_url' => $imageUrl]);
+                return true;
+            }
+
+            // Row exists but no change (same URL) – still counts as success
+            $checkStmt = $pdo->prepare("SELECT id FROM cms_pages WHERE id = ?");
+            $checkStmt->execute([$id]);
+            if ($checkStmt->fetch()) {
+                return true;
+            }
+
+            return false;
+
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to update static page image', [
+                'id' => $id,
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }

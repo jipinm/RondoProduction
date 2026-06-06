@@ -63,6 +63,7 @@ use XS2EventProxy\Controller\HospitalityController;
 use XS2EventProxy\Controller\CurrencyController;
 use XS2EventProxy\Controller\ExchangeRateController;
 use XS2EventProxy\Controller\DisplaySettingsController;
+use XS2EventProxy\Controller\SiteBrandingController;
 use XS2EventProxy\Middleware\CustomerAuthMiddleware;
 use XS2EventProxy\Service\DatabaseService;
 use XS2EventProxy\Service\JWTService;
@@ -97,12 +98,17 @@ use XS2EventProxy\Controller\SeoSettingsController;
 use XS2EventProxy\Repository\EmailTemplateRepository;
 use XS2EventProxy\Controller\EmailTemplateController;
 use XS2EventProxy\Service\TeamCredentialsService;
+use XS2EventProxy\Controller\BlogController;
+use XS2EventProxy\Controller\AdminBlogController;
+use XS2EventProxy\Repository\BlogRepository;
 use XS2EventProxy\Service\BannersService;
 use XS2EventProxy\Service\DashboardService;
 use XS2EventProxy\Service\ReportsService;
 use XS2EventProxy\Controller\RolesController;
 use XS2EventProxy\Service\PermissionService;
 use XS2EventProxy\Service\RoleValidationService;
+use XS2EventProxy\Controller\NewsletterController;
+use XS2EventProxy\Repository\NewsletterRepository;
 
 class Application
 {
@@ -531,12 +537,18 @@ class Application
             
             // Static Pages Management (Admin)
             $staticPagesRepository = new StaticPagesRepository($this->database, $this->logger);
-            $staticPagesController = new StaticPagesController($staticPagesRepository, $this->logger);
+            $staticPagesController = new StaticPagesController(
+                $staticPagesRepository,
+                $this->logger,
+                __DIR__ . '/../public/images/pages',
+                $this->config->getAppUrl()
+            );
             $group->get('/static-pages', [$staticPagesController, 'getAllPages']);
             $group->get('/static-pages/{id}', [$staticPagesController, 'getPageById']);
             $group->put('/static-pages/{id}', [$staticPagesController, 'updatePage']);
             $group->post('/static-pages', [$staticPagesController, 'createPage']);
             $group->delete('/static-pages/{id}', [$staticPagesController, 'deletePage']);
+            $group->post('/static-pages/{id}/upload-image', [$staticPagesController, 'uploadPageImage']);
 
             // Banners Management (Admin)
             $bannersRepository = new BannersRepository($this->database->getConnection(), $this->logger);
@@ -679,7 +691,50 @@ class Application
             $group->get('/email-templates/{id:[0-9]+}', [$emailTemplateController, 'getOne']);
             $group->put('/email-templates/{id:[0-9]+}', [$emailTemplateController, 'update']);
             $group->post('/email-templates/{id:[0-9]+}/reset', [$emailTemplateController, 'reset']);
-            
+
+            // Site Branding Management (Admin)
+            $siteBrandingController = new SiteBrandingController(
+                $this->systemSettingsRepository,
+                $this->logger,
+                __DIR__ . '/../public/images/branding',
+                $this->config->getAppUrl()
+            );
+            $group->get('/site-branding', [$siteBrandingController, 'getSettings']);
+            $group->post('/site-branding/upload/{type}', [$siteBrandingController, 'uploadImage']);
+            $group->delete('/site-branding/{type}', [$siteBrandingController, 'deleteImage']);
+
+            // Blog Management (Admin)
+            $adminBlogRepository = new BlogRepository($this->database, $this->logger);
+            $adminBlogController = new AdminBlogController(
+                $adminBlogRepository,
+                $this->logger,
+                __DIR__ . '/../public/images/blog',
+                $this->config->getAppUrl()
+            );
+            $group->get('/blogs', [$adminBlogController, 'listBlogs']);
+            $group->get('/blogs/{id:[0-9]+}', [$adminBlogController, 'getBlog']);
+            $group->post('/blogs', [$adminBlogController, 'createBlog']);
+            $group->put('/blogs/{id:[0-9]+}', [$adminBlogController, 'updateBlog']);
+            $group->delete('/blogs/{id:[0-9]+}', [$adminBlogController, 'deleteBlog']);
+            $group->post('/blogs/{id:[0-9]+}/upload-image', [$adminBlogController, 'uploadFeaturedImage']);
+            $group->get('/blog-categories', [$adminBlogController, 'listCategories']);
+            $group->get('/blog-categories/{id:[0-9]+}', [$adminBlogController, 'getCategory']);
+            $group->post('/blog-categories', [$adminBlogController, 'createCategory']);
+            $group->put('/blog-categories/{id:[0-9]+}', [$adminBlogController, 'updateCategory']);
+            $group->delete('/blog-categories/{id:[0-9]+}', [$adminBlogController, 'deleteCategory']);
+            $group->get('/blog-tags', [$adminBlogController, 'listTags']);
+            $group->get('/blog-tags/{id:[0-9]+}', [$adminBlogController, 'getTag']);
+            $group->post('/blog-tags', [$adminBlogController, 'createTag']);
+            $group->put('/blog-tags/{id:[0-9]+}', [$adminBlogController, 'updateTag']);
+            $group->delete('/blog-tags/{id:[0-9]+}', [$adminBlogController, 'deleteTag']);
+
+            // Newsletter admin routes
+            $adminNewsletterRepo = new NewsletterRepository($this->database->getConnection(), $this->logger);
+            $adminNewsletterController = new NewsletterController($adminNewsletterRepo, $this->logger);
+            $group->get('/newsletter-subscribers', [$adminNewsletterController, 'listSubscribers']);
+            $group->get('/newsletter-subscribers/export', [$adminNewsletterController, 'exportSubscribers']);
+            $group->delete('/newsletter-subscribers/{id:[0-9]+}', [$adminNewsletterController, 'deleteSubscriber']);
+
         })->add(new AuthMiddleware(
             $this->jwtService,
             $this->userRepository,
@@ -790,6 +845,15 @@ class Application
         );
         $this->app->get('/api/v1/contact-page', [$publicContactPageController, 'getPublicSettings']);
 
+        // Site Branding public API endpoint
+        $publicSiteBrandingController = new SiteBrandingController(
+            $this->systemSettingsRepository,
+            $this->logger,
+            __DIR__ . '/../public/images/branding',
+            $this->config->getAppUrl()
+        );
+        $this->app->get('/api/v1/site-branding', [$publicSiteBrandingController, 'getPublicSettings']);
+
         // SEO Settings public API endpoints
         $publicSeoController = new SeoSettingsController(
             new SeoSettingsRepository($this->database, $this->logger),
@@ -805,6 +869,20 @@ class Application
             $group->get('', [$publicStaticPagesController, 'getPublishedPages']);
             $group->get('/{key}', [$publicStaticPagesController, 'getPageByKey']);
         });
+
+        // Newsletter public subscribe endpoint
+        $newsletterRepository = new NewsletterRepository($this->database->getConnection(), $this->logger);
+        $newsletterController = new NewsletterController($newsletterRepository, $this->logger);
+        $this->app->post('/api/v1/newsletter/subscribe', [$newsletterController, 'subscribe']);
+
+        // Blog public API endpoints
+        $blogRepository = new BlogRepository($this->database, $this->logger);
+        $blogController = new BlogController($blogRepository, $this->logger);
+        $this->app->get('/api/v1/blog-categories', [$blogController, 'listCategories']);
+        $this->app->get('/api/v1/blog-tags', [$blogController, 'listTags']);
+        $this->app->get('/api/v1/blogs', [$blogController, 'listBlogs']);
+        $this->app->get('/api/v1/blogs/{slug}/related', [$blogController, 'getRelatedBlogs']);
+        $this->app->get('/api/v1/blogs/{slug}', [$blogController, 'getBlogBySlug']);
 
         // Customer Profile Routes (authenticated)
         $customerAuthMiddleware = new CustomerAuthMiddleware(
@@ -897,7 +975,7 @@ class Application
         $countriesController = new CountriesController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $citiesController = new CitiesController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $ticketsController = new TicketsController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
-        $reservationsController = new ReservationsController($this->httpClient, $this->logger, $this->config->getApiKey());
+        $reservationsController = new ReservationsController($this->httpClient, $this->logger, $this->config->getApiKey(), $this->config->getBaseUrl());
         $bookingsController = new BookingsController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $bookingOrdersController = new BookingOrdersController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
         $eTicketsController = new ETicketsController($this->logger, $this->httpClient, $this->config->getBaseUrl(), $this->config->getApiKey());
@@ -927,8 +1005,8 @@ class Application
         
         // Tournaments endpoints
         $this->app->get('/v1/tournaments', [$tournamentsController, 'listTournaments']);
+        $this->app->get('/v1/tournaments/{tournament_id:[a-zA-Z0-9]+_trn}', [$tournamentsController, 'getTournament']);
         $this->app->get('/v1/tournaments/{sport_type}', [$tournamentsController, 'listTournaments']);
-        $this->app->get('/v1/tournaments/{tournament_id:[a-f0-9-]+}', [$tournamentsController, 'getTournament']);
         $this->app->get('/v1/tournament/{id:[a-f0-9-]+}/events', [$tournamentsController, 'getTournamentEvents']);
         
         // Teams endpoints
@@ -946,11 +1024,11 @@ class Application
         
         // Venues endpoints
         $this->app->get('/v1/venues', [$venuesController, 'listVenues']);
-        $this->app->get('/v1/venues/{id:[a-f0-9-]+}', [$venuesController, 'getVenue']);
+        $this->app->get('/v1/venues/{id:[a-zA-Z0-9_-]+}', [$venuesController, 'getVenue']);
         
         // Categories endpoints
         $this->app->get('/v1/categories', [$categoriesController, 'listCategories']);
-        $this->app->get('/v1/categories/{id:[a-f0-9-]+}', [$categoriesController, 'getCategory']);
+        $this->app->get('/v1/categories/{id:[a-zA-Z0-9_-]+}', [$categoriesController, 'getCategory']);
         
         // Countries endpoints
         $this->app->get('/v1/countries', [$countriesController, 'listCountries']);
@@ -991,7 +1069,8 @@ class Application
         $this->app->delete('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}', [$reservationsController, 'deleteReservation']);
         $this->app->patch('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}', [$reservationsController, 'patchReservation']);
         $this->app->get('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}/guestdata', [$reservationsController, 'getReservationGuestData']);
-        $this->app->post('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}/guests', [$reservationsController, 'addReservationGuests']);
+        $this->app->post('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}/guestdata', [$reservationsController, 'addReservationGuests']);
+        $this->app->post('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}/guests', [$reservationsController, 'addReservationGuestsFlat']);
         $this->app->get('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}/guestdata/{guest_id:[a-zA-Z0-9_-]+}', [$reservationsController, 'getReservationGuestDetail']);
         $this->app->put('/v1/reservations/{reservation_id:[a-zA-Z0-9_-]+}/guestdata/{guest_id:[a-zA-Z0-9_-]+}', [$reservationsController, 'updateReservationGuestDetail']);
         

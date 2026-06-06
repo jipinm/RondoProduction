@@ -18,11 +18,34 @@ class StaticPagesController
 {
     private StaticPagesRepository $staticPagesRepo;
     private LoggerInterface $logger;
+    private string $uploadPath;
+    private string $baseUrl;
 
-    public function __construct(StaticPagesRepository $staticPagesRepo, LoggerInterface $logger)
-    {
+    private array $allowedTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/svg+xml',
+        'image/webp',
+        'image/avif',
+    ];
+
+    private int $maxFileSize = 10485760; // 10 MB
+
+    public function __construct(
+        StaticPagesRepository $staticPagesRepo,
+        LoggerInterface $logger,
+        string $uploadPath = '',
+        string $baseUrl = ''
+    ) {
         $this->staticPagesRepo = $staticPagesRepo;
         $this->logger = $logger;
+        $this->uploadPath = rtrim($uploadPath, '/');
+        $this->baseUrl    = rtrim($baseUrl, '/');
+
+        if ($this->uploadPath && !is_dir($this->uploadPath)) {
+            mkdir($this->uploadPath, 0755, true);
+        }
     }
 
     /**
@@ -370,6 +393,102 @@ class StaticPagesController
             return $this->jsonResponse($response, [
                 'success' => false,
                 'error' => 'Failed to retrieve pages'
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload an image for a static page (Admin only)
+     * POST /admin/static-pages/{id}/upload-image
+     */
+    public function uploadPageImage(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $id = (int)($args['id'] ?? 0);
+
+            if ($id <= 0) {
+                return $this->jsonResponse($response, [
+                    'success' => false,
+                    'error'   => 'Valid page ID is required',
+                ], 400);
+            }
+
+            $existingPage = $this->staticPagesRepo->getPageById($id);
+            if (!$existingPage) {
+                return $this->jsonResponse($response, [
+                    'success' => false,
+                    'error'   => 'Page not found',
+                ], 404);
+            }
+
+            $uploadedFiles = $request->getUploadedFiles();
+
+            if (empty($uploadedFiles['image'])) {
+                return $this->jsonResponse($response, [
+                    'success' => false,
+                    'error'   => 'No image file provided (field name: image)',
+                ], 400);
+            }
+
+            $file = $uploadedFiles['image'];
+
+            if ($file->getError() !== UPLOAD_ERR_OK) {
+                return $this->jsonResponse($response, [
+                    'success' => false,
+                    'error'   => 'File upload error code: ' . $file->getError(),
+                ], 400);
+            }
+
+            if (!in_array($file->getClientMediaType(), $this->allowedTypes, true)) {
+                return $this->jsonResponse($response, [
+                    'success' => false,
+                    'error'   => 'Invalid file type. Allowed: JPEG, PNG, SVG, WebP, AVIF',
+                ], 400);
+            }
+
+            if ($file->getSize() > $this->maxFileSize) {
+                return $this->jsonResponse($response, [
+                    'success' => false,
+                    'error'   => 'File exceeds 10 MB limit',
+                ], 400);
+            }
+
+            $ext      = strtolower(pathinfo((string) $file->getClientFilename(), PATHINFO_EXTENSION));
+            $filename = 'page-' . $id . '-' . time() . '.' . $ext;
+            $target   = $this->uploadPath . '/' . $filename;
+
+            try {
+                $file->moveTo($target);
+            } catch (\Exception $e) {
+                $stream = $file->getStream();
+                $stream->rewind();
+                if (file_put_contents($target, $stream->getContents()) === false) {
+                    throw new \RuntimeException('Failed to write uploaded file');
+                }
+            }
+
+            // Delete old image if it was managed by this module
+            if (!empty($existingPage['image_url'])) {
+                $oldFile = basename($existingPage['image_url']);
+                $oldPath = $this->uploadPath . '/' . $oldFile;
+                if (file_exists($oldPath) && str_starts_with($oldFile, 'page-')) {
+                    @unlink($oldPath);
+                }
+            }
+
+            $imageUrl = $this->baseUrl . '/images/pages/' . $filename;
+            $this->staticPagesRepo->updatePageImage($id, $imageUrl);
+
+            return $this->jsonResponse($response, [
+                'success' => true,
+                'data'    => ['image_url' => $imageUrl],
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('StaticPagesController::uploadPageImage', ['error' => $e->getMessage()]);
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'error'   => 'Failed to upload image',
             ], 500);
         }
     }
