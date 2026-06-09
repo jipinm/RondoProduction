@@ -108,13 +108,16 @@ class CustomerAuthController
                 'ip_address' => $ipAddress
             ]);
 
+            // Construct full name from first and last name
+            $fullName = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
+
             $response->getBody()->write(json_encode([
                 'success' => true,
                 'message' => 'Registration successful. Please check your email to verify your account.',
                 'data' => [
                     'customer_id' => $customer['customer_id'],
                     'email' => $customer['email'],
-                    'name' => $customer['name'],
+                    'name' => $fullName,
                     'status' => $customer['status']
                 ]
             ], JSON_PRETTY_PRINT));
