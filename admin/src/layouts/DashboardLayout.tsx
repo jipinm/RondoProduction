@@ -21,7 +21,9 @@ import {
   Eye,
   Phone,
   SearchCheck,
-  Mail
+  Mail,
+  BookOpen,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './DashboardLayout.module.css';
@@ -162,6 +164,27 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/email-management" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
                 <Mail size={20} />
                 {sidebarOpen && <span>Email Management</span>}
+              </NavLink>
+            )}
+
+            {user && (
+              <NavLink to="/blog-management" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
+                <BookOpen size={20} />
+                {sidebarOpen && <span>Blog Management</span>}
+              </NavLink>
+            )}
+
+            {user && (
+              <NavLink to="/newsletter-subscribers" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
+                <Send size={20} />
+                {sidebarOpen && <span>Newsletter Subscribers</span>}
+              </NavLink>
+            )}
+
+            {user && (
+              <NavLink to="/partners" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
+                <Users size={20} />
+                {sidebarOpen && <span>Partners</span>}
               </NavLink>
             )}
 

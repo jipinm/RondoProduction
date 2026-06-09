@@ -55,6 +55,7 @@ use XS2EventProxy\Controller\LocalBookingController;
 use XS2EventProxy\Controller\CountryController;
 use XS2EventProxy\Controller\StaticPagesController;
 use XS2EventProxy\Controller\BannersController;
+use XS2EventProxy\Controller\PartnersController;
 use XS2EventProxy\Controller\DashboardController;
 use XS2EventProxy\Controller\ReportsController;
 use XS2EventProxy\Controller\TicketMarkupController;
@@ -86,6 +87,7 @@ use XS2EventProxy\Repository\CancellationRequestRepository;
 use XS2EventProxy\Repository\TeamCredentialsRepository;
 use XS2EventProxy\Repository\StaticPagesRepository;
 use XS2EventProxy\Repository\BannersRepository;
+use XS2EventProxy\Repository\PartnersRepository;
 use XS2EventProxy\Repository\TicketMarkupRepository;
 use XS2EventProxy\Repository\MarkupRuleRepository;
 use XS2EventProxy\Repository\HospitalityRepository;
@@ -102,6 +104,7 @@ use XS2EventProxy\Controller\BlogController;
 use XS2EventProxy\Controller\AdminBlogController;
 use XS2EventProxy\Repository\BlogRepository;
 use XS2EventProxy\Service\BannersService;
+use XS2EventProxy\Service\PartnersService;
 use XS2EventProxy\Service\DashboardService;
 use XS2EventProxy\Service\ReportsService;
 use XS2EventProxy\Controller\RolesController;
@@ -567,6 +570,22 @@ class Application
             $group->delete('/banners/{id}', [$bannersController, 'deleteBanner']);
             $group->post('/banners/{id}/upload', [$bannersController, 'uploadBannerImage']);
 
+            // Partners Management (Admin)
+            $partnersRepository = new PartnersRepository($this->database->getConnection(), $this->logger);
+            $partnersService = new PartnersService(
+                $partnersRepository,
+                $this->logger,
+                __DIR__ . '/../public/images/partners', // Absolute upload path
+                $this->config->getAppUrl() . '/images/partners' // Public URL base
+            );
+            $partnersController = new PartnersController($partnersService, $this->logger);
+            $group->get('/partners', [$partnersController, 'getPartners']);
+            $group->get('/partners/{id}', [$partnersController, 'getPartner']);
+            $group->post('/partners', [$partnersController, 'createPartner']);
+            $group->put('/partners/{id}', [$partnersController, 'updatePartner']);
+            $group->delete('/partners/{id}', [$partnersController, 'deletePartner']);
+            $group->post('/partners/{id}/upload-logo', [$partnersController, 'uploadPartnerLogo']);
+
             // Ticket Markup Management (Admin)
             $markupRepository = new TicketMarkupRepository($this->database);
             $markupController = new TicketMarkupController($markupRepository, $this->logger);
@@ -827,6 +846,17 @@ class Application
             $group->post('/{id}/click', [$bannersController, 'trackBannerClick']);
             $group->post('/{id}/impression', [$bannersController, 'trackBannerImpression']);
         });
+
+        // Public Partners Routes (for frontend display)
+        $partnersRepository = new PartnersRepository($this->database->getConnection(), $this->logger);
+        $partnersService = new PartnersService(
+            $partnersRepository,
+            $this->logger,
+            __DIR__ . '/../public/images/partners',
+            $this->config->getAppUrl() . '/images/partners'
+        );
+        $partnersController = new PartnersController($partnersService, $this->logger);
+        $this->app->get('/api/v1/partners', [$partnersController, 'getPublicPartners']);
 
         // Public Display Settings Route (for frontend consumption)
         $publicDisplaySettingsController = new DisplaySettingsController(

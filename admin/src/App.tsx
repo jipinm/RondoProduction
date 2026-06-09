@@ -6,7 +6,6 @@ import DashboardLayout from './layouts/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import Bookings from './pages/Bookings';
-import Users from './pages/Users';
 import AdminUsers from './pages/AdminUsers';
 import CustomerManagement from './pages/CustomerManagement';
 import Refunds from './pages/Refunds';
@@ -23,6 +22,9 @@ import CurrencyManagement from './pages/CurrencyManagement';
 import DisplaySettings from './pages/DisplaySettings';
 import SeoManagement from './pages/SeoManagement';
 import EmailManagement from './pages/EmailManagement';
+import BlogManagement from './pages/BlogManagement';
+import NewsletterSubscribers from './pages/NewsletterSubscribers';
+import PartnersManagement from './pages/PartnersManagement';
 import './App.css';
 
 function App() {
@@ -37,7 +39,7 @@ function App() {
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/bookings" element={<Bookings />} />
-                <Route path="/users" element={<Users />} />
+                <Route path="/users" element={<Navigate to="/admin-users" replace />} />
                 <Route path="/admin-users" element={<AdminUsers />} />
                 <Route path="/customer-management" element={<CustomerManagement />} />
                 <Route path="/team-credentials" element={<TeamCredentials />} />
@@ -47,6 +49,9 @@ function App() {
                 <Route path="/display-settings" element={<DisplaySettings />} />
                 <Route path="/seo-management" element={<SeoManagement />} />
                 <Route path="/email-management" element={<EmailManagement />} />
+                <Route path="/blog-management" element={<BlogManagement />} />
+                <Route path="/newsletter-subscribers" element={<NewsletterSubscribers />} />
+                <Route path="/partners" element={<PartnersManagement />} />
                 <Route path="/refunds" element={<Refunds />} />
                 <Route path="/cancellation-requests" element={<CancellationRequests />} />
                 <Route path="/content" element={<Content />} />
