@@ -99,7 +99,7 @@ class CustomerAuthController
                 ]
             );
 
-            $this->emailService->sendVerificationEmail($customer);
+            // Send welcome email (verification not required - account is immediately active)
             $this->emailService->sendAccountCreatedEmail($customer);
 
             $this->logger->info('Customer registered successfully', [

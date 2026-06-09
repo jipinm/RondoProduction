@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace XS2EventProxy\Service;
 
+use SendGrid;
 use SendGrid\Mail\Mail;
 use Psr\Log\LoggerInterface;
 use XS2EventProxy\Repository\EmailTemplateRepository;

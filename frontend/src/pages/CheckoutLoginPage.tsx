@@ -42,6 +42,7 @@ const CheckoutLoginPage: React.FC = () => {
   
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
   const [authError, setAuthError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
   
   // Account creation form state
@@ -167,23 +168,34 @@ const CheckoutLoginPage: React.FC = () => {
       const response = await register(registerData);
 
       if (response.success) {
+        // Store user details for later use in guest details and pre-fill email in login
+        sessionStorage.setItem('userDetails', JSON.stringify(userDetails));
+        sessionStorage.setItem('registeredEmail', userDetails.email);
+        
         // Switch to login mode and show success message
         setAuthMode('login');
-        setAuthError(''); // Clear any error
-        // Use a success indicator or different state if available
+        setAuthError('');
+        setSuccessMessage('🎉 Account created successfully! A confirmation email has been sent to your inbox. Please sign in to continue with your booking.');
         
         // Clear form data
+        setUserDetails({
+          firstName: '',
+          lastName: '',
+          email: '',
+          street: '',
+          houseNumber: '',
+          zipCode: '',
+          city: '',
+          country: '',
+          phone: ''
+        });
         setPassword('');
         setConfirmPassword('');
         setAcceptTerms(false);
         setValidationErrors([]);
         
-        // Store user details for later use in guest details and pre-fill email in login
-        sessionStorage.setItem('userDetails', JSON.stringify(userDetails));
-        sessionStorage.setItem('registeredEmail', userDetails.email);
-        
-        // Show success as a message instead of error
-        setAuthError('🎉 Account created successfully! A confirmation email has been sent. Please sign in with your credentials.');
+        // Scroll to top to show success message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(response.message || 'Registration failed');
       }
@@ -221,8 +233,14 @@ const CheckoutLoginPage: React.FC = () => {
   const handleForgotPassword = async (email: string) => {
     try {
       setAuthError('');
-      await forgotPassword(email);
-      setForgotPasswordSuccess(true);
+      setSuccessMessage('');
+      const response = await forgotPassword(email);
+      
+      if (response.success) {
+        setForgotPasswordSuccess(true);
+      } else {
+        throw new Error(response.message || 'Failed to send reset email');
+      }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to send reset email. Please try again.');
     }
@@ -511,16 +529,14 @@ const CheckoutLoginPage: React.FC = () => {
             </div>
           </form>
 
+          {successMessage && (
+            <div className={styles.successMessage}>
+              {successMessage}
+            </div>
+          )}
+
           {authError && (
-            <div className={
-              authError.toLowerCase().includes('successful') || 
-              authError.toLowerCase().includes('created') ||
-              authError.toLowerCase().includes('success') ||
-              authError.includes('✅') ||
-              authError.includes('🎉')
-                ? styles.successMessage 
-                : styles.errorMessage
-            }>
+            <div className={styles.errorMessage}>
               {authError}
             </div>
           )}

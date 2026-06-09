@@ -27,6 +27,7 @@ import PaymentCancelPage from './pages/PaymentCancelPage';
 import TestRegistrationPage from './pages/TestRegistrationPage';
 import TestStripeCheckout from './pages/TestStripeCheckout';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -63,6 +64,7 @@ const App: React.FC = () => {
           {/* All pages — wrapped in the global Layout via Outlet */}
           <Route element={<Layout />}>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/about-us" element={<AboutUsPage />} />
             <Route path="/faq" element={<FAQPage />} />

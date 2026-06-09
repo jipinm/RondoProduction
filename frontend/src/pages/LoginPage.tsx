@@ -31,10 +31,12 @@ const LoginPage: React.FC = () => {
   // Get redirect path from location state, default to home
   const redirectTo = location.state?.from?.pathname || '/';
 
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password' | 'registration-success' | 'forgot-password-success'>('login');
   const [authError, setAuthError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [registeredEmail, setRegisteredEmail] = useState<string>('');
+  const [resetEmail, setResetEmail] = useState<string>('');
 
   // Account creation form state
   const [userDetails, setUserDetails] = useState<UserDetailsFormData>({
@@ -196,12 +198,12 @@ const LoginPage: React.FC = () => {
       const response = await register(registerData);
 
       if (response.success) {
-        // Store registered email for pre-filling login form
+        // Store registered email
+        setRegisteredEmail(userDetails.email);
         sessionStorage.setItem('registeredEmail', userDetails.email);
 
-        // Switch to login mode and show success message
-        setAuthMode('login');
-        setSuccessMessage('🎉 Account created successfully! A confirmation email has been sent to your inbox. Please sign in with your credentials.');
+        // Show success confirmation screen
+        setAuthMode('registration-success');
 
         // Clear all form data
         setUserDetails({
@@ -220,7 +222,7 @@ const LoginPage: React.FC = () => {
         setAcceptTerms(false);
         setValidationErrors([]);
 
-        // Scroll to top to show success message
+        // Scroll to top to show success screen
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(response.message || 'Registration failed');
@@ -261,15 +263,26 @@ const LoginPage: React.FC = () => {
   const handleForgotPassword = async (email: string) => {
     setIsSubmitting(true);
     setAuthError('');
+    setSuccessMessage('');
 
     try {
-      await forgotPassword(email);
-      setSuccessMessage('Password reset instructions have been sent to your email.');
-      setAuthMode('login');
+      const response = await forgotPassword(email);
+      
+      if (response.success) {
+        // Store email and show success screen
+        setResetEmail(email);
+        setAuthMode('forgot-password-success');
+        
+        // Scroll to top to show success screen
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        throw new Error(response.message || 'Failed to send password reset email');
+      }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to send password reset email.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   if (isLoading) {
@@ -361,11 +374,13 @@ const LoginPage: React.FC = () => {
               <p className={styles.tagline}>Your Gateway to Live Sports</p>
             </div>
 
-            <h2 className={styles.formTitle}>
-              {authMode === 'login' && 'Sign In'}
-              {authMode === 'register' && 'Create Account'}
-              {authMode === 'forgot-password' && 'Reset Password'}
-            </h2>
+            {authMode !== 'registration-success' && authMode !== 'forgot-password-success' && (
+              <h2 className={styles.formTitle}>
+                {authMode === 'login' && 'Sign In'}
+                {authMode === 'register' && 'Create Account'}
+                {authMode === 'forgot-password' && 'Reset Password'}
+              </h2>
+            )}
 
             {successMessage && (
               <div className={styles.successMessage}>
@@ -625,6 +640,88 @@ const LoginPage: React.FC = () => {
                   isLoading={isSubmitting}
                   error={authError}
                 />
+              )}
+
+              {authMode === 'registration-success' && (
+                <div className={styles.successScreen}>
+                  <div className={styles.successIconWrapper}>
+                    <MdVerified className={styles.successIcon} />
+                  </div>
+                  
+                  <h3 className={styles.successTitle}>Account Created Successfully!</h3>
+                  
+                  <p className={styles.successDescription}>
+                    Welcome to Rondo Sports! Your account has been created and is ready to use.
+                  </p>
+                  
+                  <div className={styles.emailNotification}>
+                    <p className={styles.emailText}>
+                      📧 A confirmation email has been sent to <strong>{registeredEmail}</strong>
+                    </p>
+                  </div>
+
+                  <div className={styles.successActions}>
+                    <button
+                      type="button"
+                      className={styles.primaryActionButton}
+                      onClick={() => {
+                        setAuthMode('login');
+                        setSuccessMessage('');
+                      }}
+                    >
+                      Login Now
+                    </button>
+                    
+                    <button
+                      type="button"
+                      className={styles.secondaryActionButton}
+                      onClick={() => navigate('/')}
+                    >
+                      Browse Events
+                    </button>
+                  </div>
+
+                  <p className={styles.successFooter}>
+                    You can now sign in with your credentials and start booking tickets for your favorite sports events.
+                  </p>
+                </div>
+              )}
+
+              {authMode === 'forgot-password-success' && (
+                <div className={styles.successScreen}>
+                  <div className={styles.successIconWrapper}>
+                    <MdVerified className={styles.successIcon} />
+                  </div>
+                  
+                  <h3 className={styles.successTitle}>Check Your Email</h3>
+                  
+                  <p className={styles.successDescription}>
+                    We've sent password reset instructions to your email address.
+                  </p>
+                  
+                  <div className={styles.emailNotification}>
+                    <p className={styles.emailText}>
+                      📧 If an account exists for <strong>{resetEmail}</strong>, you'll receive an email with a link to reset your password.
+                    </p>
+                  </div>
+
+                  <div className={styles.successActions}>
+                    <button
+                      type="button"
+                      className={styles.primaryActionButton}
+                      onClick={() => {
+                        setAuthMode('login');
+                        setResetEmail('');
+                      }}
+                    >
+                      Back to Sign In
+                    </button>
+                  </div>
+
+                  <p className={styles.successFooter}>
+                    The reset link will expire in 1 hour. If you don't receive an email, please check your spam folder or try again.
+                  </p>
+                </div>
               )}
             </div>
           </div>

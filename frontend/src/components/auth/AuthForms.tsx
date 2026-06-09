@@ -67,7 +67,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <div className={styles.authForm}>
       <div className={styles.formHeader}>
-        <h2>Sign In</h2>
+        
         <p>Enter your credentials to access your account</p>
       </div>
 
@@ -589,7 +589,6 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
   return (
     <div className={styles.authForm}>
       <div className={styles.formHeader}>
-        <h2>Reset Password</h2>
         <p>Enter your email address and we'll send you instructions to reset your password</p>
       </div>
 

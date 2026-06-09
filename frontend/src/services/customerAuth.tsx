@@ -66,6 +66,13 @@ export interface ForgotPasswordData {
   email: string;
 }
 
+export interface ResetPasswordData {
+  token: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+}
+
 export interface Customer {
   id: number;
   customer_id: string;
@@ -367,6 +374,20 @@ class CustomerAuthService {
   }
 
   /**
+   * Reset password with token
+   */
+  async resetPassword(data: ResetPasswordData): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await customerApiClient.post('/api/v1/customers/auth/reset-password', data);
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Password Reset Error:', error);
+      throw new Error(error.apiError?.message || error.message || 'Password reset failed');
+    }
+  }
+
+  /**
    * Logout customer
    */
   async logout(): Promise<void> {
@@ -611,7 +632,7 @@ interface AuthContextType {
   login: (data: CustomerLoginData) => Promise<void>;
   register: (data: CustomerRegistrationData) => Promise<CustomerAuthResponse>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   getProfile: () => Promise<CustomerProfile>;
   updateProfile: (data: ProfileUpdateData) => Promise<CustomerProfile>;
   updateAddress: (data: AddressUpdateData) => Promise<CustomerProfile>;
@@ -732,8 +753,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const forgotPassword = async (email: string) => {
-    await customerAuthService.forgotPassword({ email });
+  const forgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+    return await customerAuthService.forgotPassword({ email });
   };
 
   const getProfile = async (): Promise<CustomerProfile> => {

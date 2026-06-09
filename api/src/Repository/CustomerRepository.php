@@ -99,11 +99,13 @@ class CustomerRepository
                 "INSERT INTO customer_users (
                     customer_id, first_name, last_name, email, phone, password_hash, 
                     street, house_number, zipcode, city, country_code, 
-                    status, email_verified, marketing_consent, created_at, updated_at
+                    status, email_verified, marketing_consent, email_verification_token, 
+                    created_at, updated_at
                 ) VALUES (
                     :customer_id, :first_name, :last_name, :email, :phone, :password_hash,
                     :street, :house_number, :zipcode, :city, :country_code,
-                    :status, :email_verified, :marketing_consent, NOW(), NOW()
+                    :status, :email_verified, :marketing_consent, :email_verification_token,
+                    NOW(), NOW()
                 )"
             );
 
@@ -121,7 +123,8 @@ class CustomerRepository
                 'country_code' => $customerData['country_code'] ?? null,
                 'status' => $customerData['status'] ?? 'pending_verification',
                 'email_verified' => ($customerData['email_verified'] ?? false) ? 1 : 0,
-                'marketing_consent' => ($customerData['marketing_consent'] ?? false) ? 1 : 0
+                'marketing_consent' => ($customerData['marketing_consent'] ?? false) ? 1 : 0,
+                'email_verification_token' => $customerData['email_verification_token'] ?? null
             ];
 
             $stmt->execute($params);

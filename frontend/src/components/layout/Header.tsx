@@ -279,13 +279,6 @@ const Header: React.FC = () => {
         </button>
         {activeSubmenu === sportId && (
           <div className={styles.mobileDrawerSubItems}>
-            <Link
-              to={getEventLinkBySport(sportId)}
-              className={`${styles.mobileDrawerSubItem} ${styles.mobileDrawerSubItemViewAll}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              VIEW ALL {displayName}
-            </Link>
             {isLoading && (
               <div className={styles.mobileDrawerSubItem} style={{ color: '#a0aab4', fontStyle: 'italic' }}>Loading...</div>
             )}
