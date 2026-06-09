@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Save, Loader, AlertCircle, CheckCircle, Upload, ImageOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Loader, AlertCircle, CheckCircle, Upload } from 'lucide-react';
 import contactPageService, { type ContactPageSettings } from '../services/contactPageService';
+import { BannerImageUpload } from './banners/BannerImageUpload';
 import styles from './ContactPageManager.module.css';
 
 const DEFAULT_SETTINGS: ContactPageSettings = {
@@ -22,8 +23,6 @@ const ContactPageManager: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadSettings();
@@ -36,7 +35,6 @@ const ContactPageManager: React.FC = () => {
       const result = await contactPageService.getSettings();
       if (result.success && result.data) {
         setSettings(result.data);
-        setBannerPreview(result.data.banner_image_url ?? null);
       } else {
         setError(result.error || 'Failed to load contact page settings');
       }
@@ -52,14 +50,6 @@ const ContactPageManager: React.FC = () => {
     setSettings(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const preview = URL.createObjectURL(file);
-    setBannerPreview(preview);
-    handleBannerUpload(file);
-  };
-
   const handleBannerUpload = async (file: File) => {
     setUploading(true);
     setError(null);
@@ -70,11 +60,9 @@ const ContactPageManager: React.FC = () => {
         showSuccess('Banner uploaded successfully!');
       } else {
         setError(result.error || 'Failed to upload banner');
-        setBannerPreview(settings.banner_image_url ?? null);
       }
     } catch {
       setError('Failed to upload banner');
-      setBannerPreview(settings.banner_image_url ?? null);
     } finally {
       setUploading(false);
     }
@@ -142,44 +130,39 @@ const ContactPageManager: React.FC = () => {
         </div>
 
         <div className={styles.bannerArea}>
-          <div
-            className={styles.bannerPreviewBox}
-            onClick={() => fileInputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
-          >
-            {uploading ? (
-              <div className={styles.bannerOverlay}>
-                <Loader size={32} className={styles.spinner} />
-                <span>Uploading…</span>
-              </div>
-            ) : bannerPreview ? (
-              <img src={bannerPreview} alt="Banner preview" className={styles.bannerImg} />
-            ) : (
-              <div className={styles.bannerPlaceholder}>
-                <ImageOff size={40} />
-                <span>Click to upload banner image</span>
-                <span className={styles.hint}>JPEG, PNG, WebP or AVIF · max 5 MB</span>
-              </div>
-            )}
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            className={styles.hiddenInput}
-            onChange={handleBannerSelect}
+          {uploading && (
+            <div className={styles.bannerOverlay} style={{ marginBottom: '1rem' }}>
+              <Loader size={24} className={styles.spinner} />
+              <span>Processing...</span>
+            </div>
+          )}
+          <BannerImageUpload
+            key={settings.banner_image_url || 'no-image'}
+            currentImageUrl={settings.banner_image_url ?? undefined}
+            onImageChange={async (file) => {
+              if (file) {
+                await handleBannerUpload(file);
+              } else {
+                setUploading(true);
+                setError(null);
+                try {
+                  const result = await contactPageService.updateSettings({ banner_image_url: null });
+                  if (result.success && result.data) {
+                    setSettings(result.data);
+                    showSuccess('Banner removed successfully!');
+                  } else {
+                    setError(result.error || 'Failed to remove banner');
+                  }
+                } catch {
+                  setError('Failed to remove banner');
+                } finally {
+                  setUploading(false);
+                }
+              }
+            }}
+            maxSizeMessage="Maximum file size: 5MB."
+            dimensionHint="1920×400px"
           />
-
-          <button
-            className={styles.uploadButton}
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            <Upload size={16} /> {bannerPreview ? 'Replace Banner' : 'Upload Banner'}
-          </button>
         </div>
       </section>
 
@@ -192,15 +175,15 @@ const ContactPageManager: React.FC = () => {
         <div className={styles.formGrid}>
           <div className={styles.formGroup}>
             <label className={styles.label}>Email Address</label>
-            <input type="email" name="email_address" value={settings.email_address} onChange={handleChange} className={styles.input} placeholder="info@rondosports.com" />
+            <input type="email" name="email_address" value={settings.email_address} onChange={handleChange} className={styles.input} />
           </div>
           <div className={styles.formGroup}>
             <label className={styles.label}>Phone Number</label>
-            <input type="text" name="phone_number" value={settings.phone_number} onChange={handleChange} className={styles.input} placeholder="+44 800 000 0000" />
+            <input type="text" name="phone_number" value={settings.phone_number} onChange={handleChange} className={styles.input} />
           </div>
           <div className={styles.formGroup}>
             <label className={styles.label}>WhatsApp Number</label>
-            <input type="text" name="whatsapp_number" value={settings.whatsapp_number} onChange={handleChange} className={styles.input} placeholder="+44 800 000 0000" />
+            <input type="text" name="whatsapp_number" value={settings.whatsapp_number} onChange={handleChange} className={styles.input} />
             <p className={styles.hint}>Include country code, e.g. +447911123456. Used for the wa.me link.</p>
           </div>
         </div>
@@ -215,16 +198,16 @@ const ContactPageManager: React.FC = () => {
         <div className={styles.formGrid}>
           {(
             [
-              { name: 'social_facebook',  label: 'Facebook URL',   placeholder: 'https://facebook.com/yourpage' },
-              { name: 'social_twitter',   label: 'Twitter / X URL', placeholder: 'https://twitter.com/yourhandle' },
-              { name: 'social_instagram', label: 'Instagram URL',  placeholder: 'https://instagram.com/yourhandle' },
-              { name: 'social_linkedin',  label: 'LinkedIn URL',   placeholder: 'https://linkedin.com/company/yourcompany' },
-              { name: 'social_youtube',   label: 'YouTube URL',    placeholder: 'https://youtube.com/@yourchannel' },
+              { name: 'social_facebook',  label: 'Facebook URL' },
+              { name: 'social_twitter',   label: 'Twitter / X URL' },
+              { name: 'social_instagram', label: 'Instagram URL' },
+              { name: 'social_linkedin',  label: 'LinkedIn URL' },
+              { name: 'social_youtube',   label: 'YouTube URL' },
             ] as const
-          ).map(({ name, label, placeholder }) => (
+          ).map(({ name, label }) => (
             <div key={name} className={styles.formGroup}>
               <label className={styles.label}>{label}</label>
-              <input type="url" name={name} value={(settings as any)[name]} onChange={handleChange} className={styles.input} placeholder={placeholder} />
+              <input type="url" name={name} value={(settings as any)[name]} onChange={handleChange} className={styles.input} />
             </div>
           ))}
         </div>

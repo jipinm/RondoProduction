@@ -433,7 +433,8 @@ export class BannersService {
       { value: 'homepage_hero', label: 'Homepage Hero' },
       { value: 'homepage_secondary', label: 'Homepage Secondary' },
       { value: 'category_page', label: 'Category Page' },
-      { value: 'event_page', label: 'Event Page' }
+      { value: 'event_page', label: 'Event Page' },
+      { value: 'login_page', label: 'Login Page' }
     ];
   }
 

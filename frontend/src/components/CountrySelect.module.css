@@ -5,10 +5,11 @@
 
 .input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 0.88rem;
+  height: 38px;
   background-color: white;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
@@ -16,8 +17,8 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--color-secondary-1);
-  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+  border-color: #121d66;
+  box-shadow: 0 0 0 1px rgba(18, 29, 102, 0.15);
 }
 
 .input:disabled {
@@ -41,9 +42,9 @@
   left: 0;
   right: 0;
   background-color: white;
-  border: 2px solid #e2e8f0;
+  border: 1px solid #e2e8f0;
   border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 5px 5px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   max-height: 200px;
@@ -56,13 +57,14 @@
 }
 
 .option {
-  padding: 12px 16px;
+  padding: 8px 12px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   transition: background-color 0.15s ease;
   border-bottom: 1px solid #f1f3f4;
+  font-size: 0.88rem;
 }
 
 .option:last-child {

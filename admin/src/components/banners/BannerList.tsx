@@ -11,13 +11,14 @@ interface BannerListProps {
   refreshTrigger?: number;
 }
 
-type BannerLocation = 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page';
+type BannerLocation = 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page' | 'login_page';
 
 const LOCATION_LABELS: Record<BannerLocation, string> = {
   homepage_hero: '🏠 Homepage Hero Banners',
   homepage_secondary: '📌 Homepage Secondary Banners',
   category_page: '📁 Category Page Banners',
-  event_page: '🎫 Event Page Banners'
+  event_page: '🎫 Event Page Banners',
+  login_page: '🔐 Login Page Banners'
 };
 
 export const BannerList: React.FC<BannerListProps> = ({ refreshTrigger }) => {
@@ -25,7 +26,8 @@ export const BannerList: React.FC<BannerListProps> = ({ refreshTrigger }) => {
     homepage_hero: [],
     homepage_secondary: [],
     category_page: [],
-    event_page: []
+    event_page: [],
+    login_page: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -53,7 +55,8 @@ export const BannerList: React.FC<BannerListProps> = ({ refreshTrigger }) => {
         homepage_hero: [],
         homepage_secondary: [],
         category_page: [],
-        event_page: []
+        event_page: [],
+        login_page: []
       };
 
       response.data.forEach(banner => {

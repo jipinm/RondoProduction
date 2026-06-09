@@ -609,7 +609,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (data: CustomerLoginData) => Promise<void>;
-  register: (data: CustomerRegistrationData) => Promise<void>;
+  register: (data: CustomerRegistrationData) => Promise<CustomerAuthResponse>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   getProfile: () => Promise<CustomerProfile>;
@@ -704,14 +704,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (data: CustomerRegistrationData) => {
+  const register = async (data: CustomerRegistrationData): Promise<CustomerAuthResponse> => {
     setIsLoading(true);
     try {
       const response = await customerAuthService.register(data);
       if (response.success) {
         // Registration successful, but user needs to login
         // Don't set customer data since registration doesn't return tokens
+        return response;
       }
+      throw new Error(response.message || 'Registration failed');
+    } catch (error: any) {
+      // Re-throw the error so the UI can handle it
+      throw error;
     } finally {
       setIsLoading(false);
     }

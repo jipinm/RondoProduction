@@ -45,7 +45,7 @@
 }
 
 .confirmationDetails {
-  background: #f8fafc;
+  background: var(--color-neutral-light);
   padding: 1.5rem;
   border-radius: 0.5rem;
   margin: 1rem 0;
@@ -59,9 +59,10 @@
 
 .confirmationDetails p {
   margin: 0.5rem 0;
-  color: #64748b;
+  color: var(--color-neutral-mid);
 }
 
+/* RONDO: Review color pairing — could not auto-map to approved combination */
 .nextSteps {
   background: #ecfdf5;
   padding: 1.5rem;
@@ -120,8 +121,8 @@
 }
 
 .secondaryButton {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--color-neutral-light);
+  color: var(--color-neutral-mid);
   border: 1px solid #cbd5e1;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
@@ -142,12 +143,12 @@
 
 .loadingState p, .errorState p {
   font-size: 1.125rem;
-  color: #64748b;
+  color: var(--color-neutral-mid);
   margin-bottom: 1rem;
 }
 
 .errorState p {
-  color: #dc2626;
+  color: var(--color-accent);
 }
 
 /* Responsive Design - matches EventsPage exactly */

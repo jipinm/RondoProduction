@@ -61,10 +61,10 @@ const Content: React.FC = () => {
   const loadStaticPages = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await staticPagesService.getAllPages();
-      
+
       if (result.success && result.data) {
         setStaticPages(Array.isArray(result.data) ? result.data : [result.data]);
       } else {
@@ -81,12 +81,12 @@ const Content: React.FC = () => {
   const handleTabChange = (tab: 'pages' | 'banners' | 'whyrondo' | 'contact') => {
     setActiveTab(tab);
     setIsEditing(false);
-    
+
     if (tab === 'pages') {
       handlePageSelect(selectedPage);
     }
   };
-  
+
   const handlePageSelect = (page: 'terms' | 'privacy' | 'about' | 'faq') => {
     setSelectedPage(page);
     setIsEditing(false);
@@ -96,50 +96,50 @@ const Content: React.FC = () => {
     setAboutImageFile(null);
     setAboutImageError(null);
     setAboutImageSuccess(null);
-    
+
     // Content will be set via useEffect when selectedPage changes
   };
-  
+
   const handleEditToggle = () => {
     if (!isEditing && currentPage) {
       setCurrentContent(currentPage.content);
     }
     setIsEditing(!isEditing);
   };
-  
+
   const handleEditorChange = (content: string) => {
     setCurrentContent(content);
   };
 
   const handleSaveContent = async () => {
     if (!currentPage) return;
-    
+
     setSaving(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Sanitize HTML content before saving
       const htmlContent = sanitizeHtml(currentContent);
-      
+
       const result = await staticPagesService.updatePage(currentPage.id, {
         content: htmlContent
       });
-      
+
       if (result.success) {
         setSuccess('Content saved successfully!');
         setIsEditing(false);
-        
+
         // Update the current page in state
         if (result.data) {
           const updatedPage = result.data as StaticPage;
           setCurrentPage(updatedPage);
           setCurrentContent(updatedPage.content); // Set HTML content for preview
-          setStaticPages(prev => 
+          setStaticPages(prev =>
             prev.map(page => page.id === updatedPage.id ? updatedPage : page)
           );
         }
-        
+
         // Hide success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);
       } else {
@@ -187,30 +187,30 @@ const Content: React.FC = () => {
   return (
     <div className={styles.contentContainer}>
       <h1 className={styles.pageTitle}>Content Management</h1>
-      
+
       <div className={styles.tabsContainer}>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'pages' ? styles.activeTab : ''}`}
           onClick={() => handleTabChange('pages')}
         >
           <File size={18} />
           <span>Pages</span>
         </button>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'banners' ? styles.activeTab : ''}`}
           onClick={() => handleTabChange('banners')}
         >
           <Image size={18} />
           <span>Banners & Promotions</span>
         </button>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'whyrondo' ? styles.activeTab : ''}`}
           onClick={() => handleTabChange('whyrondo')}
         >
           <AlertCircle size={18} />
           <span>Why Rondo Sports</span>
         </button>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'contact' ? styles.activeTab : ''}`}
           onClick={() => handleTabChange('contact')}
         >
@@ -218,7 +218,7 @@ const Content: React.FC = () => {
           <span>Contact Page</span>
         </button>
       </div>
-      
+
       {activeTab === 'pages' ? (
         <div className={styles.pagesContent}>
           {/* ... existing pages sidebar ... */}
@@ -231,25 +231,25 @@ const Content: React.FC = () => {
               </div>
             ) : (
               <div className={styles.pagesList}>
-                <button 
+                <button
                   className={`${styles.pageItem} ${selectedPage === 'terms' ? styles.activePage : ''}`}
                   onClick={() => handlePageSelect('terms')}
                 >
                   Terms & Conditions
                 </button>
-                <button 
+                <button
                   className={`${styles.pageItem} ${selectedPage === 'privacy' ? styles.activePage : ''}`}
                   onClick={() => handlePageSelect('privacy')}
                 >
                   Privacy Policy
                 </button>
-                <button 
+                <button
                   className={`${styles.pageItem} ${selectedPage === 'about' ? styles.activePage : ''}`}
                   onClick={() => handlePageSelect('about')}
                 >
                   About Us
                 </button>
-                <button 
+                <button
                   className={`${styles.pageItem} ${selectedPage === 'faq' ? styles.activePage : ''}`}
                   onClick={() => handlePageSelect('faq')}
                 >
@@ -258,7 +258,7 @@ const Content: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           <div className={styles.pageContentSection}>
             {/* ... code ... */}
             {error && (
@@ -267,23 +267,23 @@ const Content: React.FC = () => {
                 <span>{error}</span>
               </div>
             )}
-            
+
             {success && (
               <div className={styles.successMessage}>
                 <span>✅ {success}</span>
               </div>
             )}
-            
+
             <div className={styles.contentHeader}>
               <h2 className={styles.contentTitle}>
                 {currentPage ? currentPage.title : (
-                  selectedPage === 'terms' ? 'Terms & Conditions' : 
-                  selectedPage === 'privacy' ? 'Privacy Policy' : 
-                  selectedPage === 'about' ? 'About Us' :
-                  'FAQ - Frequently Asked Questions'
+                  selectedPage === 'terms' ? 'Terms & Conditions' :
+                    selectedPage === 'privacy' ? 'Privacy Policy' :
+                      selectedPage === 'about' ? 'About Us' :
+                        'FAQ - Frequently Asked Questions'
                 )}
               </h2>
-              <button 
+              <button
                 className={isEditing ? styles.saveButton : styles.editButton}
                 onClick={isEditing ? handleSaveContent : handleEditToggle}
                 disabled={saving || loading || !currentPage}
@@ -303,7 +303,7 @@ const Content: React.FC = () => {
                 )}
               </button>
             </div>
-            
+
             <div className={styles.editorContainer}>
               {loading ? (
                 <div className={styles.loadingContent}>
@@ -322,7 +322,7 @@ const Content: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div 
+                <div
                   className={`${styles.contentPreview} ${selectedPage === 'privacy' ? styles.privacyContent : ''}`}
                   dangerouslySetInnerHTML={{ __html: currentContent || '<p>No content available.</p>' }}
                 />
@@ -335,9 +335,6 @@ const Content: React.FC = () => {
                   <Image size={18} />
                   About Us Page Image
                 </h3>
-                <p className={styles.imageUploadDimensions}>
-                  Recommended dimensions: <strong>1200 × 800px</strong> (3:2 ratio) &mdash; max 10 MB
-                </p>
 
                 {currentPage?.image_url && (
                   <div className={styles.currentImagePreview}>
@@ -358,7 +355,8 @@ const Content: React.FC = () => {
                     setAboutImageError(null);
                     setAboutImageSuccess(null);
                   }}
-                  maxSizeMessage="Maximum file size: 10MB · Recommended: 1200×800px"
+                  maxSizeMessage="Maximum file size: 10MB."
+                  dimensionHint="1200×800px"
                 />
 
                 {aboutImageError && (

@@ -1,6 +1,8 @@
 .hero {
   position: relative;
-  height: 600px;
+  height: calc(100vh - 155px);
+  min-height: 450px;
+  max-height: 800px;
   overflow: hidden;
   width: 100%;
   display: block;
@@ -331,7 +333,9 @@
 /* Mobile Responsive Styles */
 @media (max-width: 767px) {
   .hero {
-    height: 550px;
+    height: calc(100vh - 120px);
+    min-height: 380px;
+    max-height: 700px;
   }
 
   .heroContentWrapper {
@@ -394,7 +398,9 @@
 
 @media (max-width: 480px) {
   .hero {
-    height: 400px;
+    height: calc(100vh - 110px);
+    min-height: 320px;
+    max-height: 600px;
   }
 
   .heroTitle {

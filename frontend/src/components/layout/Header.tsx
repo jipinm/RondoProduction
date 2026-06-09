@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Header.module.css';
-import { FaUser } from 'react-icons/fa';
+import { FaUser, FaBars, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSports } from '../../hooks/useSports';
 import { useMenuHierarchy } from '../../hooks/useMenuHierarchy';
 import { useTennisTournaments } from '../../hooks/useTennisTournaments';
 import { useGolfTournaments } from '../../hooks/useGolfTournaments';
 import { useDisplaySettings } from '../../hooks/useDisplaySettings';
+import { useSiteBranding } from '../../hooks/useSiteBranding';
 import { useAuth } from '../../services/customerAuth';
 import { useSelectedCurrency } from '../../contexts/CurrencyContext';
 
@@ -76,11 +77,18 @@ const Header: React.FC = () => {
   } = useGolfTournaments();
   const { isAuthenticated, logout } = useAuth();
   const { currencies, selectedCurrency, loading: currenciesLoading, setSelectedCurrency } = useSelectedCurrency();
+  const { header_logo_url } = useSiteBranding();
   const [logoLoaded, setLogoLoaded] = React.useState(false);
   const [logoError, setLogoError] = React.useState(false);
+
+  React.useEffect(() => {
+    setLogoError(false);
+    setLogoLoaded(false);
+  }, [header_logo_url]);
   const [activeSubmenu, setActiveSubmenu] = React.useState<string | null>(null);
   const [accountDropdownOpen, setAccountDropdownOpen] = React.useState(false);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
   const navigationRef = React.useRef<HTMLElement>(null);
 
@@ -164,6 +172,21 @@ const Header: React.FC = () => {
     }
   };
 
+  // Toggle a section inside the mobile drawer
+  const toggleDrawerSection = (section: string) => {
+    setActiveSubmenu(prev => prev === section ? null : section);
+  };
+
+  // Lock body scroll when mobile menu is open
+  React.useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
+
   // Close submenu and account dropdown when clicking outside (mobile only)
   React.useEffect(() => {
     if (!isMobile || (!activeSubmenu && !accountDropdownOpen && !currencyDropdownOpen)) return;
@@ -213,6 +236,77 @@ const Header: React.FC = () => {
       // Sports filtering results processed
     }
   }, [sports, otherSports]);
+
+  // Render a sport item inside the mobile drawer
+  const renderMobileDrawerSportItem = (sportId: string) => {
+    const displayName = getDisplayName(sportId);
+    const hasSubmenu = ['soccer', 'tennis', 'golf'].includes(sportId);
+
+    if (!hasSubmenu) {
+      return (
+        <Link
+          key={sportId}
+          to={getEventLinkBySport(sportId)}
+          className={styles.mobileDrawerItem}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <span>{displayName}</span>
+        </Link>
+      );
+    }
+
+    let tournaments = footballTournaments;
+    let isLoading = tournamentsLoading;
+    let hasError = !!tournamentsError;
+    let linkFn = getTeamsPageLink;
+    if (sportId === 'tennis') {
+      tournaments = tennisTournaments;
+      isLoading = tennisTournamentsLoading;
+      hasError = !!tennisTournamentsError;
+      linkFn = getTennisEventsLink;
+    } else if (sportId === 'golf') {
+      tournaments = golfTournaments;
+      isLoading = golfTournamentsLoading;
+      hasError = !!golfTournamentsError;
+      linkFn = getGolfEventsLink;
+    }
+
+    return (
+      <div key={sportId} className={styles.mobileDrawerSection}>
+        <button className={styles.mobileDrawerItem} onClick={() => toggleDrawerSection(sportId)}>
+          <span>{displayName}</span>
+          {activeSubmenu === sportId ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+        </button>
+        {activeSubmenu === sportId && (
+          <div className={styles.mobileDrawerSubItems}>
+            <Link
+              to={getEventLinkBySport(sportId)}
+              className={`${styles.mobileDrawerSubItem} ${styles.mobileDrawerSubItemViewAll}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              VIEW ALL {displayName}
+            </Link>
+            {isLoading && (
+              <div className={styles.mobileDrawerSubItem} style={{ color: '#a0aab4', fontStyle: 'italic' }}>Loading...</div>
+            )}
+            {hasError && (
+              <div className={styles.mobileDrawerSubItem} style={{ color: '#ff6b6b', fontStyle: 'italic' }}>Error loading</div>
+            )}
+            {!isLoading && !hasError && tournaments.map((t) => (
+              <Link
+                key={t.tournament_id}
+                to={linkFn(t.tournament_id)}
+                className={styles.mobileDrawerSubItem}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t.official_name}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Create navigation items for fixed sports
   const renderFixedSportItem = (sportId: string) => {
@@ -404,11 +498,13 @@ const Header: React.FC = () => {
 
   return (
     <header className={styles.stickyHeader}>
+      {/* ── Top bar ── */}
       <div className={styles.topBar}>
         <div className={styles.wrapper}>
+          {/* Left: Currency (always) + My Account (desktop only) */}
           <div className={styles.topBarLeft}>
             <div className={styles.topBarItemWithSubmenu}>
-              <div 
+              <div
                 className={styles.topBarItem}
                 onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
                 style={{ cursor: 'pointer' }}
@@ -436,117 +532,120 @@ const Header: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className={styles.topBarItemWithSubmenu}>
-              <div 
+
+            {/* My Account — desktop only */}
+            <div className={`${styles.topBarItemWithSubmenu} ${styles.desktopOnly}`}>
+              <div
                 className={styles.topBarItem}
                 onClick={toggleAccountDropdown}
                 style={{ cursor: 'pointer' }}
               >
                 <FaUser className={styles.icon} />
-                <span>My Account</span>
+                <span>MY ACCOUNT</span>
                 <MdArrowDropDown className={styles.icon} />
               </div>
-              <div 
+              <div
                 className={`${styles.accountSubmenu} ${styles.accountSubmenuLeft} ${isMobile && accountDropdownOpen ? styles.accountSubmenuActive : ''}`}
               >
                 {!isAuthenticated ? (
-                  <Link 
-                    to="/login" 
+                  <Link
+                    to="/login"
                     className={styles.accountSubmenuItem}
                     onClick={handleAccountItemClick}
                   >
-                    Login
+                    LOGIN
                   </Link>
                 ) : (
                   <>
-                    <Link 
-                      to="/profile" 
+                    <Link
+                      to="/profile"
                       className={styles.accountSubmenuItem}
                       onClick={handleAccountItemClick}
                     >
-                      Profile
+                      PROFILE
                     </Link>
-                    <Link 
-                      to="/bookings" 
+                    <Link
+                      to="/bookings"
                       className={styles.accountSubmenuItem}
                       onClick={handleAccountItemClick}
                     >
-                      Bookings
+                      BOOKINGS
                     </Link>
-                    <button 
+                    <button
                       onClick={() => {
                         handleAccountItemClick();
                         logout();
-                      }} 
+                      }}
                       className={styles.accountSubmenuItem}
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: 'inherit', 
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'inherit',
                         cursor: 'pointer',
                         width: '100%',
-                        textAlign: 'left'
+                        textAlign: 'left',
                       }}
                     >
-                      Logout
+                      LOGOUT
                     </button>
                   </>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Centre: Logo */}
           <Link to="/" className={styles.logo}>
-              {!logoError ? (
-                <img 
-                  src="/logo.png" 
-                  alt="RONDO Sports Tickets" 
-                  className={styles.logoImg}
-                  onLoad={() => {
-                    setLogoLoaded(true);
-                  }}
-                  onError={() => {
-                    setLogoError(true);
-                  }}
-                  style={{
-                    display: logoLoaded ? 'block' : 'block',
-                    visibility: 'visible',
-                    opacity: 1
-                  }}
-                />
-              ) : (
-                <div style={{ 
-                  color: '#ffffff', 
-                  fontSize: '24px', 
-                  fontWeight: 'bold',
-                  letterSpacing: '2px'
-                }}>
-                  RONDO
-                </div>
-              )}
+            {!logoError ? (
+              <img
+                src={header_logo_url || '/logo.png'}
+                alt="RONDO Sports Tickets"
+                className={styles.logoImg}
+                onLoad={() => { setLogoLoaded(true); }}
+                onError={() => { setLogoError(true); }}
+                style={{ display: logoLoaded ? 'block' : 'block', visibility: 'visible', opacity: 1 }}
+              />
+            ) : (
+              <div style={{ color: '#ffffff', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px' }}>
+                RONDO
+              </div>
+            )}
           </Link>
+
+          {/* Right: About Us (desktop) + Hamburger (mobile) */}
           <div className={styles.topBarRight}>
-            <Link to="/about-us" className={styles.topBarItem} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span>About Us</span>
+            <Link
+              to="/about-us"
+              className={`${styles.topBarItem} ${styles.desktopOnly}`}
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <span>ABOUT US</span>
             </Link>
+            <button
+              className={`${styles.hamburgerBtn} ${styles.mobileOnly}`}
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <FaBars />
+            </button>
           </div>
         </div>
       </div>
-      <nav className={styles.navigation} ref={navigationRef}>
+
+      {/* ── Desktop navigation bar (hidden on mobile) ── */}
+      <nav className={`${styles.navigation} ${styles.desktopNav}`} ref={navigationRef}>
         <div className={styles.wrapper}>
           <div className={styles.navItems}>
-            {/* Fixed sports in exact same positions */}
             {renderFixedSportItem('soccer')}
             {renderFixedSportItem('formula1')}
             {renderFixedSportItem('rugby')}
             {renderFixedSportItem('tennis')}
             {renderFixedSportItem('golf')}
-            
-            {/* OTHER SPORTS dropdown with dynamic content */}
-            <div 
-              className={styles.navItemWithSubmenu}
-            >
-              <span 
-                className={styles.navItem} 
+
+            {/* OTHER SPORTS dropdown */}
+            <div className={styles.navItemWithSubmenu}>
+              <span
+                className={styles.navItem}
                 style={{ cursor: 'pointer' }}
                 onClick={(e) => {
                   if (isMobile) {
@@ -585,20 +684,19 @@ const Header: React.FC = () => {
                 {!loading && !error && [...visibleOtherSports]
                   .sort((a, b) => getDisplayName(a.sport_id).localeCompare(getDisplayName(b.sport_id)))
                   .map((sport) => (
-                  <Link 
-                    to={getEventLinkBySport(sport.sport_id)}
-                    className={styles.submenuItem}
-                    key={sport.sport_id}
-                    data-sport-id={sport.sport_id}
-                    onClick={handleSubmenuItemClick}
-                  >
-                    {getDisplayName(sport.sport_id)}
-                  </Link>
-                ))}
+                    <Link
+                      to={getEventLinkBySport(sport.sport_id)}
+                      className={styles.submenuItem}
+                      key={sport.sport_id}
+                      data-sport-id={sport.sport_id}
+                      onClick={handleSubmenuItemClick}
+                    >
+                      {getDisplayName(sport.sport_id)}
+                    </Link>
+                  ))}
               </div>
             </div>
-            
-            {/* RONDO PLATINUM - keep as is */}
+
             <a href="/contact-us" className={styles.navItemHighlighted}>
               <img src="/images/icons/star.png" alt="Star" className={styles.starIcon} />
               <span>CONTACT US</span>
@@ -606,6 +704,112 @@ const Header: React.FC = () => {
           </div>
         </div>
       </nav>
+
+      {/* ── Mobile overlay ── */}
+      <div
+        className={`${styles.mobileOverlay} ${mobileMenuOpen ? styles.mobileOverlayVisible : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      {/* ── Mobile drawer ── */}
+      <div className={`${styles.mobileDrawer} ${mobileMenuOpen ? styles.mobileDrawerOpen : ''}`}>
+        {/* Drawer header */}
+        <div className={styles.mobileDrawerHeader}>
+          <span className={styles.mobileDrawerTitle}>MENU</span>
+          <button
+            className={styles.mobileDrawerClose}
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <FaTimes />
+          </button>
+        </div>
+
+        {/* Drawer body */}
+        <div className={styles.mobileDrawerContent}>
+          {/* MY ACCOUNT */}
+          <div className={styles.mobileDrawerSection}>
+            <button className={styles.mobileDrawerItem} onClick={() => toggleDrawerSection('account')}>
+              <div className={styles.mobileDrawerItemLeft}>
+                <FaUser style={{ fontSize: '14px' }} />
+                <span>MY ACCOUNT</span>
+              </div>
+              {activeSubmenu === 'account' ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+            </button>
+            {activeSubmenu === 'account' && (
+              <div className={styles.mobileDrawerSubItems}>
+                {!isAuthenticated ? (
+                  <Link to="/login" className={styles.mobileDrawerSubItem} onClick={() => setMobileMenuOpen(false)}>
+                    LOGIN
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/profile" className={styles.mobileDrawerSubItem} onClick={() => setMobileMenuOpen(false)}>
+                      PROFILE
+                    </Link>
+                    <Link to="/bookings" className={styles.mobileDrawerSubItem} onClick={() => setMobileMenuOpen(false)}>
+                      BOOKINGS
+                    </Link>
+                    <button
+                      className={`${styles.mobileDrawerSubItem} ${styles.mobileDrawerSubItemBtn}`}
+                      onClick={() => { logout(); setMobileMenuOpen(false); }}
+                    >
+                      LOGOUT
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.mobileDrawerDivider} />
+
+          {/* Sports navigation */}
+          {renderMobileDrawerSportItem('soccer')}
+          {renderMobileDrawerSportItem('formula1')}
+          {renderMobileDrawerSportItem('rugby')}
+          {renderMobileDrawerSportItem('tennis')}
+          {renderMobileDrawerSportItem('golf')}
+
+          {/* OTHER SPORTS */}
+          <div className={styles.mobileDrawerSection}>
+            <button className={styles.mobileDrawerItem} onClick={() => toggleDrawerSection('other-sports')}>
+              <span>OTHER SPORTS</span>
+              {activeSubmenu === 'other-sports' ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+            </button>
+            {activeSubmenu === 'other-sports' && (
+              <div className={styles.mobileDrawerSubItems}>
+                {loading && (
+                  <div className={styles.mobileDrawerSubItem} style={{ color: '#a0aab4', fontStyle: 'italic' }}>
+                    Loading...
+                  </div>
+                )}
+                {!loading && !error && [...visibleOtherSports]
+                  .sort((a, b) => getDisplayName(a.sport_id).localeCompare(getDisplayName(b.sport_id)))
+                  .map((sport) => (
+                    <Link
+                      key={sport.sport_id}
+                      to={getEventLinkBySport(sport.sport_id)}
+                      className={styles.mobileDrawerSubItem}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {getDisplayName(sport.sport_id)}
+                    </Link>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.mobileDrawerDivider} />
+
+          <Link to="/about-us" className={styles.mobileDrawerItem} onClick={() => setMobileMenuOpen(false)}>
+            <span>ABOUT US</span>
+          </Link>
+          <a href="/contact-us" className={styles.mobileDrawerItem} onClick={() => setMobileMenuOpen(false)}>
+            <span>CONTACT US</span>
+          </a>
+        </div>
+      </div>
     </header>
   );
 };

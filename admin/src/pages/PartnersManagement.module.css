@@ -470,6 +470,17 @@
   color: #a0aec0;
 }
 
+.hints {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hints .hint {
+  margin-top: 0;
+}
+
 .modalFooter {
   display: flex;
   justify-content: flex-end;

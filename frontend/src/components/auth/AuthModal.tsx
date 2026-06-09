@@ -51,8 +51,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleRegister = async (data: any) => {
     try {
       setError('');
-      await register(data);
-      handleSuccess();
+      const response = await register(data);
+      
+      if (response.success) {
+        // Show success message and switch to login mode
+        setMode('login');
+        setError('');
+        // Use success state or show message that email was sent
+        setForgotPasswordSuccess(true); // Reuse success state for registration success message
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     }

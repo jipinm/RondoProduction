@@ -100,7 +100,7 @@
 }
 
 .searchInput::placeholder {
-  color: #999;
+  color: var(--color-placeholder);
 }
 
 /* FAQ Content Section */

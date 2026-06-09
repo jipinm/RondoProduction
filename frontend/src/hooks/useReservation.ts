@@ -11,12 +11,17 @@ interface CreateReservationData {
   }>;
 }
 
+interface CartItemForGuests {
+  ticket_id: string;
+  quantity: number;
+}
+
 interface UseReservationResult {
   reservation: Reservation | null;
   loading: boolean;
   error: string | null;
   createReservation: (data: CreateReservationData) => Promise<Reservation | null>;
-  addGuestData: (reservationId: string, guests: Guest[]) => Promise<boolean>;
+  addGuestData: (reservationId: string, guests: Guest[], cartItems: CartItemForGuests[]) => Promise<boolean>;
   clearReservation: () => void;
 }
 
@@ -45,14 +50,24 @@ export const useReservation = (): UseReservationResult => {
     }
   };
 
-  const addGuestData = async (reservationId: string, guests: Guest[]): Promise<boolean> => {
+  const addGuestData = async (reservationId: string, guests: Guest[], cartItems: CartItemForGuests[]): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
       
-      const guestData = { guests };
+      // Build XS2Event-format items array: distribute guests across ticket items by quantity
+      let guestIndex = 0;
+      const items = cartItems.map(item => {
+        const itemGuests = guests.slice(guestIndex, guestIndex + item.quantity);
+        guestIndex += item.quantity;
+        return {
+          ticket_id: item.ticket_id,
+          quantity: item.quantity,
+          guests: itemGuests
+        };
+      });
       
-      await customerApiClient.post(`${API_ENDPOINTS.RESERVATIONS}/${reservationId}/guests`, guestData);
+      await customerApiClient.post(`${API_ENDPOINTS.RESERVATIONS}/${reservationId}/guestdata`, { items });
       return true;
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to add guest data';

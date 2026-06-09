@@ -31,16 +31,38 @@ import ProfilePage from './pages/ProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import BookingsPage from './pages/BookingsPage';
+import BlogListingPage from './pages/BlogListingPage';
+import BlogDetailPage from './pages/BlogDetailPage';
+import { useSiteBranding } from './hooks/useSiteBranding';
+import { useEffect } from 'react';
 import './styles/global.css';
+
+const FaviconUpdater: React.FC = () => {
+  const { favicon_url } = useSiteBranding();
+  useEffect(() => {
+    if (!favicon_url) return;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = favicon_url;
+  }, [favicon_url]);
+  return null;
+};
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <CurrencyProvider>
       <Router>
+        <FaviconUpdater />
         <ScrollToTop />
-        <Layout>
-          <Routes>
+        <Routes>
+          {/* All pages — wrapped in the global Layout via Outlet */}
+          <Route element={<Layout />}>
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/about-us" element={<AboutUsPage />} />
             <Route path="/faq" element={<FAQPage />} />
@@ -65,14 +87,15 @@ const App: React.FC = () => {
             <Route path="/payment/cancel" element={<PaymentCancelPage />} />
             <Route path="/test-registration" element={<TestRegistrationPage />} />
             <Route path="/test-stripe" element={<TestStripeCheckout />} />
-            <Route path="/login" element={<LoginPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/profile/edit" element={<ProfileEditPage />} />
             <Route path="/profile/change-password" element={<ChangePasswordPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
+            <Route path="/blog" element={<BlogListingPage />} />
+            <Route path="/blog/:slug" element={<BlogDetailPage />} />
             <Route path="/booking/confirmation/:bookingId" element={<BookingConfirmationPage />} />
-          </Routes>
-        </Layout>
+          </Route>
+        </Routes>
       </Router>
       </CurrencyProvider>
     </AuthProvider>

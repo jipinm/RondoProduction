@@ -158,28 +158,35 @@ const CheckoutLoginPage: React.FC = () => {
         last_name: userDetails.lastName,
         phone: userDetails.phone,
         street: userDetails.street,
-        house_number: userDetails.houseNumber,  // Direct database field mapping
+        house_number: userDetails.houseNumber,
         city: userDetails.city,
-        zipcode: userDetails.zipCode,  // Direct database field mapping
-        country_code: userDetails.country  // Map country to country_code
+        zipcode: userDetails.zipCode,
+        country_code: userDetails.country
       };
-      
-      
-      await register(registerData);
-      
-      // Switch to login mode and show success message
-      setAuthMode('login');
-      setAuthError('🎉 Account created successfully! Please sign in with your credentials.');
-      
-      // Clear form data
-      setPassword('');
-      setConfirmPassword('');
-      setAcceptTerms(false);
-      setValidationErrors([]);
-      
-      // Store user details for later use in guest details and pre-fill email in login
-      sessionStorage.setItem('userDetails', JSON.stringify(userDetails));
-      sessionStorage.setItem('registeredEmail', userDetails.email);
+
+      const response = await register(registerData);
+
+      if (response.success) {
+        // Switch to login mode and show success message
+        setAuthMode('login');
+        setAuthError(''); // Clear any error
+        // Use a success indicator or different state if available
+        
+        // Clear form data
+        setPassword('');
+        setConfirmPassword('');
+        setAcceptTerms(false);
+        setValidationErrors([]);
+        
+        // Store user details for later use in guest details and pre-fill email in login
+        sessionStorage.setItem('userDetails', JSON.stringify(userDetails));
+        sessionStorage.setItem('registeredEmail', userDetails.email);
+        
+        // Show success as a message instead of error
+        setAuthError('🎉 Account created successfully! A confirmation email has been sent. Please sign in with your credentials.');
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
       
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -193,7 +200,7 @@ const CheckoutLoginPage: React.FC = () => {
         });
         
         setValidationErrors(fieldValidationErrors);
-        setAuthError(''); // Clear general error when we have field-specific errors
+        setAuthError('');
       } 
       // Handle specific validation errors by message content
       else if (err.message === 'Email is already registered') {

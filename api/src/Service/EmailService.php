@@ -238,6 +238,92 @@ class EmailService
         }
     }
 
+    public function sendAccountCreatedEmail(array $customer): bool
+    {
+        try {
+            $name     = trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')) ?: 'Valued Customer';
+            $loginUrl = $this->frontendUrl . '/login';
+
+            $vars = [
+                'customer_name'  => $name,
+                'customer_email' => $customer['email'],
+                'login_url'      => $loginUrl,
+            ];
+
+            $tpl = $this->renderTemplate('account_created', $vars);
+
+            $mail = new Mail();
+            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->addTo($customer['email'], $name);
+
+            if ($tpl !== null) {
+                $mail->setSubject($tpl['subject']);
+                $mail->addContent('text/html',  $tpl['html']);
+                $mail->addContent('text/plain', $tpl['text']);
+            } else {
+                $html = '<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:sans-serif;background:#F7F7F7;">'
+                    . '<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">'
+                    . '<div style="background:#245388;padding:1rem 1.5rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:44px;max-width:170px;display:inline-block;" />'
+                    . '</div>'
+                    . '<div style="background:linear-gradient(135deg,#245388 0%,#83ACDC 100%);padding:2rem;text-align:center;">'
+                    . '<h1 style="margin:0;color:#fff;font-size:1.75rem;font-weight:700;">Welcome to Rondo Sport!</h1>'
+                    . '<p style="margin:.5rem 0 0;color:rgba(255,255,255,.9);">Your account has been created successfully</p>'
+                    . '</div>'
+                    . '<div style="padding:2.5rem;color:#1C191D;">'
+                    . '<p style="font-size:1.05rem;">Hi ' . htmlspecialchars($name) . ',</p>'
+                    . '<p>Thank you for joining Rondo Sport! Your account is now active and ready to use.</p>'
+                    . '<div style="background:#F7F7F7;border-radius:10px;padding:1.25rem 1.5rem;margin:1.5rem 0;border:1px solid #C7D9ED;">'
+                    . '<p style="margin:0 0 .4rem;font-weight:600;color:#245388;">Your Account Details</p>'
+                    . '<p style="margin:0;color:#555;font-size:.95rem;">Email: <strong>' . htmlspecialchars($customer['email']) . '</strong></p>'
+                    . '</div>'
+                    . '<p style="text-align:center;margin:2rem 0;">'
+                    . '<a href="' . htmlspecialchars($loginUrl) . '" '
+                    .    'style="display:inline-block;padding:14px 28px;background:#C0504C;color:#fff;'
+                    .    'text-decoration:none;border-radius:10px;font-size:1rem;font-weight:600;">Login to Your Account</a>'
+                    . '</p>'
+                    . '<p style="color:#808080;font-size:.9rem;">If you did not create this account, please contact our support team immediately.</p>'
+                    . '</div>'
+                    . '<div style="background:#245388;padding:1rem;text-align:center;">'
+                    . '<img src="https://rondosportstickets.com/logo.png" alt="Rondo Sports Travel" style="height:32px;max-width:130px;display:inline-block;margin-bottom:.35rem;" /><br>'
+                    . '<span style="color:rgba(255,255,255,.8);font-size:.8rem;">Rondo Sports Travel</span>'
+                    . '</div>'
+                    . '</div>'
+                    . '</body></html>';
+
+                $text = "Welcome to Rondo Sport!\n\n"
+                    . "Hi {$name},\n\n"
+                    . "Thank you for joining Rondo Sport! Your account is now active.\n\n"
+                    . "Account Details\n"
+                    . "---------------\n"
+                    . "Email: {$customer['email']}\n\n"
+                    . "Login to your account:\n{$loginUrl}\n\n"
+                    . "If you did not create this account, please contact support immediately.\n\n"
+                    . '— Rondo Sports Travel';
+
+                $mail->setSubject('Welcome to Rondo Sport, ' . $name . '!');
+                $mail->addContent('text/html',  $html);
+                $mail->addContent('text/plain', $text);
+            }
+
+            $sent = $this->dispatch($mail);
+
+            if ($sent) {
+                $this->logger->info('Account created email sent', [
+                    'customer_email' => $customer['email'],
+                ]);
+            }
+
+            return $sent;
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to send account created email', [
+                'customer_email' => $customer['email'] ?? 'unknown',
+                'error'          => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
     public function sendPasswordResetEmail(array $customer, string $resetToken): bool
     {
         try {

@@ -17,7 +17,7 @@ class TicketsController
     private Client $httpClient;
     private string $baseUrl;
     private string $apiKey;
-    private const CACHE_TTL = 300; // 5 minutes in seconds (shorter cache for real-time data)
+    private const CACHE_TTL = 0; // Tickets must NEVER be cached — stock and prices change in real-time
 
     public function __construct(LoggerInterface $logger, Client $httpClient, string $baseUrl, string $apiKey)
     {
@@ -55,7 +55,7 @@ class TicketsController
                 'headers' => [
                     'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
-                    'Cache-Control' => 'public, max-age=' . self::CACHE_TTL,
+                    'Cache-Control' => 'no-store, no-cache',
                 ],
                 'query' => $query,
             ]);
@@ -68,7 +68,7 @@ class TicketsController
                 ->withStatus($statusCode)
                 ->withHeader('Content-Type', 'application/json')
                 ->withHeader('Content-Length', (string) strlen($body))
-                ->withHeader('Cache-Control', 'public, max-age=' . self::CACHE_TTL);
+                ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
                 
         } catch (GuzzleException $e) {
             $this->logger->error('Failed to fetch tickets', [
@@ -112,7 +112,7 @@ class TicketsController
                 'headers' => [
                     'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
-                    'Cache-Control' => 'public, max-age=' . self::CACHE_TTL,
+                    'Cache-Control' => 'no-store, no-cache',
                 ],
                 'query' => $query,
             ]);
@@ -125,7 +125,7 @@ class TicketsController
                 ->withStatus($statusCode)
                 ->withHeader('Content-Type', 'application/json')
                 ->withHeader('Content-Length', (string) strlen($body))
-                ->withHeader('Cache-Control', 'public, max-age=' . self::CACHE_TTL);
+                ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
                 
         } catch (GuzzleException $e) {
             $this->logger->error('Failed to fetch ticket', [
@@ -200,7 +200,7 @@ class TicketsController
                 'headers' => [
                     'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
-                    'Cache-Control' => 'public, max-age=' . self::CACHE_TTL,
+                    'Cache-Control' => 'no-store, no-cache',
                 ],
                 'query' => $query,
             ]);
@@ -213,7 +213,7 @@ class TicketsController
                 ->withStatus($statusCode)
                 ->withHeader('Content-Type', 'application/json')
                 ->withHeader('Content-Length', (string) strlen($body))
-                ->withHeader('Cache-Control', 'public, max-age=' . self::CACHE_TTL);
+                ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
                 
         } catch (GuzzleException $e) {
             $this->logger->error('Failed to fetch ticket guest data requirements', [

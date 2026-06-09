@@ -300,16 +300,10 @@ class BookingsController
      */
     private function getHeaders(Request $request): array
     {
-        $headers = [
+        return [
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json'
+            'Accept' => 'application/json',
+            'X-Api-Key' => $this->apiKey,
         ];
-
-        // Forward X-Api-Key header
-        if ($request->hasHeader('X-Api-Key')) {
-            $headers['X-Api-Key'] = $request->getHeaderLine('X-Api-Key');
-        }
-
-        return $headers;
     }
 }

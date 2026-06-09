@@ -100,6 +100,7 @@ class CustomerAuthController
             );
 
             $this->emailService->sendVerificationEmail($customer);
+            $this->emailService->sendAccountCreatedEmail($customer);
 
             $this->logger->info('Customer registered successfully', [
                 'customer_id' => $customerId,

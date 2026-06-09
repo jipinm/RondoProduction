@@ -138,6 +138,16 @@ img {
   }
 }
 
+/* Placeholder text – visually distinct from entered values.
+   #9ca3af against body text #1C191D is clearly lighter,
+   signalling an empty field while staying readable.
+   opacity: 1 prevents Firefox from further dimming it. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-placeholder);
+  opacity: 1;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

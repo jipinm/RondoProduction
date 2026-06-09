@@ -42,6 +42,13 @@ export class BannersService {
   async getHomepageSecondaryBanners(): Promise<Banner[]> {
     return this.getBannersByLocation('homepage_secondary', 10);
   }
+
+  /**
+   * Get login page banners
+   */
+  async getLoginPageBanners(): Promise<Banner[]> {
+    return this.getBannersByLocation('login_page', 20);
+  }
 }
 
 // Export singleton instance

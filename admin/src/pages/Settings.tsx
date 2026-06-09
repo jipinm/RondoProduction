@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
-import { Lock, Mail, User, Save, CheckCircle } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { Lock, Mail, User, Save, CheckCircle, Image, Trash2, Upload, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/authService';
+import siteBrandingService, { type SiteBrandingSettings, type BrandingAssetType } from '../services/siteBrandingService';
 import styles from './Settings.module.css';
 
 interface PasswordForm {
@@ -19,11 +20,66 @@ interface ProfileForm {
 const Settings: React.FC = () => {
   const { user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'branding'>('profile');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Branding state
+  const [branding, setBranding] = useState<SiteBrandingSettings>({
+    header_logo_url: null,
+    footer_logo_url: null,
+    favicon_url: null,
+  });
+  const [brandingLoading, setBrandingLoading] = useState(false);
+  const [uploadingType, setUploadingType] = useState<BrandingAssetType | null>(null);
+  const [deletingType, setDeletingType] = useState<BrandingAssetType | null>(null);
+  const [brandingMessage, setBrandingMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const headerLogoRef = useRef<HTMLInputElement>(null);
+  const footerLogoRef = useRef<HTMLInputElement>(null);
+  const faviconRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (activeTab === 'branding') {
+      loadBranding();
+    }
+  }, [activeTab]);
+
+  const loadBranding = async () => {
+    setBrandingLoading(true);
+    const result = await siteBrandingService.getSettings();
+    if (result.success && result.data) {
+      setBranding(result.data);
+    }
+    setBrandingLoading(false);
+  };
+
+  const handleBrandingUpload = async (type: BrandingAssetType, file: File) => {
+    setUploadingType(type);
+    setBrandingMessage(null);
+    const result = await siteBrandingService.uploadImage(type, file);
+    if (result.success) {
+      setBrandingMessage({ type: 'success', text: 'Image uploaded successfully.' });
+      await loadBranding();
+    } else {
+      setBrandingMessage({ type: 'error', text: result.error || 'Upload failed.' });
+    }
+    setUploadingType(null);
+  };
+
+  const handleBrandingDelete = async (type: BrandingAssetType) => {
+    setDeletingType(type);
+    setBrandingMessage(null);
+    const result = await siteBrandingService.deleteImage(type);
+    if (result.success) {
+      setBrandingMessage({ type: 'success', text: 'Asset removed. Default will be used.' });
+      await loadBranding();
+    } else {
+      setBrandingMessage({ type: 'error', text: result.error || 'Failed to remove asset.' });
+    }
+    setDeletingType(null);
+  };
+
   // Profile settings (read-only)
   const profileForm: ProfileForm = {
     name: user?.name || 'Admin User',
@@ -96,6 +152,96 @@ const Settings: React.FC = () => {
   // Render different form content based on active tab
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'branding':
+        return (
+          <div className={styles.formSection}>
+            <h2 className={styles.sectionTitle}>Site Branding Assets</h2>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>
+              Upload images to replace the default static header logo, footer logo, and favicon. Leave empty to use the default assets bundled with the frontend.
+            </p>
+
+            {brandingLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-muted)' }}>
+                <Loader2 size={18} className={styles.spinner} /> Loading…
+              </div>
+            ) : (
+              <div className={styles.brandingGrid}>
+                {(
+                  [
+                    { type: 'header_logo' as BrandingAssetType, label: 'Header Logo', hint: 'Displayed in the navigation bar. Recommended: PNG with transparency, ~500×138px.', ref: headerLogoRef },
+                    { type: 'footer_logo' as BrandingAssetType, label: 'Footer Logo', hint: 'Displayed in the site footer. Recommended: PNG with transparency, ~500×138px.', ref: footerLogoRef },
+                    { type: 'favicon' as BrandingAssetType, label: 'Favicon', hint: 'Displayed in browser tabs. Recommended: PNG or ICO, 100×100px or 150×150px.', ref: faviconRef },
+                  ] as const
+                ).map(({ type, label, hint, ref }) => {
+                  const currentUrl = branding[`${type}_url` as keyof SiteBrandingSettings];
+                  const isUploading = uploadingType === type;
+                  const isDeleting = deletingType === type;
+                  const isBusy = isUploading || isDeleting;
+                  return (
+                    <div key={type} className={styles.brandingCard}>
+                      <div className={styles.brandingCardHeader}>
+                        <Image size={16} />
+                        <span className={styles.brandingCardLabel}>{label}</span>
+                      </div>
+                      <div className={styles.brandingPreview}>
+                        {currentUrl ? (
+                          <img src={currentUrl} alt={label} className={styles.brandingPreviewImg} />
+                        ) : (
+                          <div className={styles.brandingPreviewEmpty}>
+                            <Image size={32} style={{ opacity: 0.3 }} />
+                            <span>Default asset in use</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className={styles.brandingHint}>{hint}</p>
+                      <div className={styles.brandingActions}>
+                        <input
+                          type="file"
+                          ref={ref}
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleBrandingUpload(type, file);
+                            e.target.value = '';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className={styles.uploadButton}
+                          onClick={() => ref.current?.click()}
+                          disabled={isBusy}
+                        >
+                          {isUploading ? <Loader2 size={14} className={styles.spinner} /> : <Upload size={14} />}
+                          {isUploading ? 'Uploading…' : 'Upload'}
+                        </button>
+                        {currentUrl && (
+                          <button
+                            type="button"
+                            className={styles.removeButton}
+                            onClick={() => handleBrandingDelete(type)}
+                            disabled={isBusy}
+                          >
+                            {isDeleting ? <Loader2 size={14} className={styles.spinner} /> : <Trash2 size={14} />}
+                            {isDeleting ? 'Removing…' : 'Remove'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {brandingMessage && (
+              <div className={brandingMessage.type === 'success' ? styles.successMessage : styles.errorMessage} style={{ marginTop: '1.5rem' }}>
+                {brandingMessage.type === 'success' ? <CheckCircle size={18} /> : null}
+                <span>{brandingMessage.text}</span>
+              </div>
+            )}
+          </div>
+        );
+
       case 'profile':
         return (
           <div className={styles.formSection}>
@@ -236,10 +382,22 @@ const Settings: React.FC = () => {
             <Lock size={20} />
             <span>Change Password</span>
           </button>
+
+          <button
+            className={`${styles.sidebarButton} ${activeTab === 'branding' ? styles.activeButton : ''}`}
+            onClick={() => setActiveTab('branding')}
+          >
+            <Image size={20} />
+            <span>Site Branding</span>
+          </button>
         </div>
         
         <div className={styles.settingsContent}>
           {activeTab === 'profile' ? (
+            <div>
+              {renderTabContent()}
+            </div>
+          ) : activeTab === 'branding' ? (
             <div>
               {renderTabContent()}
             </div>

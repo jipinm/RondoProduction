@@ -20,7 +20,7 @@ export interface GuestFormData {
   contact_email: string;
   contact_phone?: string;
   date_of_birth: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'unknown';
   country_of_residence: string;
   passport_number?: string;
   street_name?: string;

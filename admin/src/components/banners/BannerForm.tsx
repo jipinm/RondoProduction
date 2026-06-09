@@ -164,6 +164,23 @@ export const BannerForm: React.FC<BannerFormProps> = ({
     }
   };
 
+  const getDimensionHint = (loc: string) => {
+    switch (loc) {
+      case 'homepage_hero':
+        return '1920×600px';
+      case 'homepage_secondary':
+        return '1080×1350px';
+      case 'category_page':
+        return '1920×300px';
+      case 'event_page':
+        return '1200×630px';
+      case 'login_page':
+        return '800×1000px (portrait)';
+      default:
+        return 'Hero: 1920×600px · Secondary: 1080×1350px · Category: 1920×300px · Event: 1200×630px · Login: 800×1000px';
+    }
+  };
+
   const isEditMode = !!banner;
 
   return (
@@ -236,6 +253,7 @@ export const BannerForm: React.FC<BannerFormProps> = ({
                 <option value="homepage_secondary">Homepage Secondary</option>
                 <option value="category_page">Category Page</option>
                 <option value="event_page">Event Page</option>
+                <option value="login_page">Login Page</option>
               </select>
             </div>
 
@@ -328,6 +346,7 @@ export const BannerForm: React.FC<BannerFormProps> = ({
               currentImageUrl={currentImageUrl}
               onImageChange={handleImageChange}
               maxSizeMessage="Maximum file size: 10MB."
+              dimensionHint={getDimensionHint(formData.location)}
             />
           </div>
 

@@ -14,7 +14,7 @@ interface Partner {
 const getLogosPerSlide = (width: number): number => {
   if (width <= 768) return 4;
   if (width <= 1024) return 5;
-  return 7;
+  return 8;
 };
 
 const PartnersSection: React.FC = () => {

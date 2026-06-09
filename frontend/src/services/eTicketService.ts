@@ -151,8 +151,7 @@ export class ETicketService {
       const response = await fetch(`${this.apiClient['baseUrl']}/v1/etickets/download/zip/${bookingOrderId}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'X-Api-Key': import.meta.env.VITE_XS2EVENT_API_KEY || ''
+          'Accept': 'application/json'
         }
       });
 
@@ -187,8 +186,7 @@ export class ETicketService {
       const response = await fetch(`${this.apiClient['baseUrl']}/v1/etickets/download/${bookingOrderId}/${orderItemId}/url/${encodeURIComponent(downloadUrl)}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/pdf,application/octet-stream,*/*',
-          'X-Api-Key': import.meta.env.VITE_XS2EVENT_API_KEY || ''
+          'Accept': 'application/pdf,application/octet-stream,*/*'
         }
       });
 

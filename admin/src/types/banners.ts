@@ -10,7 +10,7 @@ export interface Banner {
   link_target: '_self' | '_blank';
   position_order: number;
   status: 'active' | 'inactive';
-  location: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page';
+  location: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page' | 'login_page';
   event_date?: string;
   price_tag?: string;
   click_count: number;
@@ -30,7 +30,7 @@ export interface BannerCreate {
   link_target?: '_self' | '_blank';
   position_order?: number;
   status?: 'active' | 'inactive';
-  location?: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page';
+  location?: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page' | 'login_page';
   event_date?: string;
   price_tag?: string;
   image?: File; // Optional file upload
@@ -45,7 +45,7 @@ export interface BannerUpdate {
   link_target?: '_self' | '_blank';
   position_order?: number;
   status?: 'active' | 'inactive';
-  location?: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page';
+  location?: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page' | 'login_page';
   event_date?: string;
   price_tag?: string;
   image?: File; // Optional file upload
@@ -54,7 +54,7 @@ export interface BannerUpdate {
 export interface BannersFilters {
   search?: string;
   status?: 'active' | 'inactive';
-  location?: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page';
+  location?: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page' | 'login_page';
 }
 
 export interface BannersPagination {
@@ -164,7 +164,7 @@ export interface BannerFormData {
   link_target: '_self' | '_blank';
   position_order: number;
   status: 'active' | 'inactive';
-  location: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page';
+  location: 'homepage_hero' | 'homepage_secondary' | 'category_page' | 'event_page' | 'login_page';
   event_date: string;
 }
 
@@ -192,7 +192,8 @@ export const BANNER_LOCATIONS = [
   { value: 'homepage_hero', label: 'Homepage Hero' },
   { value: 'homepage_secondary', label: 'Homepage Secondary' },
   { value: 'category_page', label: 'Category Page' },
-  { value: 'event_page', label: 'Event Page' }
+  { value: 'event_page', label: 'Event Page' },
+  { value: 'login_page', label: 'Login Page' }
 ] as const;
 
 export const LINK_TARGETS = [

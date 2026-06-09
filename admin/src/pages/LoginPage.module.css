@@ -314,7 +314,7 @@
 }
 
 .formInput::placeholder {
-  color: #a0aec0;
+  color: var(--color-text-placeholder);
   font-size: 0.95rem;
 }
 

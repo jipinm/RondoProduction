@@ -1,21 +1,22 @@
 import React from 'react';
 import type { ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import PartnersSection from '../home/PartnersSection';
 
 interface LayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <>
       <Header />
-      <main>{children}</main>
+      <main>{children ?? <Outlet />}</main>
       <PartnersSection />
       <Footer />
-      <div 
+      <div
         onClick={() => {
           const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '1234567890';
           window.open(`https://wa.me/${whatsappNumber}`, '_blank');
@@ -35,9 +36,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           zIndex: 999
         }}
       >
-        <img 
-          src="/images/icons/whatsapp-chat.png" 
-          alt="Chat on WhatsApp" 
+        <img
+          src="/images/icons/whatsapp-chat.png"
+          alt="Chat on WhatsApp"
           style={{
             width: '100%',
             height: '100%',

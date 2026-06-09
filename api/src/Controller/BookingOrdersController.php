@@ -15,7 +15,6 @@ class BookingOrdersController
 {
     private const CACHE_TTL = 300; // 5 minutes for booking order data
     private const GUEST_CACHE_TTL = 600; // 10 minutes for guest data
-    private string $apiBaseUrl;
 
     public function __construct(
         private LoggerInterface $logger,
@@ -24,7 +23,6 @@ class BookingOrdersController
         private string $apiKey
     ) {
         $this->baseUrl = rtrim($baseUrl, '/');
-        $this->apiBaseUrl = getenv('API_BASE_URL') ?: 'https://api.xs2event.com';
     }
 
     /**
@@ -37,7 +35,7 @@ class BookingOrdersController
             $queryParams = $request->getQueryParams();
             $validatedParams = $this->buildBookingOrdersQuery($queryParams);
             
-            $url = $this->apiBaseUrl . '/v1/bookingorders/list?' . http_build_query($validatedParams);
+            $url = $this->baseUrl . '/v1/bookingorders/list?' . http_build_query($validatedParams);
             
             $this->logger->info('Fetching booking orders list', [
                 'url' => $url,
@@ -77,7 +75,7 @@ class BookingOrdersController
                 throw new ApiException('Booking order ID is required', 400);
             }
 
-            $url = $this->apiBaseUrl . '/v1/bookingorders/' . urlencode($bookingorderId);
+            $url = $this->baseUrl . '/v1/bookingorders/' . urlencode($bookingorderId);
             
             $this->logger->info('Fetching single booking order', [
                 'bookingorder_id' => $bookingorderId,
@@ -120,7 +118,7 @@ class BookingOrdersController
             $queryParams = $request->getQueryParams();
             $validatedParams = $this->buildGuestDataQuery($queryParams);
             
-            $url = $this->apiBaseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata';
+            $url = $this->baseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata';
             if (!empty($validatedParams)) {
                 $url .= '?' . http_build_query($validatedParams);
             }
@@ -171,7 +169,7 @@ class BookingOrdersController
                 'body_size' => strlen($body)
             ]);
 
-            $url = $this->apiBaseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata';
+            $url = $this->baseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata';
             
             $apiResponse = $this->httpClient->put($url, [
                 'headers' => $this->getHeaders($request),
@@ -214,7 +212,7 @@ class BookingOrdersController
             $queryParams = $request->getQueryParams();
             $validatedParams = $this->buildGuestDataQuery($queryParams);
             
-            $url = $this->apiBaseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata/' . urlencode($guestId);
+            $url = $this->baseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata/' . urlencode($guestId);
             if (!empty($validatedParams)) {
                 $url .= '?' . http_build_query($validatedParams);
             }
@@ -273,7 +271,7 @@ class BookingOrdersController
                 'body_size' => strlen($body)
             ]);
 
-            $url = $this->apiBaseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata/' . urlencode($guestId);
+            $url = $this->baseUrl . '/v1/bookingorders/' . urlencode($bookingorderId) . '/guestdata/' . urlencode($guestId);
             
             $apiResponse = $this->httpClient->put($url, [
                 'headers' => $this->getHeaders($request),
@@ -462,16 +460,10 @@ class BookingOrdersController
      */
     private function getHeaders(Request $request): array
     {
-        $headers = [
+        return [
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json'
+            'Accept' => 'application/json',
+            'X-Api-Key' => $this->apiKey,
         ];
-
-        // Forward X-Api-Key header
-        if ($request->hasHeader('X-Api-Key')) {
-            $headers['X-Api-Key'] = $request->getHeaderLine('X-Api-Key');
-        }
-
-        return $headers;
     }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MdEmail, MdPhone } from 'react-icons/md';
-import { FaWhatsapp, FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaYoutube } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebook, FaInstagram, FaLinkedin, FaYoutube } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 import contactPagePublicService, {
   type ContactPageSettings,
   DEFAULT_SETTINGS,
@@ -23,7 +24,7 @@ const ContactUsPage: React.FC = () => {
 
   const socials = [
     { href: s.social_facebook,  Icon: FaFacebook,  label: 'Facebook' },
-    { href: s.social_twitter,   Icon: FaTwitter,   label: 'Twitter / X' },
+    { href: s.social_twitter,   Icon: FaXTwitter,  label: 'X' },
     { href: s.social_instagram, Icon: FaInstagram, label: 'Instagram' },
     { href: s.social_linkedin,  Icon: FaLinkedin,  label: 'LinkedIn' },
     { href: s.social_youtube,   Icon: FaYoutube,   label: 'YouTube' },

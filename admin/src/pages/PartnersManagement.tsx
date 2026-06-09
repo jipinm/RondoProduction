@@ -445,7 +445,12 @@ const PartnersManagement: React.FC = () => {
                     </label>
                   )}
                 </div>
-                <p className={styles.hint}>Supported formats: JPEG, PNG, SVG, WebP (Max 5MB)</p>
+                <div className={styles.hints}>
+                  <p className={styles.hint}>
+                    <strong>Recommended Dimensions:</strong> 512 × 512 px
+                  </p>
+                  <p className={styles.hint}>Supported formats: JPEG, PNG, SVG, WebP, AVIF (Max 5MB)</p>
+                </div>
               </div>
 
               <div className={styles.formGroup}>

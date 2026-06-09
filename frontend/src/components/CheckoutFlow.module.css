@@ -304,7 +304,7 @@
 }
 
 .formGroup input::placeholder {
-  color: #9ca3af;
+  color: var(--color-placeholder);
 }
 
 /* Inline field error message */

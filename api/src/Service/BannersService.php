@@ -455,7 +455,7 @@ class BannersService
         }
 
         // Location validation
-        if (isset($data['location']) && !in_array($data['location'], ['homepage_hero', 'homepage_secondary', 'category_page', 'event_page'])) {
+        if (isset($data['location']) && !in_array($data['location'], ['homepage_hero', 'homepage_secondary', 'category_page', 'event_page', 'login_page'])) {
             $errors['location'] = 'Invalid location specified';
         }
 

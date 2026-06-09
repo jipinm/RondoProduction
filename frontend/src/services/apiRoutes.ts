@@ -7,7 +7,7 @@
 
 // API Configuration from environment variables
 const API_CONFIG = {
-  baseUrl: import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com',
+  baseUrl: import.meta.env.VITE_XS2EVENT_BASE_URL,
   apiKey: import.meta.env.VITE_XS2EVENT_API_KEY,
 };
 
@@ -488,9 +488,11 @@ export interface Guest {
   first_name: string;
   last_name: string;
   contact_email: string;
+  contact_phone?: string;
   date_of_birth: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'unknown';
   country_of_residence?: string;
+  passport_number?: string;
   lead_guest: boolean;
 }
 

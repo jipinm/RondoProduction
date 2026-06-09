@@ -235,7 +235,11 @@ const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
 
     // Step 2: Add guest data to the reservation
-    const guestDataSuccess = await addGuestData(newReservation.reservation_id, guests);
+    const guestDataSuccess = await addGuestData(
+      newReservation.reservation_id,
+      guests,
+      cartItems.map(item => ({ ticket_id: item.ticket.ticket_id, quantity: item.quantity }))
+    );
     if (!guestDataSuccess) {
       console.error('Failed to add guest data to reservation');
       return;
@@ -669,10 +673,15 @@ const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     const handleRegister = async (data: any) => {
       try {
         setAuthError('');
-        await register(data);
-        // After successful registration, switch to login form
-        setAuthMode('login');
-        setAuthError('Registration successful! Please sign in with your credentials.');
+        const response = await register(data);
+        
+        if (response.success) {
+          // After successful registration, switch to login form
+          setAuthMode('login');
+          setAuthError('🎉 Registration successful! A confirmation email has been sent. Please sign in with your credentials.');
+        } else {
+          throw new Error(response.message || 'Registration failed');
+        }
       } catch (err: any) {
         setAuthError(err.message || 'Registration failed. Please try again.');
       }

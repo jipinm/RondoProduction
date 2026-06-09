@@ -73,7 +73,7 @@
 }
 
 .textarea::placeholder {
-  color: var(--color-text-secondary);
+  color: var(--color-text-placeholder);
 }
 
 .charCount {

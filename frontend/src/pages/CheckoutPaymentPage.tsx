@@ -135,7 +135,10 @@ const CheckoutPaymentPage: React.FC = () => {
         return {
           title: item.ticket.ticket_title,
           quantity: item.quantity,
-          price: price
+          price: price,
+          ticket_id: item.ticket.ticket_id,
+          net_rate: item.ticket.net_rate,
+          currency_code: item.ticket.currency_code || 'GBP',
         };
       });
       

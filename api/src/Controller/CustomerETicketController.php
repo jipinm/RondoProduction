@@ -103,6 +103,7 @@ class CustomerETicketController
         try {
             $bookingId = (int)$args['id'];
             $queryParams = $request->getQueryParams();
+            $bookingorderId = $queryParams['bookingorder_id'] ?? null;
             $orderItemId = $queryParams['order_item_id'] ?? null;
             $downloadUrl = $queryParams['download_url'] ?? null;
             
@@ -113,8 +114,8 @@ class CustomerETicketController
                 return $this->errorResponse($response, 'Customer authentication required', 401);
             }
 
-            if (!$orderItemId || !$downloadUrl) {
-                return $this->errorResponse($response, 'Missing required parameters: order_item_id, download_url', 400);
+            if (!$bookingorderId || !$orderItemId || !$downloadUrl) {
+                return $this->errorResponse($response, 'Missing required parameters: bookingorder_id, order_item_id, download_url', 400);
             }
 
             // Verify booking belongs to customer
@@ -129,7 +130,7 @@ class CustomerETicketController
             }
 
             // Download ticket
-            $fileData = $this->eTicketService->downloadSingleTicket($bookingId, $orderItemId, $downloadUrl);
+            $fileData = $this->eTicketService->downloadSingleTicket($bookingId, $bookingorderId, $orderItemId, $downloadUrl);
 
             $this->logger->info('Customer downloaded ticket', [
                 'customer_id' => $customerId,

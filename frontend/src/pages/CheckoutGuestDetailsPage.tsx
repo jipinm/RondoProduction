@@ -248,14 +248,20 @@ const CheckoutGuestDetailsPage: React.FC = () => {
         first_name: guest.first_name,
         last_name: guest.last_name,
         contact_email: guest.contact_email,
+        contact_phone: guest.contact_phone,
         date_of_birth: guest.date_of_birth,
         gender: guest.gender,
         country_of_residence: guest.country_of_residence,
+        passport_number: guest.passport_number,
         lead_guest: index === 0
       }));
 
       // Add guest data to the reservation
-      const guestDataSuccess = await addGuestData(reservation.reservation_id, guestData);
+      const guestDataSuccess = await addGuestData(
+        reservation.reservation_id,
+        guestData,
+        cartItems.map(item => ({ ticket_id: item.ticket.ticket_id, quantity: item.quantity }))
+      );
       
       if (!guestDataSuccess) {
         console.error('Failed to add guest data to reservation');
@@ -457,8 +463,24 @@ const CheckoutGuestDetailsPage: React.FC = () => {
 
                     <div className={styles.formRow}>
                       <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}CountryOfResidence`}>Country of residence *</label>
-                        <CountrySelect
+                        <label htmlFor={`guest${index}Gender`}>Gender</label>
+                        <select
+                          id={`guest${index}Gender`}
+                          className={styles.formInput}
+                          value={guest.gender || ''}
+                          onChange={(e) => handleGuestChange(index, 'gender', e.target.value)}
+                        >
+                          <option value="">Select gender...</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                          <option value="unknown">Prefer not to say</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                        <label htmlFor={`guest${index}CountryOfResidence`}>Country of residence *</label>                        <CountrySelect
                           value={guest.country_of_residence}
                           onChange={(value) => handleGuestChange(index, 'country_of_residence', value)}
                           placeholder="Select country..."

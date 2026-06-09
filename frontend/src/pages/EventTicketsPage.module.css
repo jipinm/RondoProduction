@@ -25,7 +25,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #e2e8f0;
-  border-top: 3px solid #3b82f6;
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -461,7 +461,7 @@
 .eventTitle {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-neutral-dark);
   margin-bottom: 1.5rem;
   line-height: 1.2;
 }
@@ -476,12 +476,12 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #64748b;
+  color: var(--color-neutral-mid);
   font-size: 0.95rem;
 }
 
 .infoIcon {
-  color: #3b82f6;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -493,7 +493,7 @@
 
 .tournament {
   font-size: 1rem;
-  color: #64748b;
+  color: var(--color-neutral-mid);
 }
 
 .teamVs {
@@ -506,11 +506,11 @@
 
 .homeTeam,
 .awayTeam {
-  color: #1e293b;
+  color: var(--color-neutral-dark);
 }
 
 .vs {
-  color: #64748b;
+  color: var(--color-neutral-mid);
   font-weight: 400;
   font-size: 1rem;
 }
@@ -518,7 +518,7 @@
 .eventDescription {
   border-top: 1px solid #e2e8f0;
   padding-top: 1.5rem;
-  color: #64748b;
+  color: var(--color-neutral-mid);
   line-height: 1.6;
 }
 
@@ -539,12 +539,13 @@
 }
 
 .venueDataSection strong {
-  color: #1e293b;
+  color: var(--color-neutral-dark);
   font-weight: 600;
 }
 
 .validityNotice {
   font-size: 0.9rem;
+  /* RONDO: Review color pairing — could not auto-map to approved combination */
   color: #16a34a;
   font-weight: 500;
   padding: 0.75rem 1rem;
@@ -571,7 +572,7 @@
 
 .imagePlaceholder {
   text-align: center;
-  color: #64748b;
+  color: var(--color-neutral-mid);
 }
 
 .placeholderIcon {
@@ -597,7 +598,7 @@
 .ticketsTitle h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-neutral-dark);
   margin: 0 0 0.25rem 0;
 }
 
@@ -626,14 +627,14 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #64748b;
+  color: var(--color-neutral-mid);
   font-size: 0.9rem;
   cursor: pointer;
   user-select: none;
 }
 
 .checkboxLabel input[type="checkbox"] {
-  accent-color: #3b82f6;
+  accent-color: var(--color-primary);
 }
 
 .ticketsList {
@@ -709,7 +710,7 @@
 .ticketTitle {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-neutral-dark);
   margin: 0;
   display: flex;
   align-items: center;
@@ -737,7 +738,7 @@
   height: 30px;
   border-radius: 6px;
   background: #f8fafc;
-  color: #64748b;
+  color: var(--color-neutral-mid);
   cursor: help;
   transition: all 0.2s ease;
   position: relative;
@@ -787,15 +788,15 @@
 
 /* Hospitality icon styling */
 .hospitalityIcon {
-  background: linear-gradient(135deg, #fef3f2, #fdf2f8);
-  color: #9333ea;
-  border-color: #e9d5ff;
+  background: var(--color-secondary-2);
+  color: var(--color-primary);
+  border-color: var(--color-secondary-2);
 }
 
 .hospitalityIcon:hover {
-  background: linear-gradient(135deg, #faf5ff, #f5f3ff);
-  color: #7c3aed;
-  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.2);
+  background: rgba(199, 217, 237, 0.4);
+  color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(36, 83, 136, 0.2);
 }
 
 /* Hospitality icon — suppress the default data-tooltip ::after/::before */
@@ -817,9 +818,9 @@
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  border: 1px solid #e9d5ff;
+  border: 1px solid var(--color-secondary-2);
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(147, 51, 234, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 30px rgba(36, 83, 136, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 0;
   pointer-events: auto;
   overflow: hidden;
@@ -856,8 +857,8 @@
   width: 12px;
   height: 12px;
   background: #ffffff;
-  border-right: 1px solid #e9d5ff;
-  border-bottom: 1px solid #e9d5ff;
+  border-right: 1px solid var(--color-secondary-2);
+  border-bottom: 1px solid var(--color-secondary-2);
 }
 
 /* Tooltip arrow — top pointing (for below placement) */
@@ -868,9 +869,9 @@
   transform: translateX(-50%) rotate(45deg);
   width: 12px;
   height: 12px;
-  background: #f5f3ff;
-  border-left: 1px solid #e9d5ff;
-  border-top: 1px solid #e9d5ff;
+  background: var(--color-neutral-light);
+  border-left: 1px solid var(--color-secondary-2);
+  border-top: 1px solid var(--color-secondary-2);
 }
 
 /* Tooltip header */
@@ -879,9 +880,9 @@
   align-items: center;
   gap: 6px;
   padding: 10px 14px;
-  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-  border-bottom: 1px solid #e9d5ff;
-  color: #6d28d9;
+  background: var(--color-secondary-2);
+  border-bottom: 1px solid var(--color-secondary-1);
+  color: var(--color-primary);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -913,16 +914,16 @@
   gap: 8px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: #faf5ff;
+  background: var(--color-neutral-light);
   font-size: 0.82rem;
   font-weight: 500;
-  color: #4c1d95;
+  color: var(--color-primary);
   transition: background 0.15s ease;
 }
 
 .tooltipItemIcon {
   flex-shrink: 0;
-  color: #a78bfa;
+  color: var(--color-secondary-1);
   margin-top: 2px;
 }
 
@@ -936,13 +937,13 @@
 .tooltipItemName {
   font-weight: 600;
   font-size: 0.82rem;
-  color: #4c1d95;
+  color: var(--color-primary);
 }
 
 .tooltipItemDescription {
   font-size: 0.72rem;
   font-weight: 400;
-  color: #6b21a8;
+  color: var(--color-neutral-dark);
   line-height: 1.4;
   opacity: 0.85;
 }
@@ -962,19 +963,19 @@
 }
 
 .tooltipItemDescription a {
-  color: #7c3aed;
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
 .featureIcon[data-tooltip*="grandstand"] {
-  background: #f0f9ff;
-  color: #0369a1;
-  border-color: #bae6fd;
+  background: var(--color-secondary-2);
+  color: var(--color-primary);
+  border-color: var(--color-secondary-2);
 }
 
 .featureIcon[data-tooltip*="grandstand"]:hover {
-  background: #dbeafe;
-  color: #075985;
+  background: rgba(199, 217, 237, 0.4);
+  color: var(--color-primary);
 }
 
 /* Category type styles removed - now using feature icons only */
@@ -994,7 +995,7 @@
 }
 
 .categoryName {
-  color: #64748b;
+  color: var(--color-neutral-mid);
   font-size: 0.85rem;
   font-weight: 500;
   flex: 1;
@@ -1015,7 +1016,7 @@
 
 .ticketStatus[data-status="disabled"] {
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--color-neutral-mid);
 }
 
 .stockInfo {
@@ -1053,7 +1054,7 @@
 .priceAmount {
   font-size: 1rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--color-primary);
   line-height: 1.2;
   position: relative;
   cursor: help;
@@ -1118,7 +1119,7 @@
 
 .emptyTickets {
   text-align: center;
-  color: #64748b;
+  color: var(--color-neutral-mid);
   padding: 2rem;
 }
 
@@ -1180,7 +1181,7 @@
 }
 
 .submitButton {
-  background: #1e40af;
+  background: var(--color-primary);
   color: white;
   border: none;
   padding: 1rem 2rem;
@@ -1194,7 +1195,8 @@
 }
 
 .submitButton:hover {
-  background: #1d4ed8;
+  background: var(--color-primary);
+  filter: brightness(0.9);
 }
 
 /* Responsive Design */

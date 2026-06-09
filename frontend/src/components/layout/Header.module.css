@@ -197,6 +197,7 @@
 .currencyItemName {
   color: #a0aab4;
   font-size: 12px;
+  text-transform: uppercase;
 }
 
 .navigation {
@@ -642,23 +643,211 @@
 }
 
 /* Mobile Responsive Styles */
+
+/* ── Utility visibility helpers ── */
+.desktopOnly {
+  /* shown by default on desktop — hidden via media query on mobile */
+}
+
+.mobileOnly {
+  display: none !important;
+}
+
+/* ── Hamburger button ── */
+.hamburgerBtn {
+  display: none; /* shown via .mobileOnly override below */
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.hamburgerBtn:hover {
+  color: var(--color-secondary-1);
+}
+
+/* ── Mobile overlay ── */
+.mobileOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  z-index: 1150;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.mobileOverlayVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Mobile drawer panel ── */
+.mobileDrawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 300px;
+  max-width: 85vw;
+  background-color: var(--color-primary);
+  z-index: 1200;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+
+.mobileDrawerOpen {
+  transform: translateX(0);
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  min-height: 60px;
+  border-bottom: 1px solid #4a5a6b;
+  flex-shrink: 0;
+}
+
+.mobileDrawerTitle {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.mobileDrawerClose {
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.mobileDrawerClose:hover {
+  color: var(--color-secondary-1);
+}
+
+.mobileDrawerContent {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileDrawerSection {
+  /* container for expandable drawer rows */
+}
+
+.mobileDrawerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 1.25rem;
+  min-height: 52px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #2e3b4a;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  font-family: inherit;
+}
+
+.mobileDrawerItem:hover,
+.mobileDrawerItem:active {
+  color: var(--color-secondary-1);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.mobileDrawerItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobileDrawerSubItems {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+.mobileDrawerSubItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 1.25rem 0 2rem;
+  min-height: 48px;
+  color: #c8d4e0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-decoration: none;
+  border-bottom: 1px solid #243040;
+  text-transform: uppercase;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.2s ease;
+  font-family: inherit;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  box-sizing: border-box;
+}
+
+.mobileDrawerSubItem:last-child {
+  border-bottom: none;
+}
+
+.mobileDrawerSubItem:hover,
+.mobileDrawerSubItem:active {
+  color: var(--color-secondary-1);
+}
+
+.mobileDrawerSubItemBtn {
+  /* button-specific resets already in .mobileDrawerSubItem */
+}
+
+.mobileDrawerSubItemViewAll {
+  color: var(--color-secondary-1);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mobileDrawerDivider {
+  height: 1px;
+  background-color: #4a5a6b;
+}
+
+/* ── Tablet (769px – 1024px) ── */
 @media (max-width: 1024px) {
   .topBar {
-    height: auto;
-    min-height: 80px;
-    padding: 1rem 0;
-  }
-
-  .wrapper {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .topBarLeft,
-  .topBarRight {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
+    height: 90px;
   }
 
   .navigation {
@@ -685,176 +874,107 @@
   }
 
   .logoImg {
-    width: 130px;
-    height: 60px;
+    width: 140px;
+    max-height: 65px;
   }
 }
 
+/* ── Mobile (≤768px) ── */
 @media (max-width: 768px) {
-  .topBar {
-    font-size: 12px;
-    min-height: 70px;
-  }
-
-  .topBarItem {
-    font-size: 11px;
-    letter-spacing: 0.8px;
-    margin-right: 0.25rem;
-  }
-
-  .navigation {
+  /* Visibility utilities */
+  .mobileOnly {
     display: flex !important;
-    justify-content: flex-start !important;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    height: auto;
-    min-height: 50px;
-    scroll-behavior: smooth;
-    padding: 0;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
   }
 
-  .navigation::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+  .desktopOnly {
+    display: none !important;
   }
 
-  .navigation .wrapper {
-    justify-content: flex-start !important;
-    padding: 0 !important;
-    max-width: none !important;
-    width: auto !important;
+  /* Hide the desktop nav bar entirely */
+  .desktopNav {
+    display: none !important;
   }
 
-  .navItems {
-    flex-wrap: nowrap;
-    overflow-x: visible;
-    padding: 0;
-    width: auto;
-    min-width: auto;
-    justify-content: flex-start !important;
-    gap: 0;
+  /* Show overlay & drawer on mobile */
+  .mobileOverlay {
+    display: block;
   }
 
-  .navItem,
-  .navItemWithSubmenu {
-    white-space: nowrap;
-    font-size: 11px;
-    padding: 0.75rem 0.75rem;
-    letter-spacing: 0.8px;
+  .mobileDrawer {
+    display: flex;
   }
 
-  .logoImg {
-    width: 120px;
-    height: 55px;
-  }
-
-  .navItem::after,
-  .navItemWithSubmenu::after {
-    display: none;
-  }
-
-  /* Override hover behavior on mobile - only show submenu when active */
-  .navItemWithSubmenu:hover .submenu {
-    display: none;
-  }
-
-  .navItemWithSubmenu:hover .nestedSubmenu {
-    display: none;
-  }
-
-  /* Mobile submenu styling */
-  .submenu {
-    position: fixed;
-    top: 155px;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-height: 60vh;
-    overflow-y: auto;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    z-index: 9999;
-    display: none;
-    margin-top: 0;
-  }
-
-  .nestedSubmenu {
-    position: fixed;
-    top: 155px;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-height: 60vh;
-    overflow-y: auto;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    z-index: 9999;
-    display: none;
-    margin-top: 0;
-  }
-
-  /* Show submenu when active class is added */
-  .submenuActive {
-    display: block !important;
-  }
-
-  /* Make submenu items touch-friendly on mobile */
-  .submenuItem {
-    padding: 16px 20px;
-    font-size: 15px;
-  }
-
-  .submenuItemWithNested {
-    padding: 16px 20px;
-    font-size: 15px;
-  }
-
-  /* Mobile account dropdown positioning */
-  .accountSubmenu {
-    position: fixed !important;
-    right: 1rem !important;
-    left: auto !important;
-    width: 180px !important;
-    z-index: 9999 !important;
-    top: 70px !important;
-  }
-
-  .navItemHighlighted {
-    font-size: 11px;
-    padding: 0.5rem 1.25rem 0.5rem 1rem;
-    margin-left: 0.5rem;
-    white-space: nowrap;
-    gap: 0.3rem;
-  }
-
-  .starIcon {
-    width: 12px;
-    height: 12px;
-  }
-}
-
-@media (max-width: 480px) {
+  /* ── Top bar: clean single-row layout ── */
   .topBar {
-    min-height: 60px;
-    font-size: 11px;
+    height: 64px;
+    min-height: 64px;
+    padding: 0;
+  }
+
+  .wrapper {
+    flex-direction: row !important;
+    gap: 0 !important;
+    align-items: center;
+    padding: 0 1rem;
   }
 
   .topBarLeft,
   .topBarRight {
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
     gap: 0.5rem;
+    height: 100%;
+    justify-content: flex-start;
+  }
+
+  .topBarRight {
+    justify-content: flex-end;
   }
 
   .topBarItem {
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-right: 0;
+    height: auto;
+  }
+
+  .topBarItemWithSubmenu {
+    height: auto;
     margin-right: 0;
   }
 
   .logoImg {
-    width: 100px;
-    height: 46px;
+    width: 110px;
+    height: auto;
+    max-height: 46px;
   }
 
-  .icon {
-    font-size: 14px;
+  /* Currency dropdown: keep compact positioning */
+  .currencySubmenu {
+    min-width: 190px;
+  }
+
+  /* Account dropdown not shown directly on mobile; keep hidden */
+  .accountSubmenu {
+    display: none !important;
+  }
+}
+
+/* ── Small mobile (≤480px) ── */
+@media (max-width: 480px) {
+  .topBar {
+    height: 56px;
+    min-height: 56px;
+  }
+
+  .logoImg {
+    width: 95px;
+    max-height: 40px;
+  }
+
+  .topBarItem {
+    font-size: 11px;
   }
 
   .currencySymbol {

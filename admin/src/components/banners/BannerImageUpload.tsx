@@ -5,12 +5,15 @@ interface BannerImageUploadProps {
   currentImageUrl?: string;
   onImageChange: (file: File | null) => void;
   maxSizeMessage?: string;
+  /** Dimension hint displayed in the info bar, e.g. "1920×600px" */
+  dimensionHint?: string;
 }
 
 export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
   currentImageUrl,
   onImageChange,
-  maxSizeMessage = "Maximum file size: 10MB"
+  maxSizeMessage = "Maximum file size: 10MB",
+  dimensionHint
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string>(currentImageUrl || '');
   const [dragOver, setDragOver] = useState(false);
@@ -27,7 +30,7 @@ export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
       'image/webp',
       'image/avif'
     ];
-    
+
     if (!allowedTypes.includes(file.type)) {
       return 'Invalid file format. Allowed formats: JPEG, JPG, PNG, SVG, WebP, AVIF';
     }
@@ -43,18 +46,18 @@ export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
 
   const handleFileSelect = (file: File) => {
     const validationError = validateFile(file);
-    
+
     if (validationError) {
       setError(validationError);
       return;
     }
 
     setError('');
-    
+
     // Create preview URL
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    
+
     // Call the callback
     onImageChange(file);
   };
@@ -79,7 +82,7 @@ export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleFileSelect(files[0]);
@@ -90,7 +93,7 @@ export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
     setPreviewUrl('');
     setError('');
     onImageChange(null);
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -113,9 +116,9 @@ export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
 
       {previewUrl ? (
         <div className={styles.previewContainer}>
-          <img 
-            src={previewUrl} 
-            alt="Banner preview" 
+          <img
+            src={previewUrl}
+            alt="Banner preview"
             className={styles.previewImage}
           />
           <div className={styles.imageOverlay}>
@@ -162,9 +165,11 @@ export const BannerImageUpload: React.FC<BannerImageUploadProps> = ({
       )}
 
       <div className={styles.uploadHints}>
-        <div className={styles.hint}>
-          📐 <strong>Recommended Image Dimensions:</strong> Homepage Hero: 1920×600px. | Homepage Secondary: 1080×1350px.
-        </div>
+        {dimensionHint && (
+          <div className={styles.hint}>
+            📐 <strong>Recommended Dimensions:</strong> {dimensionHint}
+          </div>
+        )}
         <div className={styles.hint}>
           🎨 <strong>Supporting Formats:</strong> JPEG, JPG, PNG, SVG, WebP, and AVIF.
         </div>

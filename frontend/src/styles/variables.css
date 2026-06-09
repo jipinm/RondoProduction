@@ -8,6 +8,7 @@
   --color-neutral-light:  #F7F7F7; /* Cloud White    – backgrounds */
   --color-neutral-mid:    #808080; /* Graphite Gray  – supporting text */
   --color-neutral-dark:   #1C191D; /* Black          – primary text */
+  --color-placeholder:    #9ca3af; /* Placeholder     – faded instructional text */
 
   /* === RONDO Typography 2026 === */
   --font-primary:   'Gilroy', sans-serif;

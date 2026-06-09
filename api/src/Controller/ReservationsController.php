@@ -21,10 +21,11 @@ class ReservationsController
     public function __construct(
         private Client $httpClient,
         private LoggerInterface $logger,
-        string $apiKey = ''
+        string $apiKey = '',
+        string $baseUrl = ''
     ) {
-        $this->apiBaseUrl = getenv('API_BASE_URL') ?: 'https://api.xs2event.com';
-        $this->apiKey = $apiKey ?: (getenv('API_KEY') ?: '');
+        $this->apiBaseUrl = $baseUrl ?: ($_ENV['API_BASE_URL'] ?? getenv('API_BASE_URL') ?: 'https://api.xs2event.com');
+        $this->apiKey = $apiKey ?: ($_ENV['API_KEY'] ?? getenv('API_KEY') ?: '');
     }
 
     /**
@@ -349,7 +350,7 @@ class ReservationsController
                 'body_size' => strlen($body)
             ]);
 
-            $url = $this->apiBaseUrl . '/v1/reservations/' . urlencode($reservationId) . '/guests';
+            $url = $this->apiBaseUrl . '/v1/reservations/' . urlencode($reservationId) . '/guestdata';
             
             $apiResponse = $this->httpClient->post($url, [
                 'headers' => $this->getHeaders($request),
@@ -364,6 +365,49 @@ class ReservationsController
                 
         } catch (RequestException $e) {
             $this->logger->error('Failed to add reservation guests', [
+                'reservation_id' => $reservationId ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+            throw new ApiException('Failed to add reservation guests: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Add guests to reservation (flat array, no ticket grouping)
+     * POST /v1/reservations/{reservation_id}/guests
+     * Payload: { "guests": [ { first_name, last_name, ... } ] }
+     */
+    public function addReservationGuestsFlat(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $reservationId = $args['reservation_id'] ?? '';
+
+            if (empty($reservationId)) {
+                throw new ApiException('Reservation ID is required', 400);
+            }
+
+            $body = $request->getBody()->getContents();
+
+            $this->logger->info('Adding reservation guests (flat)', [
+                'reservation_id' => $reservationId,
+                'body_size' => strlen($body)
+            ]);
+
+            $url = $this->apiBaseUrl . '/v1/reservations/' . urlencode($reservationId) . '/guests';
+
+            $apiResponse = $this->httpClient->post($url, [
+                'headers' => $this->getHeaders($request),
+                'body' => $body,
+                'timeout' => 30
+            ]);
+
+            $response->getBody()->write($apiResponse->getBody()->getContents());
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus($apiResponse->getStatusCode());
+
+        } catch (RequestException $e) {
+            $this->logger->error('Failed to add reservation guests (flat)', [
                 'reservation_id' => $reservationId ?? 'unknown',
                 'error' => $e->getMessage()
             ]);
@@ -474,18 +518,26 @@ class ReservationsController
     {
         $validParams = [];
 
-        // Sorting parameters
-        if (isset($queryParams['sort'])) {
-            $validSorts = ['id', 'created', 'valid_until', 'updated'];
-            if (in_array($queryParams['sort'], $validSorts, true)) {
-                $validParams['sort'] = $queryParams['sort'];
+        // Sorting — XS2Event uses a single "sorting" param like "created_asc" / "created_desc"
+        // Accept either the combined form or separate sort/sort_direction for convenience
+        if (isset($queryParams['sorting'])) {
+            $validSortings = [
+                'id_asc', 'id_desc',
+                'created_asc', 'created_desc',
+                'valid_until_asc', 'valid_until_desc',
+                'updated_asc', 'updated_desc',
+            ];
+            if (in_array($queryParams['sorting'], $validSortings, true)) {
+                $validParams['sorting'] = $queryParams['sorting'];
             }
-        }
-
-        if (isset($queryParams['sort_direction'])) {
-            $validDirections = ['asc', 'desc'];
-            if (in_array(strtolower($queryParams['sort_direction']), $validDirections, true)) {
-                $validParams['sort_direction'] = strtolower($queryParams['sort_direction']);
+        } elseif (isset($queryParams['sort'])) {
+            $validSortFields = ['id', 'created', 'valid_until', 'updated'];
+            $direction = strtolower($queryParams['sort_direction'] ?? 'asc');
+            if (!in_array($direction, ['asc', 'desc'], true)) {
+                $direction = 'asc';
+            }
+            if (in_array($queryParams['sort'], $validSortFields, true)) {
+                $validParams['sorting'] = $queryParams['sort'] . '_' . $direction;
             }
         }
 
@@ -497,10 +549,12 @@ class ReservationsController
             }
         }
 
-        if (isset($queryParams['limit'])) {
-            $limit = (int) $queryParams['limit'];
-            if ($limit > 0 && $limit <= 500) {
-                $validParams['limit'] = $limit;
+        // XS2Event uses "page_size", also accept "limit" as an alias
+        $pageSizeValue = $queryParams['page_size'] ?? $queryParams['limit'] ?? null;
+        if ($pageSizeValue !== null) {
+            $pageSize = (int) $pageSizeValue;
+            if ($pageSize > 0 && $pageSize <= 500) {
+                $validParams['page_size'] = $pageSize;
             }
         }
 

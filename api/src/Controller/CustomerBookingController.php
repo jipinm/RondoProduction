@@ -78,7 +78,7 @@ class CustomerBookingController
             // Get bookings from external API filtered by customer
             $apiResponse = $this->httpClient->get($this->apiBaseUrl . '/v1/bookings', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json'
                 ],
@@ -163,7 +163,7 @@ class CustomerBookingController
             // Create booking via external API
             $apiResponse = $this->httpClient->post($this->apiBaseUrl . '/v1/bookings', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json'
                 ],
@@ -215,7 +215,7 @@ class CustomerBookingController
             // Get booking from external API
             $apiResponse = $this->httpClient->get($this->apiBaseUrl . '/v1/bookings/' . $bookingId, [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json'
                 ]
             ]);
@@ -282,7 +282,7 @@ class CustomerBookingController
             // Create reservation via external API
             $apiResponse = $this->httpClient->post($this->apiBaseUrl . '/v1/reservations', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json'
                 ],
@@ -352,7 +352,7 @@ class CustomerBookingController
             // Get reservations from external API
             $apiResponse = $this->httpClient->get($this->apiBaseUrl . '/v1/reservations', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json'
                 ],
                 'query' => $apiParams

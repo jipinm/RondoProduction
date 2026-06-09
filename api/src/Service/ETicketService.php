@@ -171,13 +171,14 @@ class ETicketService
 
     /**
      * Download a single ticket PDF
-     * 
-     * @param int $bookingId Local booking ID
-     * @param string $orderItemId XS2Event order item ID
-     * @param string $downloadUrl Ticket download URL
+     *
+     * @param int    $bookingId       Local booking ID
+     * @param string $bookingorderId  XS2Event bookingorder_id (NOT the booking_id)
+     * @param string $orderItemId     XS2Event orderitem_id
+     * @param string $downloadUrl     download_link value from bookingorder items
      * @return array File data (content, filename, mime_type)
      */
-    public function downloadSingleTicket(int $bookingId, string $orderItemId, string $downloadUrl): array
+    public function downloadSingleTicket(int $bookingId, string $bookingorderId, string $orderItemId, string $downloadUrl): array
     {
         try {
             $booking = $this->bookingRepository->getBookingById($bookingId);
@@ -191,15 +192,15 @@ class ETicketService
             }
 
             $this->logger->info('Downloading single ticket', [
-                'booking_id' => $bookingId,
-                'api_booking_id' => $booking['api_booking_id'],
-                'order_item_id' => $orderItemId
+                'booking_id'       => $bookingId,
+                'bookingorder_id'  => $bookingorderId,
+                'order_item_id'    => $orderItemId
             ]);
 
-            // Build download URL
-            $apiUrl = $this->xs2eventBaseUrl . '/v1/etickets/download/' . 
-                     urlencode($booking['api_booking_id']) . '/' . 
-                     urlencode($orderItemId) . '/url/' . 
+            // Build download URL using bookingorder_id (not api_booking_id)
+            $apiUrl = $this->xs2eventBaseUrl . '/v1/etickets/download/' .
+                     urlencode($bookingorderId) . '/' .
+                     urlencode($orderItemId) . '/url/' .
                      $downloadUrl;
 
             // Download file from XS2Event
@@ -269,9 +270,16 @@ class ETicketService
             $zipUrl = $booking['zip_download_url'];
 
             if (empty($zipUrl)) {
-                // Fetch ZIP URL from XS2Event
-                $zipData = $this->getZipDownloadUrl($booking['api_booking_id']);
-                $zipUrl = $zipData['download_url'] ?? null;
+                // Resolve bookingorder_id from XS2Event — required for the ZIP endpoint
+                $ticketData = $this->fetchTicketsFromXS2Event($booking['api_booking_id']);
+                $bookingorderId = $ticketData['bookingorder_id'] ?? null;
+
+                if (empty($bookingorderId)) {
+                    throw new ApiException('Booking order not yet available for ZIP download', 404);
+                }
+
+                // Fetch temporary ZIP CDN URL from XS2Event
+                $zipUrl = $this->getZipDownloadUrl($bookingorderId);
 
                 if (empty($zipUrl)) {
                     throw new ApiException('ZIP download URL not available', 404);
@@ -397,9 +405,12 @@ class ETicketService
 
     /**
      * Fetch tickets from XS2Event API
-     * 
+     *
+     * Calls GET /v1/bookingorders?booking_id=in:[{id}]&logistic_status=completed
+     * and maps the response into the internal ticket format expected by callers.
+     *
      * @param string $apiBookingId XS2Event booking ID
-     * @return array Ticket data
+     * @return array {tickets: [{bookingorder_id, orderitem_id, download_link, ticket_sha}], zip_url, bookingorder_id, checksums}
      */
     private function fetchTicketsFromXS2Event(string $apiBookingId): array
     {
@@ -409,7 +420,10 @@ class ETicketService
             ]);
 
             $response = $this->httpClient->get(
-                $this->xs2eventBaseUrl . '/v1/etickets?booking_id=' . urlencode($apiBookingId),
+                $this->xs2eventBaseUrl . '/v1/bookingorders/list?' . http_build_query([
+                    'booking_id'      => 'in:[' . $apiBookingId . ']',
+                    'logistic_status' => 'completed',
+                ]),
                 [
                     'headers' => $this->getXS2EventHeaders(),
                     'timeout' => 30
@@ -417,11 +431,64 @@ class ETicketService
             );
 
             $data = json_decode($response->getBody()->getContents(), true);
+            $bookingOrders = $data['bookingorders'] ?? [];
+
+            if (empty($bookingOrders)) {
+                return ['tickets' => [], 'zip_url' => null, 'bookingorder_id' => null, 'checksums' => []];
+            }
+
+            // Use the first booking order (one booking produces one order in most cases)
+            $firstOrder = $bookingOrders[0];
+            $bookingorderId = $firstOrder['bookingorder_id'] ?? null;
+            $zipSha = $firstOrder['zip_sha'] ?? null;
+
+            $tickets = [];
+            $checksums = [];
+            foreach ($firstOrder['items'] ?? [] as $item) {
+                // Only xs2event distribution channel tickets can be downloaded via API
+                if (($item['distribution_channel'] ?? '') !== 'xs2event') {
+                    continue;
+                }
+
+                if (!empty($item['download_link'])) {
+                    // Single-PDF ticket: direct download_link on the item
+                    $tickets[] = [
+                        'bookingorder_id' => $bookingorderId,
+                        'orderitem_id'    => $item['orderitem_id'],
+                        'download_link'   => $item['download_link'],
+                        'ticket_sha'      => $item['ticket_sha'] ?? null,
+                    ];
+                    if (!empty($item['ticket_sha'])) {
+                        $checksums[$item['orderitem_id']] = $item['ticket_sha'];
+                    }
+                } elseif (!empty($item['download_items'])) {
+                    // Multi-PDF ticket (e.g. F1 with separate day tickets):
+                    // expand each download_item as an individual downloadable entry.
+                    foreach ($item['download_items'] as $subItem) {
+                        if (empty($subItem['download_link'])) {
+                            continue;
+                        }
+                        $subId = $subItem['downloaditem_id'] ?? $item['orderitem_id'];
+                        $tickets[] = [
+                            'bookingorder_id' => $bookingorderId,
+                            'orderitem_id'    => $item['orderitem_id'],
+                            'downloaditem_id' => $subId,
+                            'download_link'   => $subItem['download_link'],
+                            'ticket_sha'      => $subItem['ticket_sha'] ?? null,
+                        ];
+                        if (!empty($subItem['ticket_sha'])) {
+                            $checksums[$subId] = $subItem['ticket_sha'];
+                        }
+                    }
+                }
+            }
 
             return [
-                'tickets' => $data['tickets'] ?? [],
-                'zip_url' => $data['zip_download_url'] ?? null,
-                'checksums' => $data['checksums'] ?? []
+                'tickets'         => $tickets,
+                'zip_url'         => null, // ZIP URL is obtained separately via /v1/etickets/download/zip/{bookingorder_id}
+                'bookingorder_id' => $bookingorderId,
+                'zip_sha'         => $zipSha,
+                'checksums'       => $checksums,
             ];
 
         } catch (RequestException $e) {
@@ -431,35 +498,42 @@ class ETicketService
             ]);
 
             return [
-                'tickets' => [],
-                'zip_url' => null,
-                'checksums' => []
+                'tickets'         => [],
+                'zip_url'         => null,
+                'bookingorder_id' => null,
+                'checksums'       => []
             ];
         }
     }
 
     /**
      * Get ZIP download URL from XS2Event
-     * 
-     * @param string $apiBookingId XS2Event booking ID
-     * @return array ZIP download data
+     *
+     * @param string $bookingorderId XS2Event bookingorder_id (NOT the booking_id)
+     * @return string ZIP CDN download URL
      */
-    private function getZipDownloadUrl(string $apiBookingId): array
+    private function getZipDownloadUrl(string $bookingorderId): string
     {
         try {
             $response = $this->httpClient->get(
-                $this->xs2eventBaseUrl . '/v1/etickets/download/zip/' . urlencode($apiBookingId),
+                $this->xs2eventBaseUrl . '/v1/etickets/download/zip/' . urlencode($bookingorderId),
                 [
                     'headers' => $this->getXS2EventHeaders(),
                     'timeout' => 15
                 ]
             );
 
-            return json_decode($response->getBody()->getContents(), true);
+            // XS2Event returns a plain JSON-encoded URL string, e.g. "https://..."
+            $decoded = json_decode($response->getBody()->getContents(), true);
+            if (!is_string($decoded) || empty($decoded)) {
+                throw new ApiException('Unexpected ZIP URL response format from XS2Event', 502);
+            }
+
+            return $decoded;
 
         } catch (RequestException $e) {
             $this->logger->error('Failed to get ZIP download URL', [
-                'api_booking_id' => $apiBookingId,
+                'bookingorder_id' => $bookingorderId,
                 'error' => $e->getMessage()
             ]);
 
@@ -473,7 +547,7 @@ class ETicketService
     private function getXS2EventHeaders(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->xs2eventApiKey,
+            'X-Api-Key' => $this->xs2eventApiKey,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json'
         ];

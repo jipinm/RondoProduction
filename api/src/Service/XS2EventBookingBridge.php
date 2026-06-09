@@ -209,7 +209,7 @@ class XS2EventBookingBridge
             ]);
 
             $response = $this->httpClient->post(
-                $this->xs2eventBaseUrl . '/v1/reservations/' . urlencode($reservationId) . '/guests',
+                $this->xs2eventBaseUrl . '/v1/reservations/' . urlencode($reservationId) . '/guestdata',
                 [
                     'headers' => $this->getXS2EventHeaders(),
                     'json' => $guestPayload,
@@ -307,11 +307,11 @@ class XS2EventBookingBridge
             $apiBookingId = $xs2eventData['booking_id'] ?? null;
             $bookingCode = $xs2eventData['booking_code'] ?? null;
             $financialStatus = $xs2eventData['financial_status'] ?? 'OPEN';
-            $logisticStatus = $xs2eventData['logistic_status'] ?? 'COMPLETED';
+            $logisticStatus = $xs2eventData['logistic_status'] ?? null;
             
-            // Note: distribution_channel is NOT in XS2Event response
-            // We default to 'eticket' as that's what we always use
-            $distributionChannel = 'eticket';
+            // distribution_channel is not in the booking creation response;
+            // it is returned in the bookingorders response after fulfillment.
+            $distributionChannel = null;
 
             // Update api_booking_id
             if ($apiBookingId) {
@@ -357,7 +357,10 @@ class XS2EventBookingBridge
 
     /**
      * Check if tickets are available for a booking
-     * 
+     *
+     * Calls GET /v1/bookingorders?booking_id=in:[{id}]&logistic_status=completed
+     * and returns available bookingorder items for eticket download.
+     *
      * @param string $apiBookingId XS2Event booking ID
      * @return array Ticket availability data
      */
@@ -369,7 +372,10 @@ class XS2EventBookingBridge
             ]);
 
             $response = $this->httpClient->get(
-                $this->xs2eventBaseUrl . '/v1/bookings/' . urlencode($apiBookingId) . '/etickets',
+                $this->xs2eventBaseUrl . '/v1/bookingorders/list?' . http_build_query([
+                    'booking_id'      => 'in:[' . $apiBookingId . ']',
+                    'logistic_status' => 'completed',
+                ]),
                 [
                     'headers' => $this->getXS2EventHeaders(),
                     'timeout' => 15
@@ -377,12 +383,36 @@ class XS2EventBookingBridge
             );
 
             $responseData = json_decode($response->getBody()->getContents(), true);
-            $tickets = $responseData['tickets'] ?? [];
+            $bookingOrders = $responseData['bookingorders'] ?? [];
+
+            if (empty($bookingOrders)) {
+                return [
+                    'available'    => false,
+                    'ticket_count' => 0,
+                    'bookingorders' => [],
+                ];
+            }
+
+            // Collect all downloadable items across all booking orders
+            $downloadableItems = [];
+            foreach ($bookingOrders as $order) {
+                foreach ($order['items'] ?? [] as $item) {
+                    if (($item['distribution_channel'] ?? '') === 'xs2event' && !empty($item['download_link'])) {
+                        $downloadableItems[] = [
+                            'bookingorder_id' => $order['bookingorder_id'],
+                            'orderitem_id'    => $item['orderitem_id'],
+                            'download_link'   => $item['download_link'],
+                            'ticket_sha'      => $item['ticket_sha'] ?? null,
+                        ];
+                    }
+                }
+            }
 
             return [
-                'available' => !empty($tickets),
-                'ticket_count' => count($tickets),
-                'tickets' => $tickets
+                'available'      => !empty($downloadableItems),
+                'ticket_count'   => count($downloadableItems),
+                'tickets'        => $downloadableItems,
+                'bookingorders'  => $bookingOrders,
             ];
 
         } catch (RequestException $e) {
@@ -392,9 +422,9 @@ class XS2EventBookingBridge
             ]);
 
             return [
-                'available' => false,
+                'available'    => false,
                 'ticket_count' => 0,
-                'error' => $e->getMessage()
+                'error'        => $e->getMessage()
             ];
         }
     }
@@ -452,55 +482,110 @@ class XS2EventBookingBridge
 
     /**
      * Build reservation payload for XS2Event API
+     * @see https://docs.xs2event.com/operations/reservations_post.html
      */
     private function buildReservationPayload(array $bookingData): array
     {
+        $ticketInfo = $bookingData['ticket_info'] ?? null;
+        if (is_string($ticketInfo)) {
+            $ticketInfo = json_decode($ticketInfo, true) ?: [];
+        }
+
+        $items = [];
+        if (!empty($ticketInfo)) {
+            foreach ($ticketInfo as $item) {
+                if (empty($item['ticket_id'])) {
+                    continue;
+                }
+                $items[] = [
+                    'ticket_id'     => $item['ticket_id'],
+                    'quantity'      => (int)($item['quantity'] ?? 1),
+                    'net_rate'      => (float)($item['net_rate'] ?? $item['price'] ?? 0),
+                    'currency_code' => $item['currency_code'] ?? $bookingData['currency'] ?? 'GBP',
+                ];
+            }
+        }
+
+        if (empty($items)) {
+            throw new ApiException(
+                'Cannot create XS2Event reservation: ticket_info is missing ticket_id fields. ' .
+                'Ensure ticket_id, net_rate, and currency_code are stored in ticket_info when creating the booking.',
+                422
+            );
+        }
+
         return [
-            'event_id' => $bookingData['event_id'],
-            'ticket_type_id' => $bookingData['ticket_type_id'],
-            'quantity' => (int)$bookingData['quantity'],
-            'customer_reference' => $bookingData['booking_reference'],
-            'metadata' => [
-                'local_booking_id' => $bookingData['id'],
-                'customer_email' => $bookingData['customer_email'] ?? $bookingData['email']
-            ]
+            'items'                => $items,
+            'booking_email'        => $bookingData['customer_email'] ?? $bookingData['email'] ?? '',
+            'external_reference_id' => $bookingData['booking_reference'] ?? null,
         ];
     }
 
     /**
      * Build guest data payload for XS2Event API
+     * @see https://docs.xs2event.com/operations/reservations__reservation_id__guestdata_post.html
      */
     private function buildGuestDataPayload(array $bookingData): array
     {
-        $guests = [];
-        
-        // Main guest (customer)
-        $guests[] = [
-            'first_name' => $bookingData['customer_name'] ?? $bookingData['name'],
-            'last_name' => $bookingData['customer_lastname'] ?? '',
-            'email' => $bookingData['customer_email'] ?? $bookingData['email'],
-            'phone' => $bookingData['customer_phone'] ?? $bookingData['phone'] ?? '',
-            'is_primary' => true
+        // Parse stored ticket_info to get per-ticket data
+        $ticketInfo = $bookingData['ticket_info'] ?? null;
+        if (is_string($ticketInfo)) {
+            $ticketInfo = json_decode($ticketInfo, true) ?: [];
+        }
+
+        // Parse existing guest details if stored
+        $guestDetails = $bookingData['guest_details'] ?? [];
+        if (is_string($guestDetails)) {
+            $guestDetails = json_decode($guestDetails, true) ?: [];
+        }
+
+        // Build lead guest from customer info
+        $fullName = $bookingData['customer_name'] ?? $bookingData['name'] ?? '';
+        $nameParts = explode(' ', trim($fullName), 2);
+        $leadGuest = [
+            'first_name' => $nameParts[0] ?? '',
+            'last_name'  => $nameParts[1] ?? '',
+            'lead_guest' => true,
         ];
 
-        // Add additional guests if available
-        if (!empty($bookingData['guest_details'])) {
-            $guestDetails = is_string($bookingData['guest_details']) 
-                ? json_decode($bookingData['guest_details'], true) 
-                : $bookingData['guest_details'];
+        // Add additional guests from guest_details if available
+        $additionalGuests = [];
+        foreach ($guestDetails as $guest) {
+            $additionalGuests[] = [
+                'first_name' => $guest['first_name'] ?? '',
+                'last_name'  => $guest['last_name'] ?? '',
+                'lead_guest' => false,
+            ];
+        }
 
-            foreach ($guestDetails as $guest) {
-                $guests[] = [
-                    'first_name' => $guest['first_name'] ?? '',
-                    'last_name' => $guest['last_name'] ?? '',
-                    'email' => $guest['email'] ?? '',
-                    'phone' => $guest['phone'] ?? '',
-                    'is_primary' => false
+        $allGuests = array_merge([$leadGuest], $additionalGuests);
+
+        // Build items array — one entry per ticket type
+        $items = [];
+        if (!empty($ticketInfo)) {
+            foreach ($ticketInfo as $item) {
+                $ticketId  = $item['ticket_id'] ?? null;
+                $quantity  = (int)($item['quantity'] ?? 1);
+                $itemEntry = [
+                    'quantity' => $quantity,
+                    'guests'   => array_slice($allGuests, 0, $quantity),
                 ];
+                if ($ticketId !== null) {
+                    $itemEntry['ticket_id'] = $ticketId;
+                }
+                $items[] = $itemEntry;
             }
         }
 
-        return ['guests' => $guests];
+        // Fallback: single item with all guests if no ticket_info
+        if (empty($items)) {
+            $items[] = [
+                'quantity' => (int)($bookingData['ticket_count'] ?? 1),
+                'guests'   => $allGuests,
+            ];
+        }
+
+        return ['items' => $items];
     }
 
     /**
@@ -519,7 +604,7 @@ class XS2EventBookingBridge
             // REQUIRED FIELDS per XS2Event API spec
             'reservation_id' => $reservationId,
             'booking_email' => $bookingData['customer_email'] ?? $bookingData['email'] ?? '',
-            'payment_method' => 'invoice',  // Using 'invoice' as shown in XS2Event documentation demo
+            'payment_method' => getenv('XS2EVENT_PAYMENT_METHOD') ?: 'invoice',
             
             // OPTIONAL FIELDS
             'payment_reference' => $paymentReference,
@@ -535,7 +620,7 @@ class XS2EventBookingBridge
     private function getXS2EventHeaders(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->xs2eventApiKey,
+            'X-Api-Key' => $this->xs2eventApiKey,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json'
         ];

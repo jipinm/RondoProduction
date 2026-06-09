@@ -235,6 +235,16 @@ button, input, select, textarea {
   font-size: var(--font-size-base);
 }
 
+/* Placeholder text – visually distinct from entered values.
+   --color-text-placeholder = #9ca3af (neutral-400), clearly lighter
+   than the body text (#111827) so users can tell fields are empty.
+   opacity: 1 overrides Firefox's built-in 0.54 reduction. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-placeholder);
+  opacity: 1;
+}
+
 /* Remove focus outlines from tab buttons */
 button[class*="tab"], 
 button[class*="Tab"],

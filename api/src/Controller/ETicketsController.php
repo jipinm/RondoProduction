@@ -23,7 +23,7 @@ class ETicketsController
         private string $apiKey
     ) {
         $this->baseUrl = rtrim($baseUrl, '/');
-        $this->apiBaseUrl = getenv('API_BASE_URL') ?: 'https://api.xs2event.com';
+        $this->apiBaseUrl = rtrim($baseUrl, '/') ?: ($_ENV['API_BASE_URL'] ?? getenv('API_BASE_URL') ?: 'https://api.xs2event.com');
     }
 
     /**
@@ -259,17 +259,11 @@ class ETicketsController
      */
     private function getHeaders(Request $request): array
     {
-        $headers = [
+        return [
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json'
+            'Accept' => 'application/json',
+            'X-Api-Key' => $this->apiKey,
         ];
-
-        // Forward X-Api-Key header
-        if ($request->hasHeader('X-Api-Key')) {
-            $headers['X-Api-Key'] = $request->getHeaderLine('X-Api-Key');
-        }
-
-        return $headers;
     }
 
     /**
@@ -277,15 +271,9 @@ class ETicketsController
      */
     private function getDownloadHeaders(Request $request): array
     {
-        $headers = [
-            'Accept' => 'application/pdf,application/octet-stream,*/*'
+        return [
+            'Accept' => 'application/pdf,application/octet-stream,*/*',
+            'X-Api-Key' => $this->apiKey,
         ];
-
-        // Forward X-Api-Key header
-        if ($request->hasHeader('X-Api-Key')) {
-            $headers['X-Api-Key'] = $request->getHeaderLine('X-Api-Key');
-        }
-
-        return $headers;
     }
 }
