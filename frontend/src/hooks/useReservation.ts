@@ -6,7 +6,7 @@ interface CreateReservationData {
   items: Array<{
     ticket_id: string;
     quantity: number;
-    net_rate: number;
+    net_rate: number; // Must be integer in cents (e.g., 263962 for $2639.62)
     currency_code: string;
   }>;
 }
@@ -35,15 +35,26 @@ export const useReservation = (): UseReservationResult => {
       setLoading(true);
       setError(null);
       
+      console.log('📤 Creating reservation with payload:', JSON.stringify(data, null, 2));
+      
       const response = await customerApiClient.post<Reservation>(API_ENDPOINTS.RESERVATIONS, data);
       const newReservation = response.data;
+      
+      console.log('✅ Reservation created successfully:', newReservation);
       
       setReservation(newReservation);
       return newReservation;
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to create reservation';
       setError(errorMessage);
-      console.error('Reservation creation failed:', err);
+      console.error('❌ Reservation creation failed:', {
+        message: err?.message,
+        status: err?.status,
+        responseData: err?.responseData,
+        fullError: err,
+        stack: err?.stack
+      });
+      console.log('📋 Full error response data:', JSON.stringify(err?.responseData, null, 2));
       return null;
     } finally {
       setLoading(false);

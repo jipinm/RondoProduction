@@ -225,12 +225,13 @@ const CheckoutGuestDetailsPage: React.FC = () => {
       }
 
       // Create reservation with XS2Event API format (simplified - guest data comes later)
+      // IMPORTANT: net_rate must be an integer in cents (multiply by 100), currency_code must match ticket data
       const reservationData = {
         items: state.cartItems.map(item => ({
           ticket_id: item.ticket.ticket_id,
           quantity: item.quantity,
-          net_rate: item.ticket.net_rate,
-          currency_code: item.ticket.currency_code || 'GBP' // Required by XS2Event API
+          net_rate: Math.round(item.ticket.net_rate * 100), // Convert to integer cents
+          currency_code: item.ticket.currency_code
         }))
       };
 
