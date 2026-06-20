@@ -570,10 +570,11 @@ class HospitalityController
                 return $this->errorResponse($response, 'sport_type, event_id, and ticket_id are required', 400);
             }
 
+            $teamId = $data['team_id'] ?? null;
             $resolved = $this->hospitalityRepository->resolveHospitalitiesForTicket(
                 $data['sport_type'],
                 $data['tournament_id'] ?? null,
-                $data['team_id'] ?? null,
+                $teamId ? [$teamId] : [],
                 $data['event_id'],
                 $data['ticket_id']
             );
@@ -774,6 +775,111 @@ class HospitalityController
 
         } catch (Exception $e) {
             $this->logger->error('Failed to remove event hospitalities', ['error' => $e->getMessage()]);
+            return $this->errorResponse($response, $e->getMessage(), 500);
+        }
+    }
+
+    // ========================================================================
+    // Venue-Based Hospitality Assignment Operations
+    // ========================================================================
+
+    /**
+     * Get all active hospitality assignments for a venue.
+     * GET /admin/venue-hospitalities/{venueId}
+     */
+    public function getVenueHospitalities(Request $request, Response $response, array $args): ResponseInterface
+    {
+        try {
+            $venueId = $args['venueId'] ?? '';
+            if (empty($venueId)) {
+                return $this->errorResponse($response, 'Venue ID is required', 400);
+            }
+
+            $assignments = $this->hospitalityRepository->getAssignmentsForVenue($venueId);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'data' => $assignments,
+                'count' => count($assignments),
+            ]));
+
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (Exception $e) {
+            $this->logger->error('Failed to get venue hospitalities', ['error' => $e->getMessage()]);
+            return $this->errorResponse($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Replace all hospitality assignments for a venue.
+     * PUT /admin/venue-hospitalities/{venueId}
+     *
+     * Body: { venue_name: string, hospitality_ids: int[] }
+     */
+    public function replaceVenueHospitalities(Request $request, Response $response, array $args): ResponseInterface
+    {
+        try {
+            $venueId = $args['venueId'] ?? '';
+            if (empty($venueId)) {
+                return $this->errorResponse($response, 'Venue ID is required', 400);
+            }
+
+            $data = $request->getParsedBody();
+            $venueName = $data['venue_name'] ?? '';
+            $hospitalityIds = $data['hospitality_ids'] ?? [];
+
+            if (!is_array($hospitalityIds)) {
+                return $this->errorResponse($response, 'hospitality_ids must be an array', 400);
+            }
+
+            $adminUser = $request->getAttribute('user');
+            $adminUserId = (int) ($adminUser['id'] ?? 0);
+
+            $result = $this->hospitalityRepository->replaceVenueAssignments(
+                $venueId,
+                $venueName,
+                array_map('intval', $hospitalityIds),
+                $adminUserId
+            );
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'data' => $result,
+            ]));
+
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (Exception $e) {
+            $this->logger->error('Failed to replace venue hospitalities', ['error' => $e->getMessage()]);
+            return $this->errorResponse($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Remove all hospitality assignments for a venue.
+     * DELETE /admin/venue-hospitalities/{venueId}
+     */
+    public function removeVenueHospitalities(Request $request, Response $response, array $args): ResponseInterface
+    {
+        try {
+            $venueId = $args['venueId'] ?? '';
+            if (empty($venueId)) {
+                return $this->errorResponse($response, 'Venue ID is required', 400);
+            }
+
+            $count = $this->hospitalityRepository->removeAssignmentsAtScope(['venue_id' => $venueId]);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'deleted_count' => $count,
+                'message' => "Removed {$count} venue hospitality assignments",
+            ]));
+
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (Exception $e) {
+            $this->logger->error('Failed to remove venue hospitalities', ['error' => $e->getMessage()]);
             return $this->errorResponse($response, $e->getMessage(), 500);
         }
     }

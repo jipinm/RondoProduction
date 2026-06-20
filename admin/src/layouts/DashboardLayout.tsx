@@ -17,6 +17,7 @@ import {
   Trophy,
   DollarSign,
   Coffee,
+  Building2,
   Coins,
   Eye,
   Phone,
@@ -101,6 +102,13 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/hospitality" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
                 <Coffee size={20} />
                 {sidebarOpen && <span>Hospitality Services</span>}
+              </NavLink>
+            )}
+
+            {user && (
+              <NavLink to="/venue-hospitality" className={({ isActive }) => isActive ? styles.activeLink : styles.navLink}>
+                <Building2 size={20} />
+                {sidebarOpen && <span>Venue Hospitality</span>}
               </NavLink>
             )}
 

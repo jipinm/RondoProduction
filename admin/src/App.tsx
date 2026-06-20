@@ -18,6 +18,7 @@ import RolesManagement from './pages/RolesManagement';
 import TeamCredentials from './pages/TeamCredentials';
 import TicketMarkupManagement from './pages/TicketMarkupManagement';
 import HospitalityManagement from './pages/HospitalityManagement';
+import VenueHospitalityManagement from './pages/VenueHospitalityManagement';
 import CurrencyManagement from './pages/CurrencyManagement';
 import DisplaySettings from './pages/DisplaySettings';
 import SeoManagement from './pages/SeoManagement';
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/team-credentials" element={<TeamCredentials />} />
                 <Route path="/ticket-markup" element={<TicketMarkupManagement />} />
                 <Route path="/hospitality" element={<HospitalityManagement />} />
+                <Route path="/venue-hospitality" element={<VenueHospitalityManagement />} />
                 <Route path="/currencies" element={<CurrencyManagement />} />
                 <Route path="/display-settings" element={<DisplaySettings />} />
                 <Route path="/seo-management" element={<SeoManagement />} />

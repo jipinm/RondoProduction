@@ -436,9 +436,17 @@ class PublicTicketEnhancementsController
             $queryParams = $request->getQueryParams();
             $sportType = $queryParams['sport_type'] ?? '';
             $tournamentId = $queryParams['tournament_id'] ?? null;
-            $teamId = $queryParams['team_id'] ?? null;
             $ticketIdsStr = $queryParams['ticket_ids'] ?? '';
             $categoryIdsStr = $queryParams['category_ids'] ?? '';
+
+            // Accept both home and visiting team IDs via team_ids (comma-separated).
+            // Legacy single team_id is still supported for backward compatibility.
+            $teamIdsStr = $queryParams['team_ids'] ?? ($queryParams['team_id'] ?? '');
+            $teamIds = !empty($teamIdsStr)
+                ? array_values(array_filter(array_map('trim', explode(',', $teamIdsStr))))
+                : [];
+
+            $venueId = !empty($queryParams['venue_id']) ? $queryParams['venue_id'] : null;
 
             $ticketIds = !empty($ticketIdsStr) ? explode(',', $ticketIdsStr) : [];
             $categoryIdsArr = !empty($categoryIdsStr) ? explode(',', $categoryIdsStr) : [];
@@ -455,7 +463,7 @@ class PublicTicketEnhancementsController
             if (!empty($sportType) && !empty($ticketIds)) {
                 // Use hierarchical resolution (includes category level if map provided)
                 $resolved = $this->hospitalityRepository->resolveHospitalitiesForEvent(
-                    $eventId, $sportType, $tournamentId, $teamId, $ticketIds, $ticketCategoryMap
+                    $eventId, $sportType, $tournamentId, $teamIds, $ticketIds, $ticketCategoryMap, $venueId
                 );
             } else {
                 // Fallback to legacy event hospitalities (flat)
@@ -515,12 +523,19 @@ class PublicTicketEnhancementsController
             $queryParams = $request->getQueryParams();
             $sportType = $queryParams['sport_type'] ?? '';
             $tournamentId = $queryParams['tournament_id'] ?? null;
-            $teamId = $queryParams['team_id'] ?? null;
             $categoryId = !empty($queryParams['category_id']) ? $queryParams['category_id'] : null;
+            $venueId = !empty($queryParams['venue_id']) ? $queryParams['venue_id'] : null;
+
+            // Accept both home and visiting team IDs via team_ids (comma-separated).
+            // Legacy single team_id is still supported for backward compatibility.
+            $teamIdsStr = $queryParams['team_ids'] ?? ($queryParams['team_id'] ?? '');
+            $teamIds = !empty($teamIdsStr)
+                ? array_values(array_filter(array_map('trim', explode(',', $teamIdsStr))))
+                : [];
 
             if (!empty($sportType)) {
                 $resolved = $this->hospitalityRepository->resolveHospitalitiesForTicket(
-                    $sportType, $tournamentId, $teamId, $eventId, $ticketId, $categoryId
+                    $sportType, $tournamentId, $teamIds, $eventId, $ticketId, $categoryId, $venueId
                 );
             } else {
                 // Fallback to legacy
@@ -554,6 +569,52 @@ class PublicTicketEnhancementsController
                 'error' => $e->getMessage(),
             ]);
             return $this->errorResponse($response, 'Failed to resolve hospitality services', 500);
+        }
+    }
+
+    /**
+     * Resolve markup for a context (team/tournament/sport) without event or ticket IDs.
+     * GET /v1/markup-context
+     *
+     * Query params: sport_type (required), tournament_id (optional), team_id (optional)
+     *
+     * Used by the Events listing page to apply markup to the "FROM" price.
+     * Returns the most-specific rule: team > tournament > sport.
+     */
+    public function getContextMarkup(Request $request, Response $response): Response
+    {
+        try {
+            $queryParams = $request->getQueryParams();
+            $sportType   = $queryParams['sport_type'] ?? '';
+            $tournamentId = !empty($queryParams['tournament_id']) ? $queryParams['tournament_id'] : null;
+            $teamId       = !empty($queryParams['team_id'])       ? $queryParams['team_id']       : null;
+
+            if (empty($sportType)) {
+                throw new ApiException('sport_type query parameter is required', 400);
+            }
+
+            $resolved = $this->markupRuleRepository->resolveContextMarkup($sportType, $tournamentId, $teamId);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'data'    => $resolved,
+            ]));
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Cache-Control', 'public, max-age=300')
+                ->withStatus(200);
+
+        } catch (ApiException $e) {
+            return $this->errorResponse($response, $e->getMessage(), $e->getCode());
+        } catch (Exception $e) {
+            $this->logger->error('Failed to resolve context markup', [
+                'sport_type'    => $queryParams['sport_type'] ?? '',
+                'tournament_id' => $queryParams['tournament_id'] ?? '',
+                'team_id'       => $queryParams['team_id'] ?? '',
+                'error'         => $e->getMessage(),
+            ]);
+            return $this->errorResponse($response, 'Failed to resolve markup', 500);
         }
     }
 

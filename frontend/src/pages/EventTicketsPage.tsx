@@ -46,53 +46,69 @@ const EventTicketsPage: React.FC = () => {
 
   // Fixed-position hospitality tooltip state
   const [tooltipTicketId, setTooltipTicketId] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; bottom: number; left: number } | null>(null);
+  // iconRect: bounding rect of the icon that triggered the tooltip
+  const [iconRect, setIconRect] = useState<DOMRect | null>(null);
+  // Computed final position (set by useLayoutEffect after measuring the tooltip)
+  const [tooltipFinalPos, setTooltipFinalPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const [tooltipPlacement, setTooltipPlacement] = useState<'above' | 'below'>('above');
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const showHospitalityTooltip = useCallback((ticketId: string, e: React.MouseEvent<HTMLDivElement>) => {
     if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltipPos({ top: rect.top, bottom: rect.bottom, left: rect.left + rect.width / 2 });
+    setIconRect(e.currentTarget.getBoundingClientRect());
+    setTooltipFinalPos(null);
     setTooltipTicketId(ticketId);
   }, []);
 
-  // Smart positioning: measure tooltip after render and flip if it overflows viewport
+  // After the tooltip renders, measure it and compute a fully viewport-clamped position.
+  // This runs synchronously before the browser paints, preventing any visible jump.
   useLayoutEffect(() => {
-    if (!tooltipRef.current || !tooltipPos) return;
+    if (!tooltipRef.current || !iconRect) return;
     const el = tooltipRef.current;
-    const tooltipHeight = el.offsetHeight;
+    const gap = 10;
+    const pad = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Cap the tooltip height so it never exceeds the viewport
+    const naturalHeight = el.scrollHeight;
+    const maxAllowedHeight = vh - pad * 2;
+    const tooltipHeight = Math.min(naturalHeight, maxAllowedHeight);
     const tooltipWidth = el.offsetWidth;
-    const gap = 12;
-    const viewportPadding = 8;
 
-    // Decide above or below
-    const spaceAbove = tooltipPos.top - gap;
-    const spaceBelow = window.innerHeight - tooltipPos.bottom - gap;
+    // Prefer above, fall back to below
+    const spaceAbove = iconRect.top - gap - pad;
+    const spaceBelow = vh - iconRect.bottom - gap - pad;
+    let placement: 'above' | 'below';
+    let top: number;
+
     if (spaceAbove >= tooltipHeight || spaceAbove >= spaceBelow) {
-      setTooltipPlacement('above');
+      placement = 'above';
+      top = iconRect.top - tooltipHeight - gap;
     } else {
-      setTooltipPlacement('below');
+      placement = 'below';
+      top = iconRect.bottom + gap;
     }
 
-    // Clamp horizontal position so tooltip stays within viewport
-    const halfWidth = tooltipWidth / 2;
-    let clampedLeft = tooltipPos.left;
-    if (clampedLeft - halfWidth < viewportPadding) {
-      clampedLeft = halfWidth + viewportPadding;
-    } else if (clampedLeft + halfWidth > window.innerWidth - viewportPadding) {
-      clampedLeft = window.innerWidth - halfWidth - viewportPadding;
-    }
-    if (clampedLeft !== tooltipPos.left) {
-      setTooltipPos(prev => prev ? { ...prev, left: clampedLeft } : prev);
-    }
-  }, [tooltipTicketId, tooltipPos]);
+    // Clamp vertically so the tooltip never goes outside the viewport
+    if (top < pad) top = pad;
+    if (top + tooltipHeight > vh - pad) top = vh - pad - tooltipHeight;
+
+    // Clamp horizontally (centred on the icon)
+    let left = iconRect.left + iconRect.width / 2 - tooltipWidth / 2;
+    if (left < pad) left = pad;
+    if (left + tooltipWidth > vw - pad) left = vw - pad - tooltipWidth;
+
+    setTooltipPlacement(placement);
+    setTooltipFinalPos({ top, left, maxHeight: tooltipHeight });
+  }, [tooltipTicketId, iconRect]);
 
   const hideHospitalityTooltip = useCallback(() => {
     tooltipTimeoutRef.current = setTimeout(() => {
       setTooltipTicketId(null);
-      setTooltipPos(null);
+      setIconRect(null);
+      setTooltipFinalPos(null);
     }, 100);
   }, []);
   
@@ -119,7 +135,8 @@ const EventTicketsPage: React.FC = () => {
   const { 
     convertAmount, 
     getExchangeRate,
-    hasConversion: hasConversionForCurrency
+    hasConversion: hasConversionForCurrency,
+    isLoading: currencyLoading
   } = useMultiCurrencyConversion(ticketCurrencies, selectedCurrencyCode);
   
   // Fetch guest requirements for this event
@@ -139,7 +156,8 @@ const EventTicketsPage: React.FC = () => {
   // Fetch effective (hierarchically-resolved) markup pricing for this event
   // Priority: legacy ticket > ticket rule > event rule > team rule > tournament rule > sport rule
   const { 
-    effectiveMarkupsByTicket: markupsByTicket
+    effectiveMarkupsByTicket: markupsByTicket,
+    loading: markupLoading
   } = useEventEffectiveMarkups(
     eventId,
     event?.sport_type,
@@ -149,6 +167,7 @@ const EventTicketsPage: React.FC = () => {
   );
 
   // Fetch hierarchically resolved hospitality assignments for this event (PUBLIC API)
+  // Both hometeam_id and visiting_id are passed so team-level assignments for either team are shown.
   const {
     ticketHasHospitalities,
     getHospitalitiesForTicket
@@ -158,7 +177,9 @@ const EventTicketsPage: React.FC = () => {
     ticketIds,
     event?.tournament_id,
     event?.hometeam_id,
-    categoryIds
+    categoryIds,
+    event?.visiting_id,
+    event?.venue_id
   );
 
   // Registration form state
@@ -166,6 +187,8 @@ const EventTicketsPage: React.FC = () => {
     name: '',
     email: ''
   });
+  const [regStatus, setRegStatus] = useState<'idle' | 'loading' | 'success' | 'already' | 'error'>('idle');
+  const [regMessage, setRegMessage] = useState('');
 
   // Fetch guest requirements when event loads (Phase 1: Step 2)
   useEffect(() => {
@@ -230,61 +253,80 @@ const EventTicketsPage: React.FC = () => {
     return event.hometeam_name && event.visiting_name && event.hometeam_name !== event.visiting_name;
   };
 
-  // Format price with correct currency and apply hierarchical markup pricing if available
-  // Uses live exchange rate for calculating percentage-based markup
-  // Fixed markups are always in USD and converted to the display currency
+  // All three must finish before we show any price — prevents raw supplier price flashing.
+  const priceReady = !ticketsLoading && !currencyLoading && !markupLoading;
+
+  // Format price with correct currency and apply hierarchical markup pricing if available.
+  // Only called once priceReady === true so exchange rates and markups are guaranteed to be loaded.
   const formatPrice = (ticket: Ticket) => {
     const currency = ticket.currency_code || 'USD';
     const price = ticket.face_value || 0;
-    
-    // Check if this ticket has markup pricing (from hierarchical resolution)
-    const markup = markupsByTicket.get(ticket.ticket_id);
-    
-    // Helper: convert a USD amount to the selected currency
+
+    const markup = markupsByTicket.get(ticket.ticket_id) ?? null;
+
     const convertUsdToSelected = (usdAmount: number): number => {
       if (selectedCurrencyCode === 'USD') return usdAmount;
       if (hasConversionForCurrency('USD')) return convertAmount(usdAmount, 'USD');
       return usdAmount;
     };
-    
-    // If currency conversion is available for THIS ticket's currency and it's not already the selected currency
-    if (hasConversionForCurrency(currency) && currency !== selectedCurrencyCode) {
-      const convertedPrice = convertAmount(price, currency);
-      
-      // Calculate markup amount in the selected (display) currency
-      const markupAmount = calculateEffectiveMarkupAmount(
-        convertedPrice,
-        markup ?? null,
-        convertUsdToSelected
-      );
-      
-      const finalPrice = convertedPrice + markupAmount;
-      return `${selectedCurrencyCode} ${finalPrice.toFixed(2)}`;
-    }
-    
-    // Already in the selected currency — calculate markup directly
-    if (currency === selectedCurrencyCode) {
-      const markupAmount = calculateEffectiveMarkupAmount(
-        price,
-        markup ?? null,
-        convertUsdToSelected
-      );
-      
-      if (markupAmount > 0) {
-        const finalPrice = price + markupAmount;
-        return `${selectedCurrencyCode} ${finalPrice.toFixed(2)}`;
-      }
-    }
-    
-    return `${currency} ${price.toFixed(2)}`;
+
+    // Convert from ticket currency to selected display currency
+    const basePrice = (hasConversionForCurrency(currency) && currency !== selectedCurrencyCode)
+      ? convertAmount(price, currency)
+      : price;
+
+    const markupAmount = calculateEffectiveMarkupAmount(basePrice, markup, convertUsdToSelected);
+    const finalPrice = basePrice + markupAmount;
+
+    return `${selectedCurrencyCode} ${finalPrice.toFixed(2)}`;
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement registration API call
-    alert('Thank you for your interest! We will contact you soon.');
-    setFormData({ name: '', email: '' });
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setRegStatus('error');
+      setRegMessage('Please provide a valid email address.');
+      return;
+    }
+
+    setRegStatus('loading');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_CUSTOMER_API_BASE_URL}/api/v1/newsletter/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          name: formData.name,
+          submit_from: 'Interest register'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        if (result.already) {
+          setRegStatus('already');
+          setRegMessage('You are already registered for interest updates!');
+        } else {
+          setRegStatus('success');
+          setRegMessage('Thank you for your interest! We will contact you soon.');
+          setFormData({ name: '', email: '' });
+        }
+      } else {
+        setRegStatus('error');
+        setRegMessage(result.message || 'Failed to register your interest. Please try again.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setRegStatus('error');
+      setRegMessage('An error occurred. Please try again.');
+    }
   };
 
   // Handle add ticket — hospitalities are now included with the ticket (no selection modal)
@@ -638,7 +680,7 @@ const EventTicketsPage: React.FC = () => {
                             {ticket.ticket_title}
                           </h3>
                         </div>
-                        
+
                         {/* Seat Options & Features */}
                         <div className={styles.seatFeatures}>
                           {ticket.options?.pairs_only && (
@@ -686,14 +728,13 @@ const EventTicketsPage: React.FC = () => {
 
                     <div className={styles.ticketPrice}>
                       <div className={styles.priceDisplay}>
-                        {/* DEBUG: Tooltip logic temporarily disabled. May be re-enabled in future.
-                        data-tooltip={`Local Price: ${ticket.currency_code} ${ticket.face_value?.toFixed(2)}\nExchange Rate: 1 ${ticket.currency_code} = ${hasConversionForCurrency(ticket.currency_code || '') ? getExchangeRate(ticket.currency_code || '').toFixed(4) : 'N/A'} ${selectedCurrencyCode}\nConverted: ${hasConversionForCurrency(ticket.currency_code || '') ? `${selectedCurrencyCode} ${convertAmount(ticket.face_value || 0, ticket.currency_code || '').toFixed(2)}` : 'N/A'}\nMarkup: ${(() => { const m = markupsByTicket.get(ticket.ticket_id); if (!m) return '0.00 (none)'; return m.markup_type === 'percentage' ? `${m.markup_percentage ?? m.markup_amount}% (${m.level})` : `${(m.markup_price_usd ?? m.markup_amount).toFixed(2)} USD (${m.level})`; })()}\nFinal Price: ${formatPrice(ticket)}`}
-                        */}
-                        <span 
-                          className={styles.priceAmount}
-                        >
-                          {formatPrice(ticket)}
-                        </span>
+                        {priceReady ? (
+                          <span className={styles.priceAmount}>
+                            {formatPrice(ticket)}
+                          </span>
+                        ) : (
+                          <span className={styles.priceSkeleton} aria-hidden="true" />
+                        )}
                       </div>
                       
                       {ticket.ticket_status === 'available' && ticket.stock > 0 ? (
@@ -756,9 +797,10 @@ const EventTicketsPage: React.FC = () => {
                       type="text"
                       placeholder="Name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setRegStatus('idle'); }}
                       required
                       className={styles.formInput}
+                      disabled={regStatus === 'loading' || regStatus === 'success'}
                     />
                   </div>
                   
@@ -767,15 +809,26 @@ const EventTicketsPage: React.FC = () => {
                       type="email"
                       placeholder="Email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setRegStatus('idle'); }}
                       required
                       className={styles.formInput}
+                      disabled={regStatus === 'loading' || regStatus === 'success'}
                     />
                   </div>
                   
-                  <button type="submit" className={styles.submitButton}>
-                    REGISTER YOUR INTEREST
+                  <button 
+                    type="submit" 
+                    className={styles.submitButton}
+                    disabled={regStatus === 'loading' || regStatus === 'success'}
+                  >
+                    {regStatus === 'loading' ? 'Registering…' : 'REGISTER YOUR INTEREST'}
                   </button>
+                  
+                  {regStatus !== 'idle' && regMessage && (
+                    <p className={`${styles.registrationMsg} ${styles[`registrationMsg__${regStatus}`]}`}>
+                      {regMessage}
+                    </p>
+                  )}
                 </form>
               </div>
             </div>
@@ -813,13 +866,16 @@ const EventTicketsPage: React.FC = () => {
       />
 
       {/* Fixed-position hospitality tooltip rendered via portal */}
-      {tooltipTicketId && tooltipPos && createPortal(
+      {tooltipTicketId && createPortal(
         <div
           ref={tooltipRef}
           className={`${styles.hospitalityTooltipFixed} ${tooltipPlacement === 'below' ? styles.tooltipBelow : styles.tooltipAbove}`}
-          style={{
-            top: tooltipPlacement === 'below' ? tooltipPos.bottom : tooltipPos.top,
-            left: tooltipPos.left,
+          style={tooltipFinalPos ? {
+            top: tooltipFinalPos.top,
+            left: tooltipFinalPos.left,
+            visibility: 'visible',
+          } : {
+            visibility: 'hidden',
           }}
           onMouseEnter={() => { if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current); }}
           onMouseLeave={hideHospitalityTooltip}
@@ -829,7 +885,10 @@ const EventTicketsPage: React.FC = () => {
             <ChefHat size={14} />
             <span>Included Hospitality</span>
           </div>
-          <ul className={styles.tooltipList}>
+          <ul
+            className={styles.tooltipList}
+            style={tooltipFinalPos ? { maxHeight: tooltipFinalPos.maxHeight - 52, overflowY: 'auto' } : undefined}
+          >
             {getHospitalitiesForTicket(tooltipTicketId).map(h => (
               <li key={h.hospitality_id} className={styles.tooltipItem}>
                 <Sparkles size={12} className={styles.tooltipItemIcon} />

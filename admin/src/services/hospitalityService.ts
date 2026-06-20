@@ -12,7 +12,7 @@ import { apiClient } from './api-client';
 // Types & Interfaces
 // ============================================================================
 
-export type AssignmentLevel = 'sport' | 'tournament' | 'team' | 'category' | 'event' | 'ticket';
+export type AssignmentLevel = 'sport' | 'tournament' | 'team' | 'category' | 'event' | 'ticket' | 'venue';
 
 export interface Hospitality {
   id: number;
@@ -45,6 +45,8 @@ export interface HospitalityAssignment {
   category_id: string | null;
   event_id: string | null;
   ticket_id: string | null;
+  venue_id: string | null;
+  venue_name: string | null;
   level: AssignmentLevel;
   sport_name: string | null;
   tournament_name: string | null;
@@ -65,18 +67,28 @@ export interface HospitalityAssignment {
 
 /** Scope for creating/querying assignments */
 export interface HospitalityAssignmentScope {
-  sport_type: string;
+  sport_type?: string;
   tournament_id?: string | null;
   team_id?: string | null;
   category_id?: string | null;
   event_id?: string | null;
   ticket_id?: string | null;
+  venue_id?: string | null;
   sport_name?: string | null;
   tournament_name?: string | null;
   team_name?: string | null;
   category_name?: string | null;
   event_name?: string | null;
   ticket_name?: string | null;
+  venue_name?: string | null;
+}
+
+/** Response shape for venue hospitality operations */
+export interface VenueHospitalityReplaceResponse {
+  success: boolean;
+  deleted_count: number;
+  inserted_count: number;
+  message: string;
 }
 
 /** Input for creating a single assignment */
@@ -122,6 +134,7 @@ export interface HospitalityStats {
   active_hospitalities: number;
   total_assignments: number;
   legacy_assignments?: number;
+  venue_assignments?: number;
   assignments_by_level?: Record<string, number>;
   unique_events_with_hospitalities: number;
   top_hospitalities: Array<{
@@ -578,6 +591,64 @@ export class HospitalityService {
       return response;
     } catch (error) {
       console.error('❌ Error resolving hospitalities:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================================================
+  // Venue-Based Hospitality Assignment Operations
+  // ==========================================================================
+
+  /**
+   * Get all active hospitality assignments for a venue.
+   */
+  async getVenueHospitalities(venueId: string): Promise<ApiResponse<HospitalityAssignment[]>> {
+    try {
+      const response = await apiClient.get<ApiResponse<HospitalityAssignment[]>>(
+        `/admin/venue-hospitalities/${venueId}`
+      );
+      if (!response.success) throw new Error('Failed to fetch venue hospitalities');
+      return response;
+    } catch (error) {
+      console.error('❌ Error fetching venue hospitalities:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Replace all hospitality assignments for a venue.
+   * Sends { venue_name, hospitality_ids[] } — backend deletes old and inserts new.
+   */
+  async replaceVenueHospitalities(
+    venueId: string,
+    venueName: string,
+    hospitalityIds: number[]
+  ): Promise<ApiResponse<VenueHospitalityReplaceResponse>> {
+    try {
+      const response = await apiClient.put<ApiResponse<VenueHospitalityReplaceResponse>>(
+        `/admin/venue-hospitalities/${venueId}`,
+        { venue_name: venueName, hospitality_ids: hospitalityIds }
+      );
+      if (!response.success) throw new Error('Failed to save venue hospitalities');
+      return response;
+    } catch (error) {
+      console.error('❌ Error saving venue hospitalities:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove all hospitality assignments for a venue.
+   */
+  async removeVenueHospitalities(venueId: string): Promise<DeleteResponse> {
+    try {
+      const response = await apiClient.delete<DeleteResponse>(
+        `/admin/venue-hospitalities/${venueId}`
+      );
+      if (!response.success) throw new Error('Failed to remove venue hospitalities');
+      return response;
+    } catch (error) {
+      console.error('❌ Error removing venue hospitalities:', error);
       throw error;
     }
   }

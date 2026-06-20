@@ -537,6 +537,7 @@ class Application
             $group->post('/team-credentials/{id}/files', [$teamCredentialsController, 'updateTeamCredentialFiles']);
             $group->delete('/team-credentials/{id}/image/{type}', [$teamCredentialsController, 'deleteTeamCredentialImage']);
             $group->get('/team-credentials/api/tournament/{tournament_id}/team/{team_id}', [$teamCredentialsController, 'getTeamFromApi']);
+            $group->post('/team-credentials/rename-files', [$teamCredentialsController, 'renameFiles']);
             
             // Static Pages Management (Admin)
             $staticPagesRepository = new StaticPagesRepository($this->database, $this->logger);
@@ -638,6 +639,11 @@ class Application
             $group->get('/hospitality-assignments/{id:[0-9]+}', [$hospitalityController, 'getAssignmentById']);
             $group->delete('/hospitality-assignments/{id:[0-9]+}', [$hospitalityController, 'deleteAssignment']);
             $group->post('/hospitality-assignments/resolve', [$hospitalityController, 'resolveForTicket']);
+
+            // Venue-Based Hospitality Assignments
+            $group->get('/venue-hospitalities/{venueId:[a-zA-Z0-9_-]+}', [$hospitalityController, 'getVenueHospitalities']);
+            $group->put('/venue-hospitalities/{venueId:[a-zA-Z0-9_-]+}', [$hospitalityController, 'replaceVenueHospitalities']);
+            $group->delete('/venue-hospitalities/{venueId:[a-zA-Z0-9_-]+}', [$hospitalityController, 'removeVenueHospitalities']);
             
             // Cancellation Management (Admin) - using controllers from outer scope
             $group->get('/cancellation-requests/stats', [$adminCancellationController, 'getStatistics']);
@@ -752,6 +758,7 @@ class Application
             $adminNewsletterController = new NewsletterController($adminNewsletterRepo, $this->logger);
             $group->get('/newsletter-subscribers', [$adminNewsletterController, 'listSubscribers']);
             $group->get('/newsletter-subscribers/export', [$adminNewsletterController, 'exportSubscribers']);
+            $group->post('/newsletter-subscribers/bulk-import', [$adminNewsletterController, 'bulkImportSubscribers']);
             $group->delete('/newsletter-subscribers/{id:[0-9]+}', [$adminNewsletterController, 'deleteSubscriber']);
 
         })->add(new AuthMiddleware(
@@ -1045,6 +1052,9 @@ class Application
         
         // Team credentials endpoints
         $this->app->get('/v1/team-credentials/featured', [$publicTeamCredentialsController, 'getFeaturedTeamCredentials']);
+        // Primary endpoint: lookup by team_id only (tournament-agnostic)
+        $this->app->get('/v1/team-credentials/team/{team_id}', [$publicTeamCredentialsController, 'getPublicTeamCredentialByTeamId']);
+        // Legacy endpoint kept for backwards compatibility; internally resolves by team_id
         $this->app->get('/v1/team-credentials/tournament/{tournament_id}/team/{team_id}', [$publicTeamCredentialsController, 'getPublicTeamCredential']);
         
         // Events endpoints
@@ -1081,6 +1091,7 @@ class Application
             $markupRuleRepository2,
             $hospitalityRepository
         );
+        $this->app->get('/v1/markup-context', [$publicEnhancementsController, 'getContextMarkup']);
         $this->app->get('/v1/events/{eventId}/markups', [$publicEnhancementsController, 'getEventMarkups']);
         $this->app->get('/v1/tickets/{ticketId}/markup', [$publicEnhancementsController, 'getTicketMarkup']);
         $this->app->get('/v1/events/{eventId}/effective-markups', [$publicEnhancementsController, 'getEventEffectiveMarkups']);

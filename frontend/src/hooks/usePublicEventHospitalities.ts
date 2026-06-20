@@ -26,7 +26,9 @@ export const usePublicEventHospitalities = (
   ticketIds?: string[],
   tournamentId?: string | null,
   teamId?: string | null,
-  categoryIds?: string[]
+  categoryIds?: string[],
+  visitingId?: string | null,
+  venueId?: string | null
 ) => {
   const [hospitalitiesByTicket, setHospitalitiesByTicket] = useState<Map<string, HospitalityOption[]>>(new Map());
   const [loading, setLoading] = useState<boolean>(false);
@@ -42,7 +44,7 @@ export const usePublicEventHospitalities = (
       setLoading(true);
       setError(null);
       const result = await getResolvedEventHospitalities(
-        eventId, sportType, ticketIds, tournamentId, teamId, categoryIds
+        eventId, sportType, ticketIds, tournamentId, teamId, categoryIds, visitingId, venueId
       );
 
       // Convert the object map into Map<string, HospitalityOption[]>
@@ -66,7 +68,7 @@ export const usePublicEventHospitalities = (
     } finally {
       setLoading(false);
     }
-  }, [eventId, sportType, ticketIds?.join(','), tournamentId, teamId, categoryIds?.join(',')]);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [eventId, sportType, ticketIds?.join(','), tournamentId, teamId, categoryIds?.join(','), visitingId, venueId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchHospitalities();

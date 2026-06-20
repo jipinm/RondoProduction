@@ -300,7 +300,7 @@ export interface ResolvedHospitality {
   hospitality_id: number;
   hospitality_name: string;
   hospitality_description: string | null;
-  level: 'sport' | 'tournament' | 'team' | 'category' | 'event' | 'ticket';
+  level: 'sport' | 'tournament' | 'team' | 'category' | 'event' | 'ticket' | 'venue';
   source: 'hospitality_assignments' | 'legacy';
 }
 
@@ -322,14 +322,19 @@ export const getResolvedEventHospitalities = async (
   ticketIds: string[],
   tournamentId?: string | null,
   teamId?: string | null,
-  categoryIds?: string[]
+  categoryIds?: string[],
+  visitingId?: string | null,
+  venueId?: string | null
 ): Promise<Record<string, ResolvedHospitality[]>> => {
   const params = new URLSearchParams();
   if (sportType) params.append('sport_type', sportType);
   if (tournamentId) params.append('tournament_id', tournamentId);
-  if (teamId) params.append('team_id', teamId);
+  // Send both home and visiting team IDs so hospitalities assigned to either team are resolved
+  const teamIds = [teamId, visitingId].filter(Boolean) as string[];
+  if (teamIds.length > 0) params.append('team_ids', teamIds.join(','));
   if (ticketIds.length > 0) params.append('ticket_ids', ticketIds.join(','));
   if (categoryIds && categoryIds.length > 0) params.append('category_ids', categoryIds.join(','));
+  if (venueId) params.append('venue_id', venueId);
 
   const url = `${API_BASE_URL}/v1/events/${eventId}/effective-hospitalities?${params.toString()}`;
   const response = await fetch(url);
