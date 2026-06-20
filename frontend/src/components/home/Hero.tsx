@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './Hero.module.css';
 import { MdArrowRight } from 'react-icons/md';
 import { bannersService } from '../../services/bannersService';
@@ -10,7 +10,15 @@ const Hero: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // Track which image URLs have already finished loading so cached images
+  // are never stuck at opacity:0 when revisiting a slide.
+  const [loadedUrls, setLoadedUrls] = useState<Set<string>>(new Set());
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Use a function initializer so it only runs once and is safe before layout
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768;
+  });
 
   // Fetch banners on mount
   useEffect(() => {
@@ -40,10 +48,33 @@ const Hero: React.FC = () => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
+    // Re-check on mount in case initial value was wrong (mobile browser quirk)
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // When imageUrl changes, start a timeout fallback: if the image hasn't fired
+  // onLoad within 4 seconds (e.g. very large file on slow connection), force-show
+  // it anyway so the slide is never permanently invisible.
+  const imageUrl = (() => {
+    if (banners.length === 0) return '';
+    const b = banners[currentSlide];
+    return isMobile && b?.mobile_image_url ? b.mobile_image_url : (b?.image_url ?? '');
+  })();
+
+  useEffect(() => {
+    if (!imageUrl || loadedUrls.has(imageUrl)) return;
+    // Clear any previous timer
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    // Fallback: reveal after 4 s regardless of load state (handles very large files)
+    fadeTimerRef.current = setTimeout(() => {
+      setLoadedUrls((prev) => new Set(prev).add(imageUrl));
+    }, 4000);
+    return () => {
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    };
+  }, [imageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-slide functionality
   useEffect(() => {
@@ -121,10 +152,19 @@ const Hero: React.FC = () => {
   }
 
   const currentBanner = banners[currentSlide];
-  const imageUrl = isMobile && currentBanner.mobile_image_url 
-    ? currentBanner.mobile_image_url 
-    : currentBanner.image_url;
   const formattedDate = formatEventDate(currentBanner.event_date);
+  const isImageReady = loadedUrls.has(imageUrl);
+
+  const handleImageLoad = () => {
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setLoadedUrls((prev) => new Set(prev).add(imageUrl));
+  };
+
+  const handleImageError = () => {
+    // On error, still reveal the slot (shows the dark background; content remains readable)
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setLoadedUrls((prev) => new Set(prev).add(imageUrl));
+  };
 
   return (
     <section className={styles.hero}>
@@ -132,7 +172,10 @@ const Hero: React.FC = () => {
         <img 
           src={imageUrl} 
           alt={currentBanner.title} 
-          className={styles.heroImage} 
+          className={styles.heroImage}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          style={{ opacity: isImageReady ? 1 : 0, transition: 'opacity 0.4s ease' }}
         />
         <div className={styles.heroContentContainer}>
           <div className={styles.heroContentWrapper}>
