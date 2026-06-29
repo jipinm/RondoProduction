@@ -77,7 +77,7 @@
 }
 
 /* Desktop only: hover to show dropdown */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .topBarItemWithSubmenu:hover .accountSubmenu {
     display: block;
   }
@@ -141,7 +141,7 @@
 }
 
 /* Desktop only: hover to show dropdown */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .topBarItemWithSubmenu:hover .currencySubmenu {
     display: block;
   }
@@ -844,43 +844,10 @@
   background-color: #4a5a6b;
 }
 
-/* ── Tablet (769px – 1024px) ── */
+/* ── Tablet styles now subsumed into mobile — no partial tablet overrides needed ── */
+
+/* ── Mobile (≤1024px) — hamburger replaces desktop nav ── */
 @media (max-width: 1024px) {
-  .topBar {
-    height: 90px;
-  }
-
-  .navigation {
-    height: auto;
-    min-height: 50px;
-  }
-
-  .navItems {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-
-  .navItem,
-  .navItemWithSubmenu {
-    padding: 0.75rem 1rem;
-    font-size: 13px;
-    letter-spacing: 1px;
-  }
-
-  .topBarItem {
-    font-size: 13px;
-    letter-spacing: 1px;
-  }
-
-  .logoImg {
-    width: 140px;
-    max-height: 65px;
-  }
-}
-
-/* ── Mobile (≤768px) ── */
-@media (max-width: 768px) {
   /* Visibility utilities */
   .mobileOnly {
     display: flex !important;

@@ -29,7 +29,7 @@ export interface TeamCredential {
 }
 
 export interface TeamCredentialCreate {
-  tournament_id: string;
+  tournament_id?: string; // kept as optional reference; not used for uniqueness
   team_id: string;
   team_name?: string;
   tournament_name?: string;
@@ -184,7 +184,17 @@ export class TeamCredentialsService {
   }
 
   /**
+   * Get team credential by team ID only (tournament-agnostic)
+   */
+  async getTeamCredentialByTeamId(teamId: string): Promise<TeamCredentialResponse> {
+    return await apiClient.get<TeamCredentialResponse>(
+      `${this.basePath}/team/${encodeURIComponent(teamId)}`
+    );
+  }
+
+  /**
    * Get team credential by tournament and team ID
+   * @deprecated Use getTeamCredentialByTeamId – kept for reference only
    */
   async getTeamCredentialByTeam(tournamentId: string, teamId: string): Promise<TeamCredentialResponse> {
     return await apiClient.get<TeamCredentialResponse>(
@@ -409,17 +419,17 @@ export class TeamCredentialsService {
   }
 
   /**
-   * Check if team credential exists for given tournament and team
+   * Check if team credential exists for a given team (tournament-agnostic)
    */
-  async checkTeamCredentialExists(tournamentId: string, teamId: string): Promise<boolean> {
+  async checkTeamCredentialExists(teamId: string): Promise<boolean> {
     try {
-      await this.getTeamCredentialByTeam(tournamentId, teamId);
+      await this.getTeamCredentialByTeamId(teamId);
       return true;
     } catch (error: any) {
       if (error.status === 404) {
         return false;
       }
-      throw error; // Re-throw other errors
+      throw error;
     }
   }
 

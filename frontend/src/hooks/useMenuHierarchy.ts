@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiClient, API_ENDPOINTS } from '../services/apiRoutes';
-import { getCurrentSeason } from '../utils/dateUtils';
+import { getActiveSeason } from '../utils/dateUtils';
 import { apiCache } from '../utils/apiCache';
+import {
+  isTournamentSelected,
+  getExcludedTeamValues,
+  isTeamExcluded,
+} from '../utils/displayKeys';
 import type { Tournament, TournamentsResponse, Team, TeamsResponse } from '../services/apiRoutes';
 import type { DisplaySettings } from './useDisplaySettings';
 
@@ -26,6 +31,13 @@ interface UseMenuHierarchyReturn {
 interface UseMenuHierarchyProps {
   /** Pass display settings to apply tournament and team filtering. */
   displaySettings?: DisplaySettings;
+  /**
+   * Whether the display settings are still loading. The hierarchy fetch is
+   * gated on this so the menu never builds links using the date-calculated
+   * season while the admin-configured active_season is still resolving (which
+   * would otherwise emit stale, wrong-season tournament links).
+   */
+  settingsLoading?: boolean;
 }
 
 /**
@@ -40,7 +52,8 @@ export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarch
   const [error, setError] = useState<string | null>(null);
 
   const displaySettings = props?.displaySettings;
-  const currentSeason = getCurrentSeason();
+  const settingsLoading = props?.settingsLoading ?? false;
+  const currentSeason = getActiveSeason(displaySettings?.active_season ?? '');
 
   // Use a ref for the in-flight guard so it doesn't appear in useCallback deps
   // (which would cause fetchCompleteHierarchy to recreate and re-trigger effects).
@@ -71,19 +84,26 @@ export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarch
     // Check cache first — cache stores the full unfiltered hierarchy so
     // display-settings filtering is always applied fresh on top of it.
     const cachedHierarchy = loadFromCache();
+    const today = new Date().toISOString().split('T')[0];
     if (cachedHierarchy) {
-      const visibleTournamentIds = displaySettings?.football_visible_tournaments ?? [];
-      const cachedTournaments = visibleTournamentIds.length > 0
-        ? cachedHierarchy.tournaments.filter(t => visibleTournamentIds.includes(t.tournament_id))
-        : cachedHierarchy.tournaments;
+      const visibleValues = displaySettings?.football_visible_tournaments ?? [];
+      const hasSpecificSelection = visibleValues.length > 0;
+      // If Admin has selected specific tournaments, filter by season-stable key
+      // (with legacy raw-id fallback). Otherwise show tournaments with events
+      // that haven't finished yet (date_stop >= today keeps only ongoing/future).
+      const cachedTournaments = hasSpecificSelection
+        ? cachedHierarchy.tournaments.filter(t => isTournamentSelected(t, visibleValues))
+        : cachedHierarchy.tournaments.filter(t =>
+            (t.number_events ?? 0) >= 1 && (t.date_stop ?? '9999') >= today
+          );
 
       const filteredTeamsMap: Record<string, Team[]> = {};
       const filteredLinksMap: Record<string, string> = {};
       cachedTournaments.forEach(t => {
-        const excludedIds = displaySettings?.excluded_teams?.[t.tournament_id] ?? [];
+        const excludedValues = getExcludedTeamValues(displaySettings?.excluded_teams, t);
         const allTeams = cachedHierarchy.teamsMap[t.tournament_id] ?? [];
-        const visibleTeams = excludedIds.length > 0
-          ? allTeams.filter(team => !excludedIds.includes(team.team_id))
+        const visibleTeams = excludedValues.length > 0
+          ? allTeams.filter(team => !isTeamExcluded(team, excludedValues))
           : allTeams;
         filteredTeamsMap[t.tournament_id] = visibleTeams;
         visibleTeams.forEach(team => {
@@ -112,13 +132,10 @@ export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarch
       const tournamentsResponse = await apiClient.get<TournamentsResponse>(tournamentsUrl);
 
       const allTournaments = tournamentsResponse.data.tournaments || [];
-      const filteredTournaments = allTournaments.filter(tournament =>
-        (tournament.number_events ?? 0) >= 1
-      );
 
       // Step 2: Fetch teams for ALL tournaments so the cache is fully populated
       // and can be re-filtered when display settings change.
-      const teamsPromises = filteredTournaments.map(async (tournament) => {
+      const teamsPromises = allTournaments.map(async (tournament) => {
         try {
           const teamsUrl = `${API_ENDPOINTS.TEAMS}?club_logo=true&sport_type=soccer&tournament_id=${tournament.tournament_id}&popular=true`;
           const teamsResponse = await apiClient.get<TeamsResponse>(teamsUrl);
@@ -141,9 +158,9 @@ export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarch
         });
       });
 
-      // Step 4: Cache the FULL unfiltered hierarchy
+      // Step 4: Cache the FULL unfiltered hierarchy (all tournaments from API)
       const hierarchy: MenuHierarchy = {
-        tournaments: filteredTournaments,
+        tournaments: allTournaments,
         teamsMap: rawTeamsMap,
         linksMap: rawLinksMap,
         season: currentSeason,
@@ -155,18 +172,24 @@ export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarch
       // Read from the ref so we always use the *latest* settings, even if
       // they resolved while this async fetch was in-flight.
       const latestSettings = displaySettingsRef.current;
-      const settingIds = latestSettings?.football_visible_tournaments ?? [];
-      const visibleForRender = settingIds.length > 0
-        ? filteredTournaments.filter(t => settingIds.includes(t.tournament_id))
-        : filteredTournaments;
+      const settingValues = latestSettings?.football_visible_tournaments ?? [];
+      const hasSpecificSelection = settingValues.length > 0;
+      // If Admin has selected specific tournaments, filter by season-stable key
+      // (with legacy raw-id fallback). Otherwise show tournaments with events
+      // that haven't finished yet (date_stop >= today keeps only ongoing/future).
+      const visibleForRender = hasSpecificSelection
+        ? allTournaments.filter((t: Tournament) => isTournamentSelected(t, settingValues))
+        : allTournaments.filter((t: Tournament) =>
+            (t.number_events ?? 0) >= 1 && (t.date_stop ?? '9999') >= today
+          );
 
       const renderTeamsMap: Record<string, Team[]> = {};
       const renderLinksMap: Record<string, string> = {};
       visibleForRender.forEach(t => {
-        const excludedIds = latestSettings?.excluded_teams?.[t.tournament_id] ?? [];
+        const excludedValues = getExcludedTeamValues(latestSettings?.excluded_teams, t);
         const rawTeams = rawTeamsMap[t.tournament_id] ?? [];
-        const visibleTeams = excludedIds.length > 0
-          ? rawTeams.filter(team => !excludedIds.includes(team.team_id))
+        const visibleTeams = excludedValues.length > 0
+          ? rawTeams.filter(team => !isTeamExcluded(team, excludedValues))
           : rawTeams;
         renderTeamsMap[t.tournament_id] = visibleTeams;
         visibleTeams.forEach(team => {
@@ -218,9 +241,13 @@ export const useMenuHierarchy = (props?: UseMenuHierarchyProps): UseMenuHierarch
 
   // Re-run whenever fetchCompleteHierarchy changes — which happens whenever
   // displaySettings changes — so the filtered list is always up to date.
+  // Gate on settingsLoading so the first fetch waits for the admin-configured
+  // active_season to resolve, preventing stale wrong-season links from being
+  // built using the date-calculated fallback season.
   useEffect(() => {
+    if (settingsLoading) return;
     fetchCompleteHierarchy();
-  }, [fetchCompleteHierarchy]);
+  }, [fetchCompleteHierarchy, settingsLoading]);
 
   return {
     tournaments,

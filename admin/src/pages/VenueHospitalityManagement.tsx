@@ -166,7 +166,7 @@ const VenueHospitalityManagement: React.FC = () => {
     try {
       await hospitalityService.replaceVenueHospitalities(
         selectedVenue.venue_id,
-        selectedVenue.name,
+        selectedVenue.official_name || selectedVenue.name,
         Array.from(pendingIds)
       );
       setAssignedIds(new Set(pendingIds));

@@ -104,6 +104,7 @@ export class XS2EventAPI {
         method,
         headers: requestHeaders,
         body: body ? JSON.stringify(body) : undefined,
+        cache: 'no-store',
       });
 
       // Log the response details for debugging
@@ -271,7 +272,7 @@ export const API_ENDPOINTS = {
   TOURNAMENTS: '/v1/tournaments',
   TEAMS: '/v1/teams',
   TEAM_DETAILS: (teamId: string) => `/v1/teams/${teamId}`,
-  TEAM_CREDENTIALS: (tournamentId: string, teamId: string) => `/v1/team-credentials/tournament/${tournamentId}/team/${teamId}`,
+  TEAM_CREDENTIALS: (teamId: string) => `/v1/team-credentials/team/${teamId}`,
   
   // Events & Venues
   EVENTS: '/v1/events',

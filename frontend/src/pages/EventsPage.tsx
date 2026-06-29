@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Flame } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
+import { useDisplaySettings } from '../hooks/useDisplaySettings';
+import { getActiveSeason } from '../utils/dateUtils';
 import { useTeamDetails } from '../hooks/useTeamDetails';
 import { useTeamCredentials } from '../hooks/useTeamCredentials';
 import { useMultiCurrencyConversion } from '../hooks/useMultiCurrencyConversion';
 import { useSelectedCurrency } from '../contexts/CurrencyContext';
+import { useEventsListMarkup } from '../hooks/useTicketEnhancements';
+import { calculateEffectiveMarkupAmount } from '../services/ticketEnhancementsService';
+import { useEventMinPrices } from '../hooks/useEventMinPrices';
 import type { Event } from '../services/apiRoutes';
 import styles from './EventsPage.module.css';
 import { useSEO } from '../hooks/useSEO';
@@ -20,6 +25,15 @@ const EventsPage: React.FC = () => {
   const tournament_id = searchParams.get('tournament_id') || undefined;
   const team_id = searchParams.get('team_id') || undefined;
   const date = searchParams.get('date') || undefined;
+  const seasonParam = searchParams.get('season') || undefined;
+
+  // Season applies only to soccer (format "26/27"). Tennis, F1, rugby, golf and
+  // other sports use calendar-year seasons ("2026") that are incompatible with
+  // the soccer format — passing the wrong format returns 0 events from XS2Event.
+  // For non-soccer sports we omit the season entirely and rely on EventsController's
+  // default date_stop >= today filter to surface upcoming events.
+  const { settings: displaySettings } = useDisplaySettings();
+  const season = seasonParam || (sport_type === 'soccer' ? getActiveSeason(displaySettings.active_season ?? '') : undefined);
 
   // Log the extracted parameters and potential API endpoint
   React.useEffect(() => {
@@ -51,7 +65,8 @@ const EventsPage: React.FC = () => {
     sport_type,
     tournament_id,
     team_id,
-    date
+    date,
+    season
   });
 
   // Log when events are loaded
@@ -70,19 +85,43 @@ const EventsPage: React.FC = () => {
     }
   }, [events, eventsLoading, eventsError]);
 
-  const { team, loading: teamLoading, error: teamError } = useTeamDetails(team_id);
+  const { team, error: teamError } = useTeamDetails(team_id);
   
   // Fetch team credentials for enhanced team description
   const { teamCredentials, loading: credentialsLoading, error: credentialsError, notFound: credentialsNotFound } = useTeamCredentials(
-    tournament_id, 
     team_id
   );
 
   // Get user-selected currency
   const { selectedCurrencyCode } = useSelectedCurrency();
 
-  // Currency conversion hook - convert EUR prices to selected currency
-  const { convertAmount, isLoading: currencyLoading } = useMultiCurrencyConversion(['EUR'], selectedCurrencyCode);
+  // Fetch actual min ticket prices per event (native currency, from real ticket data).
+  // This is more accurate than min_ticket_price_eur for multi-currency events (e.g. GBP Premier League tickets).
+  const eventIds = useMemo(() => events.map(e => e.event_id), [events]);
+  const { eventMinPrices, loading: minPricesLoading } = useEventMinPrices(eventIds);
+
+  // Derive the full set of currencies present in real ticket data so the conversion hook
+  // fetches rates for all of them, not just EUR/USD.
+  const allTicketCurrencies = useMemo(() => {
+    // GBP is pre-included so its rate is fetched before min prices arrive,
+    // preventing a one-render window where GBP prices fall back to EUR estimate.
+    const set = new Set(['EUR', 'USD', 'GBP']);
+    eventMinPrices.forEach(prices => Object.keys(prices).forEach(c => set.add(c)));
+    return [...set];
+  }, [eventMinPrices]);
+
+  // Currency conversion hook — include all currencies found in ticket data
+  const { convertAmount, hasConversion: hasConversionForCurrency, isLoading: currencyLoading } = useMultiCurrencyConversion(allTicketCurrencies, selectedCurrencyCode);
+
+  // Build event entries for markup resolution (de-duplicated by context inside the hook)
+  const eventListEntries = useMemo(() => events.map(e => ({
+    event_id: e.event_id,
+    sport_type: e.sport_type,
+    tournament_id: e.tournament_id,
+    hometeam_id: e.hometeam_id,
+  })), [events]);
+
+  const { markupsByEvent, loading: markupLoading } = useEventsListMarkup(sport_type === 'soccer' ? eventListEntries : []);
 
   // Console log the team credentials API usage for debugging
   React.useEffect(() => {
@@ -135,16 +174,50 @@ const EventsPage: React.FC = () => {
     }
   };
 
+  // All async price inputs must finish before any price is shown — prevents the raw
+  // supplier price from flashing before markup is applied.
+  const priceReady = !currencyLoading && !markupLoading && !minPricesLoading;
+
   // Format price with correct currency from API response - converted to selected currency
+  // Applies hierarchical markup (team/tournament/sport level) if a rule exists.
+  // Prefers real ticket face_value data (native currency) over XS2Event's min_ticket_price_eur
+  // to eliminate the stale EUR cross-rate discrepancy on multi-currency events.
   const formatPrice = (event: Event) => {
-    if (!event.min_ticket_price_eur || event.min_ticket_price_eur === 0) {
+    const markup = markupsByEvent.get(event.event_id) ?? null;
+
+    const convertUsdToSelected = (usdAmount: number): number => {
+      if (selectedCurrencyCode === 'USD') return usdAmount;
+      if (hasConversionForCurrency('USD')) return convertAmount(usdAmount, 'USD');
+      return usdAmount;
+    };
+
+    // Prefer native min prices from real ticket data
+    const nativePrices = eventMinPrices.get(event.event_id);
+    if (nativePrices && Object.keys(nativePrices).length > 0) {
+      let minConverted = Infinity;
+      for (const [currency, price] of Object.entries(nativePrices)) {
+        const converted =
+          currency === selectedCurrencyCode
+            ? price
+            : hasConversionForCurrency(currency)
+            ? convertAmount(price, currency)
+            : null;
+        if (converted !== null && converted < minConverted) minConverted = converted;
+      }
+      if (minConverted !== Infinity) {
+        const markupAmount = calculateEffectiveMarkupAmount(minConverted, markup, convertUsdToSelected);
+        return `${selectedCurrencyCode} ${(minConverted + markupAmount).toFixed(2)}`;
+      }
+      // Native prices exist but rates not yet available — return '' so the caller
+      // shows skeleton instead of falling through to the stale EUR estimate.
       return '';
     }
-    
-    // Convert EUR price to selected currency using the currency conversion hook
+
+    // No native data — fall back to XS2Event EUR estimate
+    if (!event.min_ticket_price_eur || event.min_ticket_price_eur === 0) return '';
     const convertedPrice = convertAmount(event.min_ticket_price_eur, 'EUR');
-    
-    return `${selectedCurrencyCode} ${convertedPrice.toFixed(2)}`;
+    const markupAmount = calculateEffectiveMarkupAmount(convertedPrice, markup, convertUsdToSelected);
+    return `${selectedCurrencyCode} ${(convertedPrice + markupAmount).toFixed(2)}`;
   };
 
   // Handle ticket navigation
@@ -266,7 +339,7 @@ const EventsPage: React.FC = () => {
     );
   };
 
-  if (eventsLoading || teamLoading || (team_id && tournament_id && credentialsLoading && !credentialsNotFound)) {
+  if (eventsLoading || (team_id && tournament_id && credentialsLoading && !credentialsNotFound)) {
     return (
       <div className={styles.eventsPage}>
         <div className={styles.container}>
@@ -330,13 +403,13 @@ const EventsPage: React.FC = () => {
     );
   }
 
-  if (eventsError || teamError || (credentialsError && !credentialsNotFound)) {
+  if (eventsError || (credentialsError && !credentialsNotFound)) {
     return (
       <div className={styles.eventsPage}>
         <div className={styles.container}>
           <div className={styles.errorContainer}>
             <span className={styles.errorText}>
-              Error loading data: {eventsError || teamError || (credentialsError && !credentialsNotFound && credentialsError)}
+              Error loading data: {eventsError || (credentialsError && !credentialsNotFound && credentialsError)}
             </span>
           </div>
         </div>
@@ -481,11 +554,13 @@ const EventsPage: React.FC = () => {
 
                       {/* Price Column */}
                       <div className={styles.priceColumn}>
-                        {currencyLoading && event.min_ticket_price_eur && event.min_ticket_price_eur > 0 ? (
-                          <div className={styles.skeletonPriceLabel}></div>
-                        ) : (
-                          formatPrice(event) && (
+                        {(event.min_ticket_price_eur ?? 0) > 0 && (
+                          !priceReady ? (
+                            <div className={styles.skeletonPriceLabel}></div>
+                          ) : formatPrice(event) ? (
                             <div className={styles.priceLabel}>FROM {formatPrice(event)}</div>
+                          ) : (
+                            <div className={styles.skeletonPriceLabel}></div>
                           )
                         )}
                         <button
@@ -517,9 +592,9 @@ const EventsPage: React.FC = () => {
                     if (teamCredentials && !credentialsNotFound && teamCredentials.logo_url) {
                       // Use logo from team credentials API
                       logoUrl = `${baseUrl}${teamCredentials.logo_url}`;
-                    } else if (tournament_id) {
-                      // Fallback to constructed logo URL
-                      logoUrl = `${baseUrl}/images/team/logo/${tournament_id}_${team.team_id}_logo.png`;
+                    } else {
+                      // Fallback: construct URL using team_id only (tournament-agnostic)
+                      logoUrl = `${baseUrl}/images/team/logo/${team.team_id}_logo.png`;
                     }
 
                     return logoUrl ? (

@@ -10,6 +10,7 @@ import {
   getEventHospitalities,
   getTicketHospitalities,
   getEventEffectiveMarkups,
+  getContextMarkup,
   type TicketMarkup,
   type EffectiveMarkup,
   type HospitalityService,
@@ -382,4 +383,86 @@ export const useTicketHospitalities = (
     error,
     refetch: fetchTicketHospitalities,
   };
+};
+
+// ============================================================================
+// useEventsListMarkup - Batch-resolve context markup for the Events listing page
+// ============================================================================
+
+export interface EventListEntry {
+  event_id: string;
+  sport_type?: string;
+  tournament_id?: string;
+  hometeam_id?: string;
+}
+
+/**
+ * For the Events listing page: resolves the applicable markup rule
+ * (team > tournament > sport) for each event and returns a Map keyed by event_id.
+ * De-duplicates API calls so the same (sport/tournament/team) context is only
+ * fetched once even if many events share it.
+ */
+export const useEventsListMarkup = (
+  events: EventListEntry[]
+): { markupsByEvent: Map<string, EffectiveMarkup>; loading: boolean } => {
+  const [markupsByEvent, setMarkupsByEvent] = useState<Map<string, EffectiveMarkup>>(new Map());
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!events.length) {
+      setMarkupsByEvent(new Map());
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchAll = async () => {
+      setLoading(true);
+
+      // Build unique context keys to avoid duplicate API calls
+      const contextCache = new Map<string, EffectiveMarkup | null>();
+      const contextToEvents = new Map<string, string[]>(); // contextKey -> event_ids
+
+      for (const ev of events) {
+        const sportType = ev.sport_type || 'soccer';
+        const key = `${sportType}|${ev.tournament_id ?? ''}|${ev.hometeam_id ?? ''}`;
+        if (!contextToEvents.has(key)) contextToEvents.set(key, []);
+        contextToEvents.get(key)!.push(ev.event_id);
+      }
+
+      // Fetch each unique context in parallel
+      await Promise.all(
+        Array.from(contextToEvents.keys()).map(async (key) => {
+          const [sportType, tournamentId, teamId] = key.split('|');
+          const markup = await getContextMarkup(
+            sportType,
+            tournamentId || undefined,
+            teamId || undefined
+          );
+          contextCache.set(key, markup);
+        })
+      );
+
+      if (cancelled) return;
+
+      // Build event_id -> markup map
+      const result = new Map<string, EffectiveMarkup>();
+      for (const ev of events) {
+        const sportType = ev.sport_type || 'soccer';
+        const key = `${sportType}|${ev.tournament_id ?? ''}|${ev.hometeam_id ?? ''}`;
+        const markup = contextCache.get(key);
+        if (markup) result.set(ev.event_id, markup);
+      }
+
+      setMarkupsByEvent(result);
+      setLoading(false);
+    };
+
+    fetchAll();
+    return () => { cancelled = true; };
+  // Re-run when the event list changes (keyed on length + first/last event IDs for stability)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events.length, events[0]?.event_id, events[events.length - 1]?.event_id]);
+
+  return { markupsByEvent, loading };
 };

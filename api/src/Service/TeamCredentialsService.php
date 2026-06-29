@@ -59,16 +59,14 @@ class TeamCredentialsService
     {
         $errors = [];
 
-        // Tournament ID validation
-        if (empty($data['tournament_id']) && !$isUpdate) {
-            $errors['tournament_id'] = 'Tournament ID is required';
-        } elseif (!empty($data['tournament_id'])) {
+        // Tournament ID is now optional (reference only)
+        if (!empty($data['tournament_id'])) {
             if (!is_string($data['tournament_id']) || strlen(trim($data['tournament_id'])) === 0) {
                 $errors['tournament_id'] = 'Tournament ID must be a valid string';
             }
         }
 
-        // Team ID validation
+        // Team ID validation – required on create, optional on update
         if (empty($data['team_id']) && !$isUpdate) {
             $errors['team_id'] = 'Team ID is required';
         } elseif (!empty($data['team_id'])) {
@@ -77,10 +75,10 @@ class TeamCredentialsService
             }
         }
 
-        // Check for duplicate team credentials
-        if (!empty($data['tournament_id']) && !empty($data['team_id'])) {
-            if ($this->repository->teamCredentialExists($data['tournament_id'], $data['team_id'], $excludeId)) {
-                $errors['duplicate'] = 'Team credentials already exist for this tournament and team combination';
+        // Duplicate check uses team_id only (tournament-agnostic)
+        if (!empty($data['team_id'])) {
+            if ($this->repository->teamCredentialExists($data['team_id'], $excludeId)) {
+                $errors['duplicate'] = 'Team credentials already exist for this team';
             }
         }
 
@@ -193,10 +191,10 @@ class TeamCredentialsService
 
     /**
      * Handle file upload for team credentials
+     * Filename pattern: {teamId}_{type}.png  (tournament-agnostic)
      */
     public function handleFileUpload(
         UploadedFileInterface $uploadedFile,
-        string $tournamentId,
         string $teamId,
         string $type // 'logo' or 'banner'
     ): array {
@@ -207,8 +205,8 @@ class TeamCredentialsService
                 return ['success' => false, 'errors' => $validationErrors];
             }
 
-            // Always use PNG extension - we'll convert the image
-            $filename = "{$tournamentId}_{$teamId}_{$type}.png";
+            // Filename uses only the team_id (no tournament prefix)
+            $filename = "{$teamId}_{$type}.png";
 
             // Create upload directory if it doesn't exist
             $typeDir = $this->uploadPath . '/' . $type;
@@ -372,7 +370,6 @@ class TeamCredentialsService
                     if (isset($files[$type]) && $files[$type]->getError() === UPLOAD_ERR_OK) {
                         $result = $this->handleFileUpload(
                             $files[$type],
-                            $data['tournament_id'],
                             $data['team_id'],
                             $type
                         );
@@ -456,7 +453,6 @@ class TeamCredentialsService
                         // Upload new file
                         $result = $this->handleFileUpload(
                             $files[$type],
-                            $existingCredential['tournament_id'],
                             $existingCredential['team_id'],
                             $type
                         );
@@ -546,7 +542,6 @@ class TeamCredentialsService
                     error_log("Calling handleFileUpload for $type");
                     $result = $this->handleFileUpload(
                         $files[$type],
-                        $existingCredential['tournament_id'],
                         $existingCredential['team_id'],
                         $type
                     );
@@ -814,6 +809,93 @@ class TeamCredentialsService
         } catch (Exception $e) {
             return ['success' => false, 'errors' => ['general' => 'Failed to delete image: ' . $e->getMessage()]];
         }
+    }
+
+    /**
+     * Rename existing image files on disk from the old tournament-prefixed naming
+     * convention to the new team-only convention.
+     *
+     * Old pattern : {tournament_id}_{team_id}_{type}.{ext}
+     * New pattern : {team_id}_{type}.{ext}
+     *
+     * Called via POST /admin/team-credentials/rename-files after the SQL migration
+     * has already updated the database filename columns.
+     *
+     * Returns an array with per-credential results.
+     */
+    public function renameExistingFiles(): array
+    {
+        $rows    = $this->repository->getCredentialsWithFiles();
+        $results = [];
+        $renamed = 0;
+        $skipped = 0;
+        $failed  = 0;
+
+        foreach ($rows as $row) {
+            $teamId  = $row['team_id'];
+            $entry   = ['id' => $row['id'], 'team_id' => $teamId, 'logo' => null, 'banner' => null];
+
+            foreach (['logo', 'banner'] as $type) {
+                $newFilename = $row["{$type}_filename"];
+                if (!$newFilename) {
+                    continue;
+                }
+
+                $newPath = $this->uploadPath . '/' . $type . '/' . $newFilename;
+
+                // If the new file already exists on disk, nothing to do.
+                if (file_exists($newPath)) {
+                    $entry[$type] = 'already_renamed';
+                    $skipped++;
+                    continue;
+                }
+
+                // Look for an old-pattern file in the same directory.
+                // Old pattern contains _{team_id}_ somewhere in the name.
+                $dir     = $this->uploadPath . '/' . $type;
+                $oldPath = null;
+
+                if (is_dir($dir)) {
+                    foreach (scandir($dir) as $file) {
+                        if ($file === '.' || $file === '..') {
+                            continue;
+                        }
+                        // Old file has _{team_id}_ inside (before the type suffix)
+                        if (str_contains($file, "_{$teamId}_") && $file !== $newFilename) {
+                            $oldPath = $dir . '/' . $file;
+                            break;
+                        }
+                    }
+                }
+
+                if ($oldPath === null) {
+                    $entry[$type] = 'old_file_not_found';
+                    $skipped++;
+                    continue;
+                }
+
+                if (rename($oldPath, $newPath)) {
+                    $entry[$type] = ['renamed_from' => basename($oldPath), 'renamed_to' => $newFilename];
+                    $renamed++;
+                } else {
+                    $entry[$type] = ['failed' => "rename({$oldPath}, {$newPath}) returned false"];
+                    $failed++;
+                }
+            }
+
+            $results[] = $entry;
+        }
+
+        return [
+            'success' => $failed === 0,
+            'summary' => [
+                'total_credentials' => count($rows),
+                'files_renamed'     => $renamed,
+                'files_skipped'     => $skipped,
+                'files_failed'      => $failed,
+            ],
+            'results' => $results,
+        ];
     }
 
     /**

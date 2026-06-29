@@ -483,9 +483,9 @@ class HospitalityRepository
             LEFT JOIN admin_users cu ON ha.created_by = cu.id
             LEFT JOIN admin_users uu ON ha.updated_by = uu.id
             {$whereClause}
-            ORDER BY 
-                FIELD(ha.level, 'sport', 'tournament', 'team', 'category', 'event', 'ticket'),
-                ha.sport_name, ha.tournament_name, ha.team_name, ha.category_name, ha.event_name, ha.ticket_name,
+            ORDER BY
+                FIELD(ha.level, 'venue', 'sport', 'tournament', 'team', 'category', 'event', 'ticket'),
+                ha.venue_name, ha.sport_name, ha.tournament_name, ha.team_name, ha.category_name, ha.event_name, ha.ticket_name,
                 h.sort_order, h.name
             LIMIT ? OFFSET ?
         ";
@@ -586,10 +586,31 @@ class HospitalityRepository
             $params = array_merge($params, $teamIds);
         }
 
-        // Category level (XS2Event venue section — applies across all events)
+        // Category level — scoped by sport/tournament/team when those fields are set in the assignment.
+        // Pure category assignments (only category_id, others NULL) still match any event at the venue.
         if ($categoryId) {
-            $conditions[] = "(ha.category_id = ? AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
-            $params[] = $categoryId;
+            $catCondition = "(ha.category_id = ? AND ha.event_id IS NULL AND ha.ticket_id IS NULL"
+                . " AND (ha.sport_type IS NULL OR ha.sport_type = ?)";
+            $catParams = [$categoryId, $sportType];
+
+            if ($tournamentId) {
+                $catCondition .= " AND (ha.tournament_id IS NULL OR ha.tournament_id = ?)";
+                $catParams[] = $tournamentId;
+            } else {
+                $catCondition .= " AND ha.tournament_id IS NULL";
+            }
+
+            if (!empty($teamIds)) {
+                $teamCatPlaceholders = implode(',', array_fill(0, count($teamIds), '?'));
+                $catCondition .= " AND (ha.team_id IS NULL OR ha.team_id IN ({$teamCatPlaceholders}))";
+                $catParams = array_merge($catParams, $teamIds);
+            } else {
+                $catCondition .= " AND ha.team_id IS NULL";
+            }
+
+            $catCondition .= ")";
+            $conditions[] = $catCondition;
+            $params = array_merge($params, $catParams);
         }
 
         // Event level
@@ -696,12 +717,33 @@ class HospitalityRepository
             $params = array_merge($params, $teamIds);
         }
 
-        // Category level (XS2Event venue sections — applies across all events at the venue)
+        // Category level — scoped by sport/tournament/team when those fields are set in the assignment.
+        // Pure category assignments (only category_id, others NULL) still match any event at the venue.
         $uniqueCategoryIds = array_unique(array_values(array_filter($ticketCategoryMap)));
         if (!empty($uniqueCategoryIds)) {
             $catPlaceholders = implode(',', array_fill(0, count($uniqueCategoryIds), '?'));
-            $conditions[] = "(ha.category_id IN ({$catPlaceholders}) AND ha.event_id IS NULL AND ha.ticket_id IS NULL)";
-            $params = array_merge($params, $uniqueCategoryIds);
+            $catCondition = "(ha.category_id IN ({$catPlaceholders}) AND ha.event_id IS NULL AND ha.ticket_id IS NULL"
+                . " AND (ha.sport_type IS NULL OR ha.sport_type = ?)";
+            $catParams = array_merge($uniqueCategoryIds, [$sportType]);
+
+            if ($tournamentId) {
+                $catCondition .= " AND (ha.tournament_id IS NULL OR ha.tournament_id = ?)";
+                $catParams[] = $tournamentId;
+            } else {
+                $catCondition .= " AND ha.tournament_id IS NULL";
+            }
+
+            if (!empty($teamIds)) {
+                $teamCatPlaceholders = implode(',', array_fill(0, count($teamIds), '?'));
+                $catCondition .= " AND (ha.team_id IS NULL OR ha.team_id IN ({$teamCatPlaceholders}))";
+                $catParams = array_merge($catParams, $teamIds);
+            } else {
+                $catCondition .= " AND ha.team_id IS NULL";
+            }
+
+            $catCondition .= ")";
+            $conditions[] = $catCondition;
+            $params = array_merge($params, $catParams);
         }
 
         // Event level

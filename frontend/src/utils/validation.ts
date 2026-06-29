@@ -127,9 +127,16 @@ export const validatePassportNumber = (passport: string): boolean => {
 };
 
 /**
- * Validate individual guest data
+ * Validate individual guest data.
+ * @param requiredFields - Set of field names that are required for this booking
+ *   (derived from the event's guest_data_requirements; if omitted only the base
+ *   always-required fields are enforced).
  */
-export const validateGuestData = (guest: GuestFormData, isLeadGuest: boolean = false): ValidationResult => {
+export const validateGuestData = (
+  guest: GuestFormData,
+  isLeadGuest: boolean = false,
+  requiredFields?: Set<string>
+): ValidationResult => {
   const errors: ValidationError[] = [];
 
   // First name is always required
@@ -146,7 +153,7 @@ export const validateGuestData = (guest: GuestFormData, isLeadGuest: boolean = f
   if (isLeadGuest || guest.contact_email) {
     if (!guest.contact_email) {
       if (isLeadGuest) {
-        errors.push({ field: 'contact_email', message: 'Email is required for lead guest' });
+        errors.push({ field: 'contact_email', message: 'Email is required for the lead guest' });
       }
     } else if (!validateEmail(guest.contact_email)) {
       errors.push({ field: 'contact_email', message: 'Please enter a valid email address' });
@@ -158,23 +165,27 @@ export const validateGuestData = (guest: GuestFormData, isLeadGuest: boolean = f
     errors.push({ field: 'contact_phone', message: 'Please enter a valid phone number' });
   }
 
-  // Date of birth validation
-  if (guest.date_of_birth) {
+  // Date of birth — required only when the event demands it; otherwise validate format if provided
+  if (requiredFields?.has('date_of_birth') && !guest.date_of_birth) {
+    errors.push({ field: 'date_of_birth', message: 'A date of birth is required to complete this booking' });
+  } else if (guest.date_of_birth) {
     const dobValidation = validateDateOfBirth(guest.date_of_birth);
     if (!dobValidation.isValid) {
       errors.push(...dobValidation.errors);
     }
   }
 
-  // Country of residence validation
+  // Country of residence validation (always required)
   if (!guest.country_of_residence) {
     errors.push({ field: 'country_of_residence', message: 'Country of residence is required' });
   } else if (!validateCountryCode(guest.country_of_residence)) {
     errors.push({ field: 'country_of_residence', message: 'Please select a valid country' });
   }
 
-  // Passport number validation (optional)
-  if (guest.passport_number && !validatePassportNumber(guest.passport_number)) {
+  // Passport number — required only when the event demands it; otherwise validate format if provided
+  if (requiredFields?.has('passport_number') && !guest.passport_number) {
+    errors.push({ field: 'passport_number', message: 'A passport number is required to complete this booking' });
+  } else if (guest.passport_number && !validatePassportNumber(guest.passport_number)) {
     errors.push({ field: 'passport_number', message: 'Please enter a valid passport number' });
   }
 

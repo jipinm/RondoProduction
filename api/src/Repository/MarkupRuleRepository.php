@@ -503,6 +503,56 @@ class MarkupRuleRepository
         return $results;
     }
 
+    /**
+     * Resolve the best-matching markup for a given context (team/tournament/sport)
+     * without requiring event or ticket IDs.
+     * Used by the Events listing page to apply markup to the "FROM" price.
+     *
+     * Priority: team > tournament > sport (most specific first)
+     *
+     * @param string $sportType
+     * @param string|null $tournamentId
+     * @param string|null $teamId
+     * @return array|null Resolved markup or null if none applies
+     */
+    public function resolveContextMarkup(
+        string $sportType,
+        ?string $tournamentId,
+        ?string $teamId
+    ): ?array {
+        $sql = "
+            SELECT *
+            FROM markup_rules
+            WHERE is_active = 1
+              AND event_id IS NULL
+              AND ticket_id IS NULL
+              AND (
+                  -- Team level (most specific)
+                  (team_id = ? AND ? != '')
+                  -- Tournament level
+                  OR (tournament_id = ? AND ? != '' AND team_id IS NULL)
+                  -- Sport level (least specific)
+                  OR (sport_type = ? AND tournament_id IS NULL AND team_id IS NULL)
+              )
+            ORDER BY FIELD(level, 'team', 'tournament', 'sport')
+            LIMIT 1
+        ";
+
+        $stmt = $this->db->getConnection()->prepare($sql);
+        $stmt->execute([
+            $teamId ?? '',       $teamId ?? '',
+            $tournamentId ?? '', $tournamentId ?? '',
+            $sportType,
+        ]);
+
+        $rule = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$rule) {
+            return null;
+        }
+
+        return $this->formatRuleResult($rule);
+    }
+
     // ========================================================================
     // Private Helpers
     // ========================================================================

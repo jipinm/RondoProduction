@@ -1059,6 +1059,7 @@ class Application
         
         // Events endpoints
         $this->app->get('/v1/events', [$eventsController, 'listEvents']);
+        $this->app->get('/v1/events/min-ticket-prices', [$eventsController, 'batchMinTicketPrices']); // must precede {id} wildcard
         $this->app->get('/v1/events/{id:[a-zA-Z0-9_-]+}', [$eventsController, 'getEvent']);
         $this->app->get('/v1/events/{event_id:[a-zA-Z0-9_-]+}/guestdata', [$eventsController, 'getEventGuestDataRequirements']);
         

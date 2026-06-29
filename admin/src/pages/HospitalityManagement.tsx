@@ -27,9 +27,10 @@ import {
   type HospitalityAssignment,
   type AssignmentLevel,
 } from '../services/hospitalityService';
+import { displaySettingsService } from '../services/displaySettingsService';
 import styles from './HospitalityManagement.module.css';
 
-// Helper to get current season (e.g., "25/26")
+// Helper to get current season (e.g., "25/26") — fallback only
 const getCurrentSeason = (): string => {
   const now = new Date();
   const year = now.getFullYear();
@@ -54,19 +55,38 @@ interface Sport {
 }
 
 const KNOWN_SPORTS: Sport[] = [
-  { sport_type: 'soccer', name: 'Soccer', has_teams: true },
-  { sport_type: 'motorsport', name: 'Motorsport', has_teams: false },
-  { sport_type: 'tennis', name: 'Tennis', has_teams: false },
-  { sport_type: 'rugby', name: 'Rugby', has_teams: true },
-  { sport_type: 'basketball', name: 'Basketball', has_teams: true },
-  { sport_type: 'cricket', name: 'Cricket', has_teams: true },
-  { sport_type: 'american_football', name: 'American Football', has_teams: true },
-  { sport_type: 'ice_hockey', name: 'Ice Hockey', has_teams: true },
-  { sport_type: 'boxing', name: 'Boxing', has_teams: false },
-  { sport_type: 'mma', name: 'MMA', has_teams: false },
-  { sport_type: 'golf', name: 'Golf', has_teams: false },
-  { sport_type: 'cycling', name: 'Cycling', has_teams: false },
+  { sport_type: 'soccer',            name: 'Soccer',            has_teams: true  },
+  { sport_type: 'motorsport',        name: 'Motorsport',        has_teams: false },
+  { sport_type: 'tennis',            name: 'Tennis',            has_teams: false },
+  { sport_type: 'rugby',             name: 'Rugby',             has_teams: true  },
+  { sport_type: 'basketball',        name: 'Basketball',        has_teams: true  },
+  { sport_type: 'cricket',           name: 'Cricket',           has_teams: true  },
+  { sport_type: 'american_football', name: 'American Football', has_teams: true  },
+  { sport_type: 'ice_hockey',        name: 'Ice Hockey',        has_teams: true  },
+  { sport_type: 'boxing',            name: 'Boxing',            has_teams: false },
+  { sport_type: 'mma',               name: 'MMA',               has_teams: false },
+  { sport_type: 'golf',              name: 'Golf',              has_teams: false },
+  { sport_type: 'cycling',           name: 'Cycling',           has_teams: false },
 ];
+
+/**
+ * Build a unique, human-readable label for a tournament option.
+ * Appends the season when present (e.g. "Formula 1 — 2025").
+ * If the base name is still not unique after that, also shows the slug.
+ */
+const getTournamentLabel = (t: Tournament, all: Tournament[]): string => {
+  const base = t.official_name || t.name;
+  const withSeason = t.season ? `${base} — ${t.season}` : base;
+  // Check if adding the season made it unique
+  const duplicates = all.filter(o => {
+    const ob = o.official_name || o.name;
+    return (o.season ? `${ob} — ${o.season}` : ob) === withSeason;
+  });
+  if (duplicates.length > 1 && t.slug) {
+    return `${withSeason} (${t.slug})`;
+  }
+  return withSeason;
+};
 
 const LEVEL_LABELS: Record<AssignmentLevel, string> = {
   sport: 'Sport Level',
@@ -75,15 +95,17 @@ const LEVEL_LABELS: Record<AssignmentLevel, string> = {
   category: 'Venue Category Level',
   event: 'Event Level',
   ticket: 'Ticket Level',
+  venue: 'Venue Level',
 };
 
 const LEVEL_DESCRIPTIONS: Record<AssignmentLevel, string> = {
   sport: 'Selected services will be available for ALL events and tickets under this sport',
   tournament: 'Selected services will be available for all events and tickets in this tournament',
   team: 'Selected services will be available for all events and tickets for this team',
-  category: 'Selected services apply to all events at this venue that include this seating section (uses stable XS2Event category_id)',
+  category: 'Selected services apply to events at this venue that include this seating section, further scoped by the Sport, Tournament, and Team selected above (uses stable XS2Event category_id)',
   event: 'Selected services will be available for all tickets under this specific event',
   ticket: 'Selected services will be available only for this specific supplier ticket (event-scoped)',
+  venue: 'Selected services will be available for all events hosted at this venue',
 };
 
 // XS2Event API types
@@ -92,6 +114,7 @@ interface Tournament {
   name: string;
   official_name: string;
   season: string;
+  slug?: string;
 }
 
 interface Team {
@@ -128,6 +151,20 @@ interface XS2Ticket {
 type ViewMode = 'services' | 'assignments';
 
 const HospitalityManagement: React.FC = () => {
+  // Active season from admin display settings (used for season-based sports)
+  const [activeSeason, setActiveSeason] = useState('');
+
+  useEffect(() => {
+    displaySettingsService.getSettings()
+      .then(s => setActiveSeason(s.active_season ?? ''))
+      .catch(() => {});
+  }, []);
+
+  const getEffectiveSeason = (): string => {
+    if (activeSeason && activeSeason.trim() !== '') return activeSeason.trim();
+    return getCurrentSeason();
+  };
+
   // View mode
   const [viewMode, setViewMode] = useState<ViewMode>('services');
 
@@ -178,6 +215,9 @@ const HospitalityManagement: React.FC = () => {
 
   // All existing hierarchical assignments
   const [existingAssignments, setExistingAssignments] = useState<HospitalityAssignment[]>([]);
+
+  // Cache of venue_id → { name, city, country } for venue-level rows whose venue_name is null in the DB
+  const [venueNameCache, setVenueNameCache] = useState<Record<string, { name: string; city?: string; country?: string }>>({});
 
   const { toasts, closeToast, success, error } = useToast();
 
@@ -232,6 +272,42 @@ const HospitalityManagement: React.FC = () => {
     }
   }, [viewMode, fetchExistingAssignments]);
 
+  // Enrich venue-level rows whose venue_name was not stored (legacy null rows)
+  // by fetching official_name from XS2Event for each unique missing venue_id.
+  useEffect(() => {
+    const missingIds = [
+      ...new Set(
+        existingAssignments
+          .filter(a => a.level === 'venue' && a.venue_id && !a.venue_name)
+          .map(a => a.venue_id as string)
+      ),
+    ];
+    if (missingIds.length === 0) return;
+
+    const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
+    const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
+
+    Promise.all(
+      missingIds.map(async (venueId) => {
+        try {
+          const res = await fetch(`${baseUrl}/v1/venues/${venueId}`, {
+            headers: { Accept: 'application/json', 'X-Api-Key': apiKey },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const venue = data.venue ?? data;
+          const name: string = venue.official_name || venue.name || '';
+          if (name) setVenueNameCache(prev => ({
+            ...prev,
+            [venueId]: { name, city: venue.city || undefined, country: venue.country || undefined },
+          }));
+        } catch {
+          // silently ignore — fallback to venue_id is still shown
+        }
+      })
+    );
+  }, [existingAssignments]);
+
   // ==========================================================================
   // Hierarchical XS2Event API calls
   // ==========================================================================
@@ -250,12 +326,25 @@ const HospitalityManagement: React.FC = () => {
         const rawSports: any[] = data.sports || data.data || (Array.isArray(data) ? data : []);
         if (rawSports.length > 0) {
           const fetchedSports: Sport[] = rawSports
-            .map((s: any) => ({
-              sport_type: s.sport_type || s.slug || s.name?.toLowerCase()?.replace(/\s+/g, '_') || '',
-              name: s.name || s.sport_type || s.slug || '',
-              has_teams: s.has_teams ?? KNOWN_SPORTS.find(k => k.sport_type === (s.sport_type || s.slug))?.has_teams ?? true,
-            }))
-            .filter((s) => s.sport_type && s.name);
+            .map((s: any) => {
+              // API returns { sport_id: "soccer" } — also handle legacy { sport_type, slug, name }
+              const sportId: string = s.sport_id || s.sport_type || s.slug || s.name?.toLowerCase()?.replace(/\s+/g, '_') || '';
+              const knownMatch = KNOWN_SPORTS.find(k => k.sport_type === sportId);
+              // Build a human-readable name: prefer API name field, then KNOWN_SPORTS name,
+              // then title-case the sport_id (e.g. "icehockey" -> "Icehockey")
+              const displayName: string = s.name || knownMatch?.name
+                || sportId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              return {
+                sport_type: sportId,
+                name: displayName,
+                has_teams: s.has_teams ?? knownMatch?.has_teams ?? true,
+              };
+            })
+            // Only include sports that are in the KNOWN_SPORTS whitelist.
+            // XS2Event exposes sub-types like "nba", "nfl", "formula1" as separate
+            // sport_ids alongside their parent types ("basketball", "motorsport").
+            // Allowing all of them through creates duplicate/confusing entries.
+            .filter((s) => s.sport_type && s.name && KNOWN_SPORTS.some(k => k.sport_type === s.sport_type));
           if (fetchedSports.length > 0) {
             setSports(fetchedSports);
           }
@@ -271,12 +360,19 @@ const HospitalityManagement: React.FC = () => {
     try {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
       const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
-      const currentSeason = getCurrentSeason();
 
-      const response = await fetch(
-        `${baseUrl}/v1/tournaments?sport_type=${sportType}&season=${currentSeason}`,
-        { headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey } }
-      );
+      // Only append the active-season for soccer. Soccer uses a slash-format
+      // season ("26/27") held in display settings. Rugby, basketball, cricket and
+      // other sports use incompatible calendar-year formats — sending the soccer
+      // format returns 0 results from XS2Event (same fix applied in EventsPage).
+      let url = `${baseUrl}/v1/tournaments?sport_type=${sportType}&page_size=100`;
+      if (sportType === 'soccer') {
+        url += `&season=${encodeURIComponent(getEffectiveSeason())}`;
+      }
+
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey },
+      });
 
       if (!response.ok) throw new Error('Failed to fetch tournaments');
       const data = await response.json();
@@ -287,7 +383,8 @@ const HospitalityManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [error]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, activeSeason]);
 
   const fetchTeams = useCallback(async (sportType: string, tournamentId: string) => {
     setLoading(true);
@@ -295,10 +392,13 @@ const HospitalityManagement: React.FC = () => {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
       const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
 
-      const response = await fetch(
-        `${baseUrl}/v1/teams?sport_type=${sportType}&tournament_id=${tournamentId}`,
-        { headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey } }
-      );
+      // season is NOT forwarded to /v1/teams — XS2Event does not support it
+      // and returns 400. Teams are implicitly season-scoped via tournament_id.
+      const url = `${baseUrl}/v1/teams?sport_type=${sportType}&tournament_id=${tournamentId}&page_size=100`;
+
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey },
+      });
 
       if (!response.ok) throw new Error('Failed to fetch teams');
       const data = await response.json();
@@ -309,7 +409,8 @@ const HospitalityManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [error]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, activeSeason]);
 
   const fetchEvents = useCallback(async (tournamentId: string, teamId?: string) => {
     setLoading(true);
@@ -1041,7 +1142,7 @@ const HospitalityManagement: React.FC = () => {
                     <option value="">-- Select Tournament (optional) --</option>
                     {tournaments.map(t => (
                       <option key={t.tournament_id} value={t.tournament_id}>
-                        {t.official_name || t.name}
+                        {getTournamentLabel(t, tournaments)}
                       </option>
                     ))}
                   </select>
@@ -1100,7 +1201,7 @@ const HospitalityManagement: React.FC = () => {
                     <option value="">-- Select Event (optional) --</option>
                     {events.map(e => (
                       <option key={e.event_id} value={e.event_id}>
-                        {e.event_name} - {new Date(e.date_start).toLocaleDateString()}
+                        {e.event_name}{e.venue_name ? ` — ${e.venue_name}` : ''} ({new Date(e.date_start).toLocaleDateString()})
                       </option>
                     ))}
                   </select>
@@ -1345,6 +1446,16 @@ const HospitalityManagement: React.FC = () => {
                         </div>
 
                         <div>
+                          {(assignment.venue_name || assignment.venue_id) && (() => {
+                            const cached = assignment.venue_id ? venueNameCache[assignment.venue_id] : undefined;
+                            const displayName = assignment.venue_name || cached?.name || assignment.venue_id;
+                            const location = [cached?.city, cached?.country].filter(Boolean).join(', ');
+                            return (
+                              <span className={styles.scopeItem}>
+                                🏟️ {displayName}{location ? ` — ${location}` : ''}
+                              </span>
+                            );
+                          })()}
                           {assignment.sport_name && <span className={styles.scopeItem}>{assignment.sport_name}</span>}
                           {assignment.tournament_name && (
                             <>
@@ -1433,10 +1544,11 @@ const HospitalityManagement: React.FC = () => {
                 <div className={styles.priorityItem}>
                   <span className={styles.priorityBadge} style={{ backgroundColor: '#0ea5e9' }}>3</span>
                   <div>
-                    <strong>Venue Category Level</strong> ⭐ — Services linked to a venue section (XS2Event category_id).
-                    Applies automatically across <em>all</em> events at the venue that include that section.
+                    <strong>Venue Category Level</strong> ⭐ — Services linked to a venue section (XS2Event category_id),
+                    scoped by the Sport, Tournament, and Team selected above.
+                    Only events at that venue <em>where those constraints match</em> will receive these services.
                     <br />
-                    <small style={{ opacity: 0.7 }}>Use this for recurring hospitality (e.g., a VIP lounge that exists in every home match).</small>
+                    <small style={{ opacity: 0.7 }}>Use this for recurring hospitality tied to a specific team's section (e.g., AS Roma's Tribuna Tevere lounge).</small>
                   </div>
                 </div>
                 <div className={styles.priorityItem}>

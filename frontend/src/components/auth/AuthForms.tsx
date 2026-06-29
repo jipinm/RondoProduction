@@ -465,7 +465,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               placeholder="Select a country..."
               disabled={isLoading}
               error={errors.country_code}
-              className={styles.countrySelect}
+              className={styles.input}
             />
           </div>
 

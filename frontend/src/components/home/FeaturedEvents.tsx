@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useEvents } from '../../hooks/useEvents';
 import { useMultiCurrencyConversion } from '../../hooks/useMultiCurrencyConversion';
 import { useSelectedCurrency } from '../../contexts/CurrencyContext';
+import { useEventMinPrices } from '../../hooks/useEventMinPrices';
 import type { Event } from '../../services/apiRoutes';
 import styles from './FeaturedEvents.module.css';
 
@@ -62,8 +63,22 @@ const FeaturedEvents: React.FC = () => {
   const { events, loading, totalSize, hasMore, loadMore, loadingMore } = useEvents({});
 
   const { selectedCurrencyCode } = useSelectedCurrency();
-  const { convertAmount, isLoading: currencyLoading } = useMultiCurrencyConversion(
-    ['EUR'],
+
+  // Fetch actual min ticket prices from real ticket data (native currency per event)
+  const eventIds = useMemo(() => events.map(e => e.event_id), [events]);
+  const { eventMinPrices, loading: minPricesLoading } = useEventMinPrices(eventIds);
+
+  // Derive all currencies present in real ticket data so conversion rates are fetched for them
+  const allTicketCurrencies = useMemo(() => {
+    // GBP is pre-included so its rate is fetched before min prices arrive,
+    // preventing a one-render window where GBP prices fall back to EUR estimate.
+    const set = new Set(['EUR', 'USD', 'GBP']);
+    eventMinPrices.forEach(prices => Object.keys(prices).forEach(c => set.add(c)));
+    return [...set];
+  }, [eventMinPrices]);
+
+  const { convertAmount, hasConversion: hasConversionForCurrency, isLoading: currencyLoading } = useMultiCurrencyConversion(
+    allTicketCurrencies,
     selectedCurrencyCode
   );
 
@@ -99,6 +114,25 @@ const FeaturedEvents: React.FC = () => {
   };
 
   const formatPrice = (event: Event): string => {
+    // Prefer native-currency min prices from real ticket data to avoid stale EUR cross-rate error
+    const nativePrices = eventMinPrices.get(event.event_id);
+    if (nativePrices && Object.keys(nativePrices).length > 0) {
+      let minConverted = Infinity;
+      for (const [currency, price] of Object.entries(nativePrices)) {
+        const converted =
+          currency === selectedCurrencyCode
+            ? price
+            : hasConversionForCurrency(currency)
+            ? convertAmount(price, currency)
+            : null;
+        if (converted !== null && converted < minConverted) minConverted = converted;
+      }
+      // Return correct price if any rate was available; return '' (not EUR fallback)
+      // if rates are still loading — avoids showing stale EUR cross-rate while waiting.
+      return minConverted !== Infinity ? `${selectedCurrencyCode} ${minConverted.toFixed(2)}` : '';
+    }
+
+    // No native data — fall back to XS2Event EUR estimate
     if (!event.min_ticket_price_eur || event.min_ticket_price_eur === 0) return '';
     const converted = convertAmount(event.min_ticket_price_eur, 'EUR');
     return `${selectedCurrencyCode} ${converted.toFixed(2)}`;
@@ -298,7 +332,7 @@ const FeaturedEvents: React.FC = () => {
 
                     {/* Price + CTA */}
                     <div className={styles.priceColumn}>
-                      {currencyLoading && price ? (
+                      {(currencyLoading || minPricesLoading || (!price && !!event.min_ticket_price_eur)) ? (
                         <div className={styles.skeletonLine} style={{ width: 80, marginBottom: 8 }} />
                       ) : (
                         price && <div className={styles.priceLabel}>FROM {price}</div>

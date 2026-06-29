@@ -358,7 +358,18 @@ class BannersService
     public function getPublicBanners(string $location, int $limit = 10): array
     {
         try {
-            return $this->repository->findByLocation($location, $limit);
+            $banners = $this->repository->findByLocation($location, $limit);
+
+            // Re-base image URLs against the current APP_URL so that records
+            // uploaded in development (http://rondoapi.local/...) are served
+            // with the correct hostname in every environment.
+            foreach ($banners as &$banner) {
+                $banner['image_url'] = $this->normalizeImageUrl($banner['image_url'] ?? null) ?? '';
+                $banner['mobile_image_url'] = $this->normalizeImageUrl($banner['mobile_image_url'] ?? null);
+            }
+            unset($banner);
+
+            return $banners;
         } catch (\Exception $e) {
             $this->logger->error('Error in BannersService::getPublicBanners', [
                 'error' => $e->getMessage(),
@@ -366,6 +377,34 @@ class BannersService
             ]);
             throw new ServiceException('Failed to retrieve public banners: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Rebase a stored image URL against the current $baseUrl so any hostname
+     * baked in at upload time is replaced with the current environment's APP_URL.
+     * Returns null for empty/null input; returns the original URL unchanged when
+     * it does not contain the expected /images/banners/ path segment.
+     */
+    private function normalizeImageUrl(?string $storedUrl): ?string
+    {
+        if (empty($storedUrl)) {
+            return null;
+        }
+
+        $path = parse_url($storedUrl, PHP_URL_PATH);
+        if (!$path) {
+            return $storedUrl;
+        }
+
+        $marker = '/images/banners/';
+        $pos = strpos($path, $marker);
+        if ($pos === false) {
+            return $storedUrl; // unexpected format — leave as-is
+        }
+
+        $relativePart = substr($path, $pos + strlen($marker));
+
+        return rtrim($this->baseUrl, '/') . '/' . $relativePart;
     }
 
     /**

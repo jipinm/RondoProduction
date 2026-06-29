@@ -398,6 +398,42 @@ export const getHospitalitiesByIds = (
   return allHospitalities.filter(h => hospitalityIds.includes(h.id));
 };
 
+/**
+ * Resolve the best-matching markup for a sport/tournament/team context
+ * without needing event or ticket IDs.
+ * Used by the Events listing page to apply markup to the "FROM" price.
+ * Priority: team > tournament > sport.
+ *
+ * @param sportType - e.g. 'soccer'
+ * @param tournamentId - optional tournament ID
+ * @param teamId - optional team ID (home team)
+ * @returns EffectiveMarkup or null
+ */
+export const getContextMarkup = async (
+  sportType: string,
+  tournamentId?: string,
+  teamId?: string
+): Promise<EffectiveMarkup | null> => {
+  try {
+    const params = new URLSearchParams({ sport_type: sportType });
+    if (tournamentId) params.set('tournament_id', tournamentId);
+    if (teamId) params.set('team_id', teamId);
+
+    const response = await apiClient.request<ApiResponse<EffectiveMarkup | null>>(
+      `/v1/markup-context?${params.toString()}`
+    );
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch context markup');
+    }
+
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Failed to get context markup:', error);
+    return null;
+  }
+};
+
 // ============================================================================
 // Export default service object
 // ============================================================================
@@ -410,6 +446,7 @@ export const ticketEnhancementsService = {
   
   // Hierarchical Markup Pricing
   getEventEffectiveMarkups,
+  getContextMarkup,
   calculateEffectiveMarkupAmount,
   
   // Hospitality Services

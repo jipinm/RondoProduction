@@ -15,24 +15,34 @@ export const useTeamDetails = (teamId?: string) => {
       return;
     }
 
+    let cancelled = false;
+
     const fetchTeamDetails = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        
         const response = await apiClient.get<Team>(API_ENDPOINTS.TEAM_DETAILS(teamId));
-        
-        setTeam(response.data);
+        if (!cancelled) {
+          setTeam(response.data);
+        }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch team details';
-        setError(errorMessage);
+        if (!cancelled) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to fetch team details';
+          setError(errorMessage);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTeamDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, [teamId]);
 
   return { team, loading, error };

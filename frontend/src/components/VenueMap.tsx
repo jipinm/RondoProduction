@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useCategories } from '../hooks/useCategories';
 import styles from './VenueMap.module.css';
 
@@ -6,10 +6,12 @@ interface VenueMapProps {
   venueId: string;
   eventId: string;
   className?: string;
-  externalHoveredCategory?: string | null; // New prop for external category highlighting
+  externalHoveredCategory?: string | null;
+  /** Category IDs that have purchasable tickets. When provided, sections outside this set are dimmed. */
+  availableCategoryIds?: string[];
 }
 
-const VenueMap: React.FC<VenueMapProps> = ({ venueId, eventId, className, externalHoveredCategory }) => {
+const VenueMap: React.FC<VenueMapProps> = ({ venueId, eventId, className, externalHoveredCategory, availableCategoryIds }) => {
   const [svgContent, setSvgContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +66,33 @@ const VenueMap: React.FC<VenueMapProps> = ({ venueId, eventId, className, extern
 
     fetchSvg();
   }, [venueId]);
+
+  // Pre-compute the available set for O(1) lookup
+  const availableSet = useMemo(
+    () => availableCategoryIds ? new Set(availableCategoryIds) : null,
+    [availableCategoryIds]
+  );
+
+  // Dim SVG sections that have no purchasable tickets
+  useEffect(() => {
+    if (!svgContainerRef.current || !svgContent || categoriesLoading || !availableSet) return;
+
+    const svgElement = svgContainerRef.current.querySelector('svg');
+    if (!svgElement) return;
+
+    categories.forEach(category => {
+      const escapedId = escapeCSSSelector(category.category_id);
+      const elements = svgElement.querySelectorAll(`.${escapedId}, ._${escapedId}`);
+      const isAvailable = availableSet.has(category.category_id);
+      elements.forEach(el => {
+        if (isAvailable) {
+          (el as HTMLElement).classList.remove('unavailable');
+        } else {
+          (el as HTMLElement).classList.add('unavailable');
+        }
+      });
+    });
+  }, [svgContent, categories, categoriesLoading, availableSet]);
 
   // Apply category highlighting
   useEffect(() => {
@@ -197,25 +226,37 @@ const VenueMap: React.FC<VenueMapProps> = ({ venueId, eventId, className, extern
       
       {categories.length > 0 && (
         <div className={styles.categoryLegend}>
-          <h4>Categories</h4>
+          <h4>Sections</h4>
+          {availableSet && (
+            <p className={styles.legendNote}>
+              Sections marked <strong>Available</strong> have tickets for purchase. Others are dimmed on the map.
+            </p>
+          )}
           <div className={styles.categoryList}>
-            {categories.map(category => (
-              <div
-                key={category.category_id}
-                className={`${styles.categoryItem} ${hoveredCategory === category.category_id ? styles.active : ''}`}
-                onMouseEnter={() => setHoveredCategory(category.category_id)}
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <div 
-                  className={`${styles.categoryColor} ${styles[`category_${category.category_type || 'default'}`]}`}
-                ></div>
-                <span className={styles.categoryName}>{category.category_name}</span>
-                {/* Note: Price information would come from tickets data, not categories */}
-                <span className={styles.categoryPrice}>
-                  {category.category_type}
-                </span>
-              </div>
-            ))}
+            {[
+              ...categories.filter(c => !availableSet || availableSet.has(c.category_id)),
+              ...categories.filter(c => availableSet && !availableSet.has(c.category_id)),
+            ].map(category => {
+              const isAvailable = !availableSet || availableSet.has(category.category_id);
+              return (
+                <div
+                  key={category.category_id}
+                  className={`${styles.categoryItem} ${isAvailable && hoveredCategory === category.category_id ? styles.active : ''} ${!isAvailable ? styles.categoryItemUnavailable : ''}`}
+                  onMouseEnter={isAvailable ? () => setHoveredCategory(category.category_id) : undefined}
+                  onMouseLeave={isAvailable ? () => setHoveredCategory(null) : undefined}
+                >
+                  <div
+                    className={`${styles.categoryColor} ${isAvailable ? styles[`category_${category.category_type || 'default'}`] : styles.categoryColorUnavailable}`}
+                  />
+                  <span className={styles.categoryName}>{category.category_name}</span>
+                  {isAvailable ? (
+                    <span className={styles.badgeAvailable}>Available</span>
+                  ) : (
+                    <span className={styles.badgeUnavailable}>No tickets</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

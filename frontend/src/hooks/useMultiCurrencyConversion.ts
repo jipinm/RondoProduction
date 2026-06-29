@@ -55,14 +55,23 @@ export const useMultiCurrencyConversion = (
 ): MultiCurrencyConversionResult => {
   // Used solely to trigger re-renders when new rates arrive from the network.
   const [rateVersion, setRateVersion] = useState(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // Start as true so callers treat pricing as unready until the effect has at
+  // least run once and confirmed whether the cache is warm or a fetch is needed.
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const uniqueCurrencies = [...new Set(currencies.filter(c => c && c !== toCurrency))];
 
     if (uniqueCurrencies.length === 0) {
-      setIsLoading(false);
+      // Two cases reach here:
+      // 1. currencies[] is empty — tickets haven't loaded yet, stay loading.
+      // 2. Every currency in currencies[] equals toCurrency — nothing to fetch, ready.
+      if (currencies.length > 0) {
+        // All source currencies == toCurrency, no conversion needed — mark ready.
+        setIsLoading(false);
+      }
+      // else: no currencies yet — stay loading (initial true state).
       setError(null);
       return;
     }

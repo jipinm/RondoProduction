@@ -36,6 +36,7 @@ class DisplaySettingsController
         'football_visible_tournaments',
         'excluded_teams',
         'other_sports_visible',
+        'active_season',
     ];
 
     public function __construct(
@@ -175,20 +176,26 @@ class DisplaySettingsController
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
 
-            // Encode the incoming value as a JSON string for storage
             $rawValue = $body['value'];
-            $encoded  = json_encode($rawValue);
-
-            if ($encoded === false) {
-                $response->getBody()->write(json_encode([
-                    'success' => false,
-                    'error'   => 'Provided value could not be serialised to JSON',
-                ]));
-                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-            }
 
             // Fetch existing row to preserve meta fields
             $existing = $this->repository->getByKey($key);
+            $settingType = $existing['setting_type'] ?? 'json';
+
+            // For scalar types (string, number, boolean) store the value directly;
+            // for json types (arrays, objects) encode it as a JSON string.
+            if ($settingType === 'string') {
+                $encoded = is_string($rawValue) ? $rawValue : (string) $rawValue;
+            } else {
+                $encoded = json_encode($rawValue);
+                if ($encoded === false) {
+                    $response->getBody()->write(json_encode([
+                        'success' => false,
+                        'error'   => 'Provided value could not be serialised to JSON',
+                    ]));
+                    return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+                }
+            }
 
             $this->repository->upsert(
                 key:         $key,
@@ -259,9 +266,13 @@ class DisplaySettingsController
         $out = [];
         foreach ($rows as $row) {
             $value = $row['setting_value'];
-            if ($row['setting_type'] === 'json') {
-                $decoded = json_decode($value, true);
-                $value   = $decoded !== null ? $decoded : $value;
+            // Always attempt JSON decode — values are json_encode'd on save
+            // regardless of setting_type, so they must always be decoded on read.
+            // Falls back to the raw string when it is not valid JSON (e.g. plain
+            // text inserted directly via migration / seed data).
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
+                $value = $decoded;
             }
             $out[$row['setting_key']] = $value;
         }

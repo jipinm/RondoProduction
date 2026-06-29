@@ -201,12 +201,12 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
               {paymentSucceeded ? (
                 <>
                   <span className={styles.spinner}></span>
-                  Payment Successful - Redirecting...
+                  Confirming your booking...
                 </>
               ) : isLoading ? (
                 <>
                   <span className={styles.spinner}></span>
-                  Processing...
+                  Processing payment...
                 </>
               ) : (
                 `Pay ${formatPrice(bookingData.totalAmount)}`
@@ -264,8 +264,15 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = (props) => {
     return (
       <div className={styles.checkoutContainer}>
         <div className={styles.loadingState}>
-          <div className={styles.spinner}></div>
-          <p>Setting up secure payment...</p>
+          <div className={styles.loadingSpinnerWrapper}>
+            <div className={styles.loadingSpinnerTrack}></div>
+            <div className={styles.loadingSpinnerArc}></div>
+          </div>
+          <p className={styles.loadingMessage}>Setting up secure payment</p>
+          <p className={styles.loadingSubMessage}>Connecting to payment provider</p>
+          <div className={styles.loadingProgressBar}>
+            <div className={styles.loadingProgressFill}></div>
+          </div>
         </div>
       </div>
     );

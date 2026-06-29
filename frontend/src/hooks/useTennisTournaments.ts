@@ -28,7 +28,8 @@ export const useTennisTournaments = (): UseTennisTournamentsReturn => {
     setError(null);
 
     try {
-      const tournamentsUrl = `${API_ENDPOINTS.TOURNAMENTS}?page_size=50&page=1&sport_type=tennis`;
+      const today = new Date().toISOString().split('T')[0];
+      const tournamentsUrl = `${API_ENDPOINTS.TOURNAMENTS}?page_size=50&page=1&sport_type=tennis&date_stop=ge:${today}`;
       const response = await apiClient.get<TournamentsResponse>(tournamentsUrl);
 
       const allTournaments = response.data.tournaments || [];

@@ -11,6 +11,8 @@ import { useDisplaySettings } from '../../hooks/useDisplaySettings';
 import { useSiteBranding } from '../../hooks/useSiteBranding';
 import { useAuth } from '../../services/customerAuth';
 import { useSelectedCurrency } from '../../contexts/CurrencyContext';
+import { stableTournamentKey } from '../../utils/displayKeys';
+import type { Tournament } from '../../services/apiRoutes';
 
 // Sport display name mapping
 const sportDisplayNames: Record<string, string> = {
@@ -44,10 +46,16 @@ const getEventLinkBySport = (sportType: string): string => {
   return `/events?sport_type=${sportType}`;
 };
 
-const getTeamsPageLink = (tournamentId: string): string => {
-  const link = `/teams?tournament_id=${tournamentId}&sport_type=soccer&page=1&page_size=50`;
-  return link;
+const getTeamsPageLink = (tournamentId: string, tkey?: string): string => {
+  // Thread the season-stable tournament key (tkey) so TeamsPage can resolve
+  // team-exclusion settings by stable key rather than the season-specific id.
+  const tkeyParam = tkey ? `&tkey=${encodeURIComponent(tkey)}` : '';
+  return `/teams?tournament_id=${tournamentId}&sport_type=soccer&page=1&page_size=50${tkeyParam}`;
 };
+
+// Football-specific link builder that always includes the stable key.
+const getFootballTeamsPageLink = (t: Tournament): string =>
+  getTeamsPageLink(t.tournament_id, stableTournamentKey(t));
 
 const getTennisEventsLink = (tournamentId: string): string => {
   return `/events?sport_type=tennis&tournament_id=${tournamentId}`;
@@ -59,12 +67,12 @@ const getGolfEventsLink = (tournamentId: string): string => {
 
 const Header: React.FC = () => {
   const { sports, loading, error } = useSports();
-  const { settings: displaySettings } = useDisplaySettings();
+  const { settings: displaySettings, loading: settingsLoading } = useDisplaySettings();
   const { 
     tournaments: footballTournaments, 
     loading: tournamentsLoading, 
     error: tournamentsError
-  } = useMenuHierarchy({ displaySettings });
+  } = useMenuHierarchy({ displaySettings, settingsLoading });
   const {
     tournaments: tennisTournaments,
     loading: tennisTournamentsLoading,
@@ -89,7 +97,7 @@ const Header: React.FC = () => {
   const [accountDropdownOpen, setAccountDropdownOpen] = React.useState(false);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 1024);
   const navigationRef = React.useRef<HTMLElement>(null);
 
   // Log sports data changes for debugging
@@ -100,7 +108,7 @@ const Header: React.FC = () => {
   // Handle window resize
   React.useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= 1024);
     };
 
     window.addEventListener('resize', handleResize);
@@ -288,7 +296,7 @@ const Header: React.FC = () => {
             {!isLoading && !hasError && tournaments.map((t) => (
               <Link
                 key={t.tournament_id}
-                to={linkFn(t.tournament_id)}
+                to={sportId === 'soccer' ? getFootballTeamsPageLink(t) : linkFn(t.tournament_id)}
                 className={styles.mobileDrawerSubItem}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -358,7 +366,7 @@ const Header: React.FC = () => {
               return (
                 <Link 
                   key={tournament.tournament_id}
-                  to={getTeamsPageLink(tournament.tournament_id)}
+                  to={getFootballTeamsPageLink(tournament)}
                   className={styles.submenuItem}
                   onClick={handleSubmenuItemClick}
                 >

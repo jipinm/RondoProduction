@@ -38,6 +38,76 @@
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
 }
 
+/* Inline field-level error (simpler, no box) */
+.fieldError {
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fieldError::before {
+  content: '✕';
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Red label for fields with validation errors */
+.labelError {
+  color: #dc2626 !important;
+}
+
+/* Hint text shown below required-field labels */
+.fieldHint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 0.4rem 0;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Upfront requirements notice (shown when DOB / passport are required) */
+.requirementsNotice {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.requirementsNoticeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+
+.requirementsNoticeHeader svg {
+  flex-shrink: 0;
+}
+
+.requirementsNoticeList {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #78350f;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.requirementsNoticeList li {
+  margin-bottom: 0.25rem;
+}
+
+.requirementsNoticeList li:last-child {
+  margin-bottom: 0;
+}
+
 /* RONDO: Review color pairing — could not auto-map to approved combination */
 .successMessage {
   color: #065f46;
@@ -147,16 +217,20 @@
 /* Guest Section Styling */
 .guestSection {
   margin-bottom: 1.5rem;
-  padding: 1rem;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  background-color: var(--color-neutral-light);
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .guestSection h4 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1.25rem 0;
   color: var(--color-neutral-dark);
   font-weight: 600;
+  font-size: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
 /* Payment Method Styles */
@@ -392,49 +466,66 @@
 .formRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  align-items: start;
+}
+
+.formRow:last-child {
+  margin-bottom: 0;
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Columns inside a formRow don't need their own bottom margin */
+.formRow > .formGroup {
+  margin-bottom: 0;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
 }
 
 .formGroup label {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-neutral-dark);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
 }
 
 .formInput,
 .formSelect {
-  padding: 0.875rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
   font-size: 0.9rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: var(--color-neutral-dark);
+  box-sizing: border-box;
 }
 
 .formInput:hover,
 .formSelect:hover {
-  border-color: #cbd5e0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-color: #9ca3af;
 }
 
 .formInput:focus,
 .formSelect:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(36, 83, 136, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 3px rgba(36, 83, 136, 0.12);
 }
 
 .formInput::placeholder {
-  color: var(--color-placeholder);
+  color: #9ca3af;
   font-weight: 400;
 }
 
@@ -1557,18 +1648,75 @@
   transform: none;
 }
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #ffffff40;
-  border-top: 2px solid #ffffff;
+/* ── Button-level spinner (inline, white) ── */
+.spinner,
+.buttonSpinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.75s linear infinite;
+}
+
+/* Subtle glow while the primary button is in a loading state */
+.primaryButtonLoading {
+  background: var(--color-primary) !important;
+  opacity: 0.85;
+  cursor: wait !important;
+}
+
+.primaryButtonLoading::before {
+  display: none; /* hide the shimmer sweep while loading */
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Welcome message box */
+.welcomeMessage {
+  background: #f0f7ff;
+  border: 1px solid #bfdbfe;
+  border-left: 4px solid var(--color-primary);
+  border-radius: 10px;
+  padding: 0.875rem 1.125rem;
+  margin-bottom: 1.5rem;
+}
+
+.welcomeMessage p {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+.welcomeMessage p:last-child {
+  margin-bottom: 0;
+  color: #3b82f6;
+  font-size: 0.825rem;
+}
+
+/* Loading state anchor (matches .loadingContent / .loadingSpinner that pages reference) */
+.loadingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 300px;
+  padding: 2rem;
+}
+
+.loadingSpinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e2e8f0;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
 }
 
 .sidebar {

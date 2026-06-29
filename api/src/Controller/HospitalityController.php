@@ -252,8 +252,13 @@ class HospitalityController
                 return $this->errorResponse($response, 'hospitality_id is required', 400);
             }
 
-            if (empty($data['sport_type']) && empty($data['event_id'])) {
-                return $this->errorResponse($response, 'At least sport_type or event_id is required', 400);
+            if (empty($data['sport_type']) && empty($data['event_id']) && empty($data['venue_id'])) {
+                return $this->errorResponse($response, 'At least sport_type, event_id, or venue_id is required', 400);
+            }
+
+            $hospitalityId = (int) $data['hospitality_id'];
+            if (!$this->hospitalityRepository->getHospitalityById($hospitalityId)) {
+                return $this->errorResponse($response, "Hospitality service with id={$hospitalityId} not found", 400);
             }
 
             $result = $this->hospitalityRepository->upsertAssignment($data, $adminUser['id']);
@@ -294,8 +299,15 @@ class HospitalityController
                 return $this->errorResponse($response, 'hospitality_ids array is required', 400);
             }
 
-            if (empty($data['sport_type']) && empty($data['event_id'])) {
-                return $this->errorResponse($response, 'At least sport_type or event_id is required', 400);
+            if (empty($data['sport_type']) && empty($data['event_id']) && empty($data['venue_id'])) {
+                return $this->errorResponse($response, 'At least sport_type, event_id, or venue_id is required', 400);
+            }
+
+            foreach ($data['hospitality_ids'] as $hId) {
+                $hId = (int) $hId;
+                if (!$this->hospitalityRepository->getHospitalityById($hId)) {
+                    return $this->errorResponse($response, "Hospitality service with id={$hId} not found", 400);
+                }
             }
 
             // Extract scope data (everything except hospitality_ids)

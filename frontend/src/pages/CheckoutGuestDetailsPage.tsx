@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Lock, ChefHat } from 'lucide-react';
+import { User, Mail, Lock, ChefHat, AlertCircle } from 'lucide-react';
+import CheckoutLoader from '../components/CheckoutLoader';
 import { useAuth } from '../services/customerAuth';
 import type { CustomerProfile } from '../services/customerAuth';
 import { useReservation } from '../hooks/useReservation';
 import type { Guest } from '../services/apiRoutes';
 import CountrySelect from '../components/CountrySelect';
-import { 
-  validateAllGuests, 
+import {
+  validateGuestData,
   mapUserDetailsToLeadGuest,
   type GuestFormData,
   type ValidationError,
@@ -55,8 +56,10 @@ const CheckoutGuestDetailsPage: React.FC = () => {
   const [guests, setGuests] = useState<GuestFormData[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [, setFormTouched] = useState<Record<string, boolean>>({});
+  const guestsContainerRef = useRef<HTMLDivElement>(null);
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [reservationStep, setReservationStep] = useState<string>('');
 
   const { customer, isAuthenticated, getProfile } = useAuth();
   const { createReservation, addGuestData, loading: reservationLoading, error: reservationError } = useReservation();
@@ -106,18 +109,9 @@ const CheckoutGuestDetailsPage: React.FC = () => {
     }
   }, [state?.cartItems, customer, customerProfile, profileLoading]);
 
-  // Early return if no state, not authenticated, or profile still loading
-  if (!state || !state.cartItems || !isAuthenticated || !customer || profileLoading) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <div className={styles.loadingContent}>
-            <div className={styles.loadingSpinner}></div>
-            <p>Loading guest details...</p>
-          </div>
-        </div>
-      </div>
-    );
+  // Redirect guard — navigation happens via useEffect, render nothing in the interim
+  if (!state || !state.cartItems) {
+    return null;
   }
 
   const { cartItems, eventData } = state;
@@ -151,7 +145,7 @@ const CheckoutGuestDetailsPage: React.FC = () => {
       if (i === 0 && userDetails) {
         // Pre-fill lead guest with user details
         const leadGuest = mapUserDetailsToLeadGuest(userDetails, {
-          contact_email: customer.email
+          contact_email: customer?.email ?? ''
         });
         newGuests.push(leadGuest);
       } else {
@@ -192,18 +186,69 @@ const CheckoutGuestDetailsPage: React.FC = () => {
     return `${checkoutCurrency} ${amount.toFixed(2)}`;
   };
 
+  // Build the set of pre_checkout required fields for a given guest index.
+  // Always-required base fields are added unconditionally; event-specific
+  // fields (like date_of_birth, passport_number) are included only when the
+  // event's guestRequirements say they must be provided before checkout.
+  const getRequiredFieldsForGuest = (guestIndex: number): Set<string> => {
+    const required = new Set<string>(['first_name', 'last_name', 'country_of_residence']);
+    if (guestIndex === 0) required.add('contact_email');
+
+    const reqs = state.guestRequirements?.requirements;
+    if (reqs) {
+      for (const req of reqs) {
+        if (req.required && req.condition === 'pre_checkout') {
+          if (req.scope === 'all_persons' || (guestIndex === 0 && req.scope === 'lead_guest')) {
+            required.add(req.field);
+          }
+        }
+      }
+    }
+    return required;
+  };
+
+  const hasFieldError = (guestIndex: number, field: string): boolean =>
+    validationErrors.some(e => e.field === `guest_${guestIndex}_${field}`);
+
+  const getFieldError = (guestIndex: number, field: string): string | undefined =>
+    validationErrors.find(e => e.field === `guest_${guestIndex}_${field}`)?.message;
+
   // Form handlers
   const handleGuestChange = (guestIndex: number, field: keyof GuestFormData, value: string) => {
-    setGuests(prev => prev.map((guest, index) => 
+    setGuests(prev => prev.map((guest, index) =>
       index === guestIndex ? { ...guest, [field]: value } : guest
     ));
     setFormTouched(prev => ({ ...prev, [`guest_${guestIndex}_${field}`]: true }));
+    // Clear error for this field as user types
+    setValidationErrors(prev => prev.filter(e => e.field !== `guest_${guestIndex}_${field}`));
   };
 
   const validateCurrentStep = () => {
-    const guestValidation = validateAllGuests(guests);
-    setValidationErrors(guestValidation.errors);
-    return guestValidation.isValid;
+    const allErrors: ValidationError[] = [];
+
+    guests.forEach((guest, index) => {
+      const isLeadGuest = index === 0;
+      const requiredFields = getRequiredFieldsForGuest(index);
+      const validation = validateGuestData(guest, isLeadGuest, requiredFields);
+
+      validation.errors.forEach(error => {
+        allErrors.push({
+          field: `guest_${index}_${error.field}`,
+          message: error.message
+        });
+      });
+    });
+
+    setValidationErrors(allErrors);
+
+    if (allErrors.length > 0) {
+      setTimeout(() => {
+        const firstErrorEl = guestsContainerRef.current?.querySelector('[data-has-error="true"]');
+        firstErrorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 80);
+    }
+
+    return allErrors.length === 0;
   };
 
   const handleContinueToPayment = async () => {
@@ -224,6 +269,8 @@ const CheckoutGuestDetailsPage: React.FC = () => {
         return;
       }
 
+      setReservationStep('Creating your reservation...');
+
       // Create reservation with XS2Event API format (simplified - guest data comes later)
       // IMPORTANT: net_rate must be an integer in cents (multiply by 100), currency_code must match ticket data
       const reservationData = {
@@ -235,13 +282,15 @@ const CheckoutGuestDetailsPage: React.FC = () => {
         }))
       };
 
-      
       const reservation = await createReservation(reservationData);
-      
+
       if (!reservation) {
         console.error('Failed to create reservation');
+        setReservationStep('');
         return;
       }
+
+      setReservationStep('Saving guest information...');
 
 
       // Convert guests to Guest interface format
@@ -266,8 +315,11 @@ const CheckoutGuestDetailsPage: React.FC = () => {
       
       if (!guestDataSuccess) {
         console.error('Failed to add guest data to reservation');
+        setReservationStep('');
         return;
       }
+
+      setReservationStep('Preparing payment...');
 
 
       // Save state to session storage for recovery
@@ -286,6 +338,7 @@ const CheckoutGuestDetailsPage: React.FC = () => {
       });
     } catch (error) {
       console.error('Error creating reservation:', error);
+      setReservationStep('');
     }
   };
 
@@ -344,175 +397,290 @@ const CheckoutGuestDetailsPage: React.FC = () => {
         <div className={styles.container}>
           {/* Left column - Form content */}
           <div className={styles.leftColumn}>
+            {/* Step indicator — always visible so the user knows where they are */}
             <div className={styles.stepIndicator}>
               <div className={`${styles.stepItem} ${styles.completed}`}>
-                <div className={styles.stepIcon}>
-                  <User size={16} />
-                </div>
+                <div className={styles.stepIcon}><User size={16} /></div>
                 <span className={styles.stepLabel}>Sign In</span>
               </div>
               <div className={`${styles.stepItem} ${styles.active}`}>
-                <div className={styles.stepIcon}>
-                  <Mail size={16} />
-                </div>
+                <div className={styles.stepIcon}><Mail size={16} /></div>
                 <span className={styles.stepLabel}>Guest Info</span>
               </div>
               <div className={styles.stepItem}>
-                <div className={styles.stepIcon}>
-                  <Lock size={16} />
-                </div>
+                <div className={styles.stepIcon}><Lock size={16} /></div>
                 <span className={styles.stepLabel}>Payment</span>
               </div>
             </div>
 
+            {/* Profile loading — show loader in left column; order summary stays visible */}
+            {(!isAuthenticated || !customer || profileLoading) ? (
+              <CheckoutLoader
+                message="Loading your booking details..."
+                subMessage="Retrieving your profile information"
+                showProgress
+              />
+            ) : (
+
             <div className={styles.stepContent}>
               <h2>Guest Information</h2>
               <p>Enter the details for all guests attending the event.</p>
-              
+
               <div className={styles.welcomeMessage}>
                 <p>Welcome back, <strong>{customer.first_name || customer.email}</strong>!</p>
                 <p>Lead guest information has been pre-filled with your account details.</p>
               </div>
 
-              <div className={styles.guestsContainer}>
-                {guests.map((guest, index) => (
-                  <div key={index} className={styles.guestSection}>
-                    <h4>Guest {index + 1} {index === 0 && '(Lead Guest)'}</h4>
-                    
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}FirstName`}>First name *</label>
-                        <input
-                          type="text"
-                          id={`guest${index}FirstName`}
-                          className={styles.formInput}
-                          value={guest.first_name}
-                          onChange={(e) => handleGuestChange(index, 'first_name', e.target.value)}
-                          placeholder="Enter first name"
-                        />
-                        {validationErrors.find(e => e.field === `guest_${index}_first_name`) && (
-                          <div className={styles.errorMessage}>
-                            {validationErrors.find(e => e.field === `guest_${index}_first_name`)?.message}
-                          </div>
-                        )}
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}LastName`}>Last name *</label>
-                        <input
-                          type="text"
-                          id={`guest${index}LastName`}
-                          className={styles.formInput}
-                          value={guest.last_name}
-                          onChange={(e) => handleGuestChange(index, 'last_name', e.target.value)}
-                          placeholder="Enter last name"
-                        />
-                        {validationErrors.find(e => e.field === `guest_${index}_last_name`) && (
-                          <div className={styles.errorMessage}>
-                            {validationErrors.find(e => e.field === `guest_${index}_last_name`)?.message}
-                          </div>
-                        )}
-                      </div>
+              {/* Upfront notice for event-specific required fields */}
+              {(() => {
+                const specialRequired = (state.guestRequirements?.requirements ?? []).filter(
+                  r => r.required && r.condition === 'pre_checkout' && ['date_of_birth', 'passport_number'].includes(r.field)
+                );
+                if (specialRequired.length === 0) return null;
+                const fieldLabels: Record<string, string> = {
+                  date_of_birth: 'date of birth',
+                  passport_number: 'passport number',
+                };
+                const scopeLabels: Record<string, string> = {
+                  lead_guest: 'the lead guest',
+                  all_persons: 'each guest',
+                };
+                return (
+                  <div className={styles.requirementsNotice}>
+                    <div className={styles.requirementsNoticeHeader}>
+                      <AlertCircle size={16} />
+                      <strong>Required for this booking</strong>
                     </div>
-
-                    {index === 0 && (
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}Email`}>Email address *</label>
-                        <input
-                          type="email"
-                          id={`guest${index}Email`}
-                          className={styles.formInput}
-                          value={guest.contact_email}
-                          onChange={(e) => handleGuestChange(index, 'contact_email', e.target.value)}
-                          placeholder="Enter email address"
-                        />
-                        {validationErrors.find(e => e.field === `guest_${index}_contact_email`) && (
-                          <div className={styles.errorMessage}>
-                            {validationErrors.find(e => e.field === `guest_${index}_contact_email`)?.message}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}Phone`}>Phone number</label>
-                        <input
-                          type="tel"
-                          id={`guest${index}Phone`}
-                          className={styles.formInput}
-                          value={guest.contact_phone || ''}
-                          onChange={(e) => handleGuestChange(index, 'contact_phone', e.target.value)}
-                          placeholder="Enter phone number"
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}DateOfBirth`}>Date of birth</label>
-                        <input
-                          type="date"
-                          id={`guest${index}DateOfBirth`}
-                          className={styles.formInput}
-                          value={guest.date_of_birth}
-                          onChange={(e) => handleGuestChange(index, 'date_of_birth', e.target.value)}
-                        />
-                        {validationErrors.find(e => e.field === `guest_${index}_date_of_birth`) && (
-                          <div className={styles.errorMessage}>
-                            {validationErrors.find(e => e.field === `guest_${index}_date_of_birth`)?.message}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}Gender`}>Gender</label>
-                        <select
-                          id={`guest${index}Gender`}
-                          className={styles.formInput}
-                          value={guest.gender || ''}
-                          onChange={(e) => handleGuestChange(index, 'gender', e.target.value)}
-                        >
-                          <option value="">Select gender...</option>
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                          <option value="unknown">Prefer not to say</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}CountryOfResidence`}>Country of residence *</label>                        <CountrySelect
-                          value={guest.country_of_residence}
-                          onChange={(value) => handleGuestChange(index, 'country_of_residence', value)}
-                          placeholder="Select country..."
-                          className={styles.formSelect}
-                          error={validationErrors.find(e => e.field === `guest_${index}_country_of_residence`)?.message}
-                        />
-                        {validationErrors.find(e => e.field === `guest_${index}_country_of_residence`) && (
-                          <div className={styles.errorMessage}>
-                            {validationErrors.find(e => e.field === `guest_${index}_country_of_residence`)?.message}
-                          </div>
-                        )}
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label htmlFor={`guest${index}PassportNumber`}>Passport number</label>
-                        <input
-                          type="text"
-                          id={`guest${index}PassportNumber`}
-                          className={styles.formInput}
-                          value={guest.passport_number || ''}
-                          onChange={(e) => handleGuestChange(index, 'passport_number', e.target.value)}
-                          placeholder="Enter passport number"
-                        />
-                        {validationErrors.find(e => e.field === `guest_${index}_passport_number`) && (
-                          <div className={styles.errorMessage}>
-                            {validationErrors.find(e => e.field === `guest_${index}_passport_number`)?.message}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <ul className={styles.requirementsNoticeList}>
+                      {specialRequired.map(req => (
+                        <li key={req.field}>
+                          A <strong>{fieldLabels[req.field] || req.field}</strong> is required for{' '}
+                          {scopeLabels[req.scope || 'all_persons']} to complete this booking.
+                          Please have it ready before continuing.
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
+                );
+              })()}
+
+              <div className={styles.guestsContainer} ref={guestsContainerRef}>
+                {guests.map((guest, index) => {
+                  const requiredFields = getRequiredFieldsForGuest(index);
+                  const dobRequired = requiredFields.has('date_of_birth');
+                  const passportRequired = requiredFields.has('passport_number');
+
+                  return (
+                    <div key={index} className={styles.guestSection}>
+                      <h4>Guest {index + 1} {index === 0 && '(Lead Guest)'}</h4>
+
+                      <div className={styles.formRow}>
+                        <div
+                          className={styles.formGroup}
+                          data-has-error={hasFieldError(index, 'first_name') ? 'true' : undefined}
+                        >
+                          <label
+                            htmlFor={`guest${index}FirstName`}
+                            className={hasFieldError(index, 'first_name') ? styles.labelError : undefined}
+                          >
+                            First name <span className={styles.required}>*</span>
+                          </label>
+                          <input
+                            type="text"
+                            id={`guest${index}FirstName`}
+                            name={`guest_${index}_fname`}
+                            autoComplete="off"
+                            className={`${styles.formInput}${hasFieldError(index, 'first_name') ? ` ${styles.error}` : ''}`}
+                            value={guest.first_name}
+                            onChange={(e) => handleGuestChange(index, 'first_name', e.target.value)}
+                            placeholder="Enter first name"
+                          />
+                          {hasFieldError(index, 'first_name') && (
+                            <div className={styles.fieldError}>
+                              {getFieldError(index, 'first_name')}
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className={styles.formGroup}
+                          data-has-error={hasFieldError(index, 'last_name') ? 'true' : undefined}
+                        >
+                          <label
+                            htmlFor={`guest${index}LastName`}
+                            className={hasFieldError(index, 'last_name') ? styles.labelError : undefined}
+                          >
+                            Last name <span className={styles.required}>*</span>
+                          </label>
+                          <input
+                            type="text"
+                            id={`guest${index}LastName`}
+                            name={`guest_${index}_lname`}
+                            autoComplete="off"
+                            className={`${styles.formInput}${hasFieldError(index, 'last_name') ? ` ${styles.error}` : ''}`}
+                            value={guest.last_name}
+                            onChange={(e) => handleGuestChange(index, 'last_name', e.target.value)}
+                            placeholder="Enter last name"
+                          />
+                          {hasFieldError(index, 'last_name') && (
+                            <div className={styles.fieldError}>
+                              {getFieldError(index, 'last_name')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {index === 0 && (
+                        <div
+                          className={styles.formGroup}
+                          data-has-error={hasFieldError(index, 'contact_email') ? 'true' : undefined}
+                        >
+                          <label
+                            htmlFor={`guest${index}Email`}
+                            className={hasFieldError(index, 'contact_email') ? styles.labelError : undefined}
+                          >
+                            Email address <span className={styles.required}>*</span>
+                          </label>
+                          <input
+                            type="email"
+                            id={`guest${index}Email`}
+                            name={`guest_${index}_cemail`}
+                            autoComplete="off"
+                            className={`${styles.formInput}${hasFieldError(index, 'contact_email') ? ` ${styles.error}` : ''}`}
+                            value={guest.contact_email}
+                            onChange={(e) => handleGuestChange(index, 'contact_email', e.target.value)}
+                            placeholder="Enter email address"
+                          />
+                          {hasFieldError(index, 'contact_email') && (
+                            <div className={styles.fieldError}>
+                              {getFieldError(index, 'contact_email')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className={styles.formRow}>
+                        <div className={styles.formGroup}>
+                          <label htmlFor={`guest${index}Phone`}>Phone number</label>
+                          <input
+                            type="tel"
+                            id={`guest${index}Phone`}
+                            name={`guest_${index}_cphone`}
+                            autoComplete="off"
+                            className={styles.formInput}
+                            value={guest.contact_phone || ''}
+                            onChange={(e) => handleGuestChange(index, 'contact_phone', e.target.value)}
+                            placeholder="Enter phone number"
+                          />
+                        </div>
+                        <div
+                          className={styles.formGroup}
+                          data-has-error={hasFieldError(index, 'date_of_birth') ? 'true' : undefined}
+                        >
+                          <label
+                            htmlFor={`guest${index}DateOfBirth`}
+                            className={hasFieldError(index, 'date_of_birth') ? styles.labelError : undefined}
+                          >
+                            Date of birth{dobRequired && <> <span className={styles.required}>*</span></>}
+                          </label>
+                          {dobRequired && (
+                            <p className={styles.fieldHint}>
+                              A date of birth is required to complete this booking. Please enter it below.
+                            </p>
+                          )}
+                          <input
+                            type="date"
+                            id={`guest${index}DateOfBirth`}
+                            name={`guest_${index}_dob`}
+                            autoComplete="off"
+                            className={`${styles.formInput}${hasFieldError(index, 'date_of_birth') ? ` ${styles.error}` : ''}`}
+                            value={guest.date_of_birth}
+                            onChange={(e) => handleGuestChange(index, 'date_of_birth', e.target.value)}
+                          />
+                          {hasFieldError(index, 'date_of_birth') && (
+                            <div className={styles.fieldError}>
+                              {getFieldError(index, 'date_of_birth')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.formRow}>
+                        <div className={styles.formGroup}>
+                          <label htmlFor={`guest${index}Gender`}>Gender</label>
+                          <select
+                            id={`guest${index}Gender`}
+                            name={`guest_${index}_gender`}
+                            autoComplete="off"
+                            className={styles.formInput}
+                            value={guest.gender || ''}
+                            onChange={(e) => handleGuestChange(index, 'gender', e.target.value)}
+                          >
+                            <option value="">Select gender...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="unknown">Prefer not to say</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className={styles.formRow}>
+                        <div
+                          className={styles.formGroup}
+                          data-has-error={hasFieldError(index, 'country_of_residence') ? 'true' : undefined}
+                        >
+                          <label
+                            htmlFor={`guest${index}CountryOfResidence`}
+                            className={hasFieldError(index, 'country_of_residence') ? styles.labelError : undefined}
+                          >
+                            Country of residence <span className={styles.required}>*</span>
+                          </label>
+                          <CountrySelect
+                            value={guest.country_of_residence}
+                            onChange={(value) => handleGuestChange(index, 'country_of_residence', value)}
+                            placeholder="Select country..."
+                            error={getFieldError(index, 'country_of_residence')}
+                          />
+                          {hasFieldError(index, 'country_of_residence') && (
+                            <div className={styles.fieldError}>
+                              {getFieldError(index, 'country_of_residence')}
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className={styles.formGroup}
+                          data-has-error={hasFieldError(index, 'passport_number') ? 'true' : undefined}
+                        >
+                          <label
+                            htmlFor={`guest${index}PassportNumber`}
+                            className={hasFieldError(index, 'passport_number') ? styles.labelError : undefined}
+                          >
+                            Passport number{passportRequired && <> <span className={styles.required}>*</span></>}
+                          </label>
+                          {passportRequired && (
+                            <p className={styles.fieldHint}>
+                              A passport number is required to complete this booking. Please enter it below.
+                            </p>
+                          )}
+                          <input
+                            type="text"
+                            id={`guest${index}PassportNumber`}
+                            name={`guest_${index}_passport`}
+                            autoComplete="off"
+                            className={`${styles.formInput}${hasFieldError(index, 'passport_number') ? ` ${styles.error}` : ''}`}
+                            value={guest.passport_number || ''}
+                            onChange={(e) => handleGuestChange(index, 'passport_number', e.target.value)}
+                            placeholder="Enter passport number"
+                          />
+                          {hasFieldError(index, 'passport_number') && (
+                            <div className={styles.fieldError}>
+                              {getFieldError(index, 'passport_number')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {reservationError && (
@@ -520,24 +688,24 @@ const CheckoutGuestDetailsPage: React.FC = () => {
                   Error creating reservation: {reservationError}
                 </div>
               )}
-              
+
               <div className={styles.stepActions}>
-                <button 
+                <button
                   className={styles.secondaryButton}
                   onClick={() => navigate('/checkout/login', { state })}
                   disabled={reservationLoading}
                 >
                   Back to Sign In
                 </button>
-                <button 
-                  className={styles.primaryButton}
+                <button
+                  className={`${styles.primaryButton} ${reservationLoading ? styles.primaryButtonLoading : ''}`}
                   onClick={handleContinueToPayment}
                   disabled={reservationLoading}
                 >
                   {reservationLoading ? (
                     <>
-                      <div className={styles.spinner}></div>
-                      Creating Reservation...
+                      <span className={styles.buttonSpinner}></span>
+                      <span>{reservationStep || 'Processing...'}</span>
                     </>
                   ) : (
                     'Continue to Payment'
@@ -545,6 +713,8 @@ const CheckoutGuestDetailsPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            )} {/* end profile-loaded conditional */}
           </div>
 
           {/* Right column - Order summary */}

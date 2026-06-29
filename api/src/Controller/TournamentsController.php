@@ -61,21 +61,31 @@ class TournamentsController
             
             // Build query parameters with validation
             $query = $this->buildTournamentQuery($queryParams);
-            
-            // Echo the full API URL with parameters
-            $fullUrl = "$this->baseUrl/v1/tournaments";
-            if (!empty($query)) {
-                $fullUrl .= '?' . http_build_query($query);
+
+            // XS2Event requires the season value with a literal slash (e.g. "26/27").
+            // Guzzle's 'query' array encodes slashes to %2F which the upstream API
+            // does not decode, so we build the URL string manually and pass it
+            // directly to Guzzle without a separate 'query' option.
+            $season = null;
+            if (isset($query['season'])) {
+                $season = $query['season'];
+                unset($query['season']);
             }
-            
+
+            $queryString = !empty($query) ? http_build_query($query) : '';
+            if ($season !== null) {
+                $queryString .= ($queryString !== '' ? '&' : '') . 'season=' . $season;
+            }
+
+            $fullUrl = "$this->baseUrl/v1/tournaments" . ($queryString !== '' ? '?' . $queryString : '');
+
             // Forward the request to the API
-            $apiResponse = $this->httpClient->get("$this->baseUrl/v1/tournaments", [
+            $apiResponse = $this->httpClient->get($fullUrl, [
                 'headers' => [
                     'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
                     'Cache-Control' => 'public, max-age=' . self::CACHE_TTL,
                 ],
-                'query' => $query,
             ]);
 
             // Process the response

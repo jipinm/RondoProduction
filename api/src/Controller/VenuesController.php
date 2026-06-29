@@ -168,7 +168,7 @@ class VenuesController
         if (!empty($params['venue_name'])) {
             $query['venue_name'] = $params['venue_name'];
         }
-        
+
         // Handle city filter
         if (!empty($params['city'])) {
             $query['city'] = $params['city'];

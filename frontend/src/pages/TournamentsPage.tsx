@@ -2,13 +2,15 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useTournaments } from '../hooks/useTournaments';
 import { useSports } from '../hooks/useSports';
+import { useDisplaySettings } from '../hooks/useDisplaySettings';
 import styles from './TournamentsPage.module.css';
 import { useSEO } from '../hooks/useSEO';
 
 const TournamentsPage: React.FC = () => {
   const { sport } = useParams<{ sport: string }>();
   useSEO('tournaments');
-  const { tournaments, loading, error } = useTournaments(sport);
+  const { settings: displaySettings } = useDisplaySettings();
+  const { tournaments, loading, error } = useTournaments({ sportType: sport, displaySettings });
   const { sports } = useSports();
 
   // Get sport display name

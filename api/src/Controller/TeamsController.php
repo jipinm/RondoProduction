@@ -58,20 +58,20 @@ class TeamsController
             
             // Build query parameters with validation
             $query = $this->buildTeamQuery($queryParams);
-            
+
             // Build the full API URL
             $fullUrl = "$this->baseUrl/v1/teams";
             if (!empty($query)) {
                 $fullUrl .= '?' . http_build_query($query);
             }
+
             // Forward the request to the API
-            $apiResponse = $this->httpClient->get("$this->baseUrl/v1/teams", [
+            $apiResponse = $this->httpClient->get($fullUrl, [
                 'headers' => [
                     'X-Api-Key' => $this->apiKey,
                     'Accept' => 'application/json',
                     'Cache-Control' => 'public, max-age=' . self::CACHE_TTL,
                 ],
-                'query' => $query,
             ]);
 
             // Process the response
@@ -240,7 +240,7 @@ class TeamsController
         if (!empty($params['sorting'])) {
             $query['sorting'] = $params['sorting'];
         }
-        
+
         return $query;
     }
 }

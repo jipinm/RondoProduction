@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { DollarSign, TrendingUp, Save, Trash2, RefreshCw, Edit2, X, Check, Layers } from 'lucide-react';
+import { DollarSign, TrendingUp, Save, Trash2, RefreshCw, Edit2, X, Check } from 'lucide-react';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ToastContainer';
 import { ticketMarkupService, type TicketMarkup, type MarkupType } from '../services/ticketMarkupService';
 import HierarchicalMarkupManager from '../components/HierarchicalMarkupManager';
+import { displaySettingsService } from '../services/displaySettingsService';
 import styles from './TicketMarkupManagement.module.css';
 
 // Helper to get current season (e.g., "25/26")
@@ -105,9 +106,17 @@ const useCurrencyConversion = (fromCurrency: string, toCurrency: string = 'USD')
 };
 
 const TicketMarkupManagement: React.FC = () => {
-  // Tab state: 'per-ticket' = existing flow, 'hierarchical' = new feature
-  const [activeTab, setActiveTab] = useState<'per-ticket' | 'hierarchical'>('hierarchical');
-  
+  const [activeSeason, setActiveSeason] = useState('');
+
+  useEffect(() => {
+    displaySettingsService.getSettings().then((s) => setActiveSeason(s.active_season ?? '')).catch(() => {});
+  }, []);
+
+  const getEffectiveSeason = (): string => {
+    if (activeSeason && activeSeason.trim() !== '') return activeSeason.trim();
+    return getCurrentSeason();
+  };
+
   // Selection states - hierarchical
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -150,9 +159,9 @@ const TicketMarkupManagement: React.FC = () => {
     try {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
       const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
-      const currentSeason = getCurrentSeason();
+      const season = getEffectiveSeason();
 
-      const response = await fetch(`${baseUrl}/v1/tournaments?sport_type=soccer&season=${currentSeason}`, {
+      const response = await fetch(`${baseUrl}/v1/tournaments?sport_type=soccer&season=${encodeURIComponent(season)}&page_size=100`, {
         headers: {
           'Accept': 'application/json',
           'X-Api-Key': apiKey,
@@ -171,7 +180,8 @@ const TicketMarkupManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [error]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, activeSeason]);
 
   // Step 2: Fetch teams for selected tournament
   const fetchTeams = useCallback(async (tournamentId: string) => {
@@ -179,8 +189,9 @@ const TicketMarkupManagement: React.FC = () => {
     try {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
       const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
+      const season = getEffectiveSeason();
 
-      const response = await fetch(`${baseUrl}/v1/teams?sport_type=soccer&tournament_id=${tournamentId}`, {
+      const response = await fetch(`${baseUrl}/v1/teams?sport_type=soccer&tournament_id=${tournamentId}&season=${encodeURIComponent(season)}&page_size=100`, {
         headers: {
           'Accept': 'application/json',
           'X-Api-Key': apiKey,
@@ -199,7 +210,8 @@ const TicketMarkupManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [error]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, activeSeason]);
 
   // Step 3: Fetch events for selected team (and tournament)
   const fetchEvents = useCallback(async (tournamentId: string, teamId: string) => {
@@ -666,31 +678,9 @@ const TicketMarkupManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className={styles.tabNavigation}>
-        <button
-          className={`${styles.tab} ${activeTab === 'hierarchical' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('hierarchical')}
-        >
-          <Layers size={16} />
-          Hierarchical Markup Rules
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'per-ticket' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('per-ticket')}
-        >
-          <DollarSign size={16} />
-          Per-Ticket Markup (Legacy)
-        </button>
-      </div>
+      <HierarchicalMarkupManager />
 
-      {/* Hierarchical Markup Tab */}
-      {activeTab === 'hierarchical' && (
-        <HierarchicalMarkupManager />
-      )}
-
-      {/* Per-Ticket Markup Tab (existing implementation) */}
-      {activeTab === 'per-ticket' && (
+      {false && (
       <div className={styles.content}>
         {/* Step 1: Tournament Selection */}
         <Card className={styles.selectionCard}>

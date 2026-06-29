@@ -7,6 +7,7 @@ interface EventsParams {
   tournament_id?: string;
   team_id?: string;
   date?: string;
+  season?: string;
 }
 
 const normalizeEvents = (rawEvents: Event[]): Event[] =>
@@ -29,6 +30,8 @@ export const useEvents = (params?: EventsParams) => {
   useEffect(() => {
     if (!params) return;
 
+    let cancelled = false;
+
     currentPageRef.current = 1;
     setLoading(true);
     setError(null);
@@ -40,6 +43,13 @@ export const useEvents = (params?: EventsParams) => {
       page_size: 50,
       page: 1,
     };
+
+    // Keep the events query consistent with the active season used by the
+    // menu/tournaments/teams layers so the season-specific tournament_id and
+    // team_id resolve to the correct season's events.
+    if (params.season) {
+      apiParams.season = params.season;
+    }
 
     if (params.date) {
       apiParams.date_start = params.date;
@@ -54,6 +64,7 @@ export const useEvents = (params?: EventsParams) => {
 
     apiClient.get<EventsResponse>(API_ENDPOINTS.EVENTS, apiParams)
       .then(response => {
+        if (cancelled) return;
         console.log('📦 useEvents API Response received:', {
           status: 'success',
           eventsCount: response.data.events?.length || 0,
@@ -71,14 +82,21 @@ export const useEvents = (params?: EventsParams) => {
         setPagination(response.data.pagination);
       })
       .catch(err => {
+        if (cancelled) return;
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch events';
         console.error('❌ useEvents API Error:', { error: err, message: errorMessage, params });
         setError(errorMessage);
       })
       .finally(() => {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
-  }, [params?.sport_type, params?.tournament_id, params?.team_id, params?.date]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params?.sport_type, params?.tournament_id, params?.team_id, params?.date, params?.season]);
 
   const totalSize: number | null = pagination?.total_size ?? null;
   const hasMore = totalSize !== null && events.length < totalSize;
@@ -98,6 +116,10 @@ export const useEvents = (params?: EventsParams) => {
       page_size: 50,
       page: nextPage,
     };
+
+    if (p.season) {
+      apiParams.season = p.season;
+    }
 
     if (p.date) {
       apiParams.date_start = p.date;

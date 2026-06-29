@@ -5,6 +5,7 @@ import { useDisplaySettings } from '../hooks/useDisplaySettings';
 import { ArrowLeft, Users, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './TeamsPage.module.css';
 import { useSEO } from '../hooks/useSEO';
+import { getExcludedTeamValuesByKey, isTeamExcluded } from '../utils/displayKeys';
 
 const TeamsPage: React.FC = () => {
   useSEO('teams');
@@ -12,6 +13,7 @@ const TeamsPage: React.FC = () => {
   
   // Extract URL parameters
   const tournament_id = searchParams.get('tournament_id') || undefined;
+  const tkey = searchParams.get('tkey') || undefined;
   const sport_type = searchParams.get('sport_type') || 'soccer';
   const currentPage = parseInt(searchParams.get('page') || '1');
   const pageSize = parseInt(searchParams.get('page_size') || '50');
@@ -24,12 +26,12 @@ const TeamsPage: React.FC = () => {
     page: currentPage
   });
 
-  // Apply admin-configured team exclusions.
+  // Apply admin-configured team exclusions using stable keys with legacy fallback.
   // An empty array for a tournament means "exclude none" — default behaviour preserved.
   const { settings: displaySettings } = useDisplaySettings();
-  const excludedIds = tournament_id ? (displaySettings.excluded_teams[tournament_id] ?? []) : [];
-  const teams = excludedIds.length > 0
-    ? rawTeams.filter(team => !excludedIds.includes(team.team_id))
+  const excludedValues = getExcludedTeamValuesByKey(displaySettings?.excluded_teams, tkey, tournament_id);
+  const teams = excludedValues.length > 0
+    ? rawTeams.filter(team => !isTeamExcluded(team, excludedValues))
     : rawTeams;
 
   // Debug: Log API request details for TeamsPage only
@@ -153,11 +155,9 @@ const TeamsPage: React.FC = () => {
               <div className={styles.teamsGrid}>
                 {teams.map((team) => {
                   try {
-                    // Construct logo URL based on tournament_id and team_id
+                    // Logo is stored by team_id only (tournament-agnostic)
                     const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL;
-                    const logoUrl = tournament_id 
-                      ? `${baseUrl}/images/team/logo/${tournament_id}_${team.team_id}_logo.png`
-                      : null;
+                    const logoUrl = `${baseUrl}/images/team/logo/${team.team_id}_logo.png`;
 
                     return (
                       <Link
@@ -167,23 +167,19 @@ const TeamsPage: React.FC = () => {
                         data-testid={`team-card-${team.team_id}`}
                       >
                         <div className={styles.teamInfo}>
-                          {logoUrl && (
-                            <div className={styles.teamLogo}>
-                              <img 
-                                src={logoUrl}
-                                alt={`${team.official_name} logo`}
-                                className={styles.logoImage}
-                                onError={(e) => {
-                                  // Hide the image if it fails to load
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                                onLoad={(e) => {
-                                  // Ensure the image is visible when it loads successfully
-                                  (e.target as HTMLImageElement).style.display = 'block';
-                                }}
-                              />
-                            </div>
-                          )}
+                          <div className={styles.teamLogo}>
+                            <img
+                              src={logoUrl}
+                              alt={`${team.official_name} logo`}
+                              className={styles.logoImage}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                              onLoad={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'block';
+                              }}
+                            />
+                          </div>
                           <h3 className={styles.teamName}>{team.official_name}</h3>
                           
                           

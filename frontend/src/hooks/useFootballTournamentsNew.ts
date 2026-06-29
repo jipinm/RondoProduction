@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { apiClient, API_ENDPOINTS } from '../services/apiRoutes';
-import { getCurrentSeason } from '../utils/dateUtils';
+import { getActiveSeason } from '../utils/dateUtils';
 import { apiCache } from '../utils/apiCache';
 import type { Tournament, TournamentsResponse } from '../services/apiRoutes';
+import type { DisplaySettings } from './useDisplaySettings';
 
 interface UseFootballTournamentsReturn {
   tournaments: Tournament[];
@@ -12,13 +13,19 @@ interface UseFootballTournamentsReturn {
   clearTournaments: () => void;
 }
 
-export const useFootballTournaments = (): UseFootballTournamentsReturn => {
+interface UseFootballTournamentsProps {
+  displaySettings?: DisplaySettings;
+}
+
+export const useFootballTournaments = (props?: UseFootballTournamentsProps): UseFootballTournamentsReturn => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const displaySettings = props?.displaySettings;
+
   const fetchTournaments = useCallback(async () => {
-    const currentSeason = getCurrentSeason();
+    const currentSeason = getActiveSeason(displaySettings?.active_season ?? '');
     const cacheKey = apiCache.getTournamentsKey(currentSeason);
     
     // Check cache first
@@ -61,16 +68,16 @@ export const useFootballTournaments = (): UseFootballTournamentsReturn => {
       setTournaments([]);
       setLoading(false);
     }
-  }, [loading]);
+  }, [loading, displaySettings?.active_season]);
 
   const clearTournaments = useCallback(() => {
-    const currentSeason = getCurrentSeason();
+    const currentSeason = getActiveSeason(displaySettings?.active_season ?? '');
     const cacheKey = apiCache.getTournamentsKey(currentSeason);
     
     apiCache.delete(cacheKey);
     setTournaments([]);
     setError(null);
-  }, []);
+  }, [displaySettings?.active_season]);
 
   // Load tournaments on component mount
   useEffect(() => {

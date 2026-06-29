@@ -149,8 +149,50 @@
 
 .categoryPrice {
   font-size: 0.8rem;
-  color: var(--color-accent); /* Brand accent orange for price */
+  color: var(--color-accent);
   font-weight: 600;
+}
+
+.legendNote {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+}
+
+.categoryItemUnavailable {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.categoryColorUnavailable {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: #c8cdd2;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.badgeAvailable {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeUnavailable {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Category Type Colors - Using specified seat color */
@@ -282,8 +324,17 @@
 }
 
 .svgContainer :global(.unavailable) {
-  fill: #a3a9af;
-  opacity: 0.6;
+  fill: #c8cdd2 !important;
+  opacity: 0.45;
+  transition: fill 0.2s ease;
+}
+
+.svgContainer :global(.unavailable):hover {
+  fill: #c8cdd2 !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
+  filter: none !important;
+  cursor: default;
 }
 
 /* Hover and Highlight Effects - Using brand accent color */

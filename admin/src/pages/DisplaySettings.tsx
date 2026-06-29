@@ -10,6 +10,7 @@ import {
   Square,
   ChevronDown,
   AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import Button from '../components/Button';
 import { useToast } from '../hooks/useToast';
@@ -21,6 +22,11 @@ import {
   type Tournament,
   type Team,
 } from '../services/displaySettingsService';
+import {
+  stableTournamentKey,
+  stableTeamKey,
+  isStableKey,
+} from '../utils/displayKeys';
 import styles from './DisplaySettings.module.css';
 
 // Fixed sports shown as main nav items — never appear in "Other Sports"
@@ -49,7 +55,7 @@ const SPORT_LABELS: Record<string, string> = {
   golf: 'Golf',
 };
 
-type TabId = 'tournaments' | 'teams' | 'otherSports';
+type TabId = 'tournaments' | 'teams' | 'otherSports' | 'season';
 
 const DisplaySettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('tournaments');
@@ -63,6 +69,7 @@ const DisplaySettings: React.FC = () => {
     football_visible_tournaments: [],
     excluded_teams: {},
     other_sports_visible: [],
+    active_season: '',
   });
 
   // ── Tab 1: Football Tournaments ─────────────────────────────────────────
@@ -72,7 +79,8 @@ const DisplaySettings: React.FC = () => {
 
   // ── Tab 2: Team Exclusions ───────────────────────────────────────────────
   const [excludedTeams, setExcludedTeams] = useState<Record<string, string[]>>({});
-  const [selectedTournamentForTeams, setSelectedTournamentForTeams] = useState('');
+  const [selectedTournamentForTeams, setSelectedTournamentForTeams] = useState(''); // raw tournament_id for API calls
+  const [selectedTournamentStableKey, setSelectedTournamentStableKey] = useState(''); // stable key for exclusion storage
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
 
@@ -81,18 +89,25 @@ const DisplaySettings: React.FC = () => {
   const [loadingSports, setLoadingSports] = useState(false);
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
 
+  // ── Tab 4: Active Season ─────────────────────────────────────────────────
+  const [activeSeason, setActiveSeason] = useState('');
+
   const { toasts, closeToast, success, error } = useToast();
 
   // ── Initial load ─────────────────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
+    console.log('🔍 Loading display settings...');
     setLoadingSettings(true);
     try {
       const data = await displaySettingsService.getSettings();
+      console.log('📦 Settings loaded:', data);
       setSettings(data);
       setSelectedTournaments(data.football_visible_tournaments ?? []);
       setExcludedTeams(data.excluded_teams ?? {});
       setSelectedSports(data.other_sports_visible ?? []);
+      setActiveSeason(data.active_season ?? '');
     } catch (err) {
+      console.error('❌ Failed to load settings:', err);
       error('Failed to load display settings');
     } finally {
       setLoadingSettings(false);
@@ -103,42 +118,60 @@ const DisplaySettings: React.FC = () => {
     loadSettings();
   }, [loadSettings]);
 
-  // ── Tab 1: load tournaments ───────────────────────────────────────────────
+  // ── Load tournaments once settings are ready ─────────────────────────────
   useEffect(() => {
-    if (activeTab !== 'tournaments') return;
+    if (loadingSettings) return;
     setLoadingTournaments(true);
     displaySettingsService
-      .getFootballTournaments()
-      .then(setTournaments)
-      .catch(() => error('Failed to load football tournaments'))
+      .getFootballTournaments(activeSeason)
+      .then((loadedTournaments) => {
+        setTournaments(loadedTournaments);
+        // Migrate legacy tournament IDs to stable keys
+        const migrated = migrateTournamentSelection(selectedTournaments, loadedTournaments);
+        setSelectedTournaments(migrated);
+      })
+      .catch(() => {
+        error('Failed to load football tournaments');
+      })
       .finally(() => setLoadingTournaments(false));
-  }, [activeTab, error]);
-
-  // ── Tab 2: load tournament list for selector ──────────────────────────────
-  useEffect(() => {
-    if (activeTab !== 'teams') return;
-    if (tournaments.length > 0) return; // already loaded
-    setLoadingTournaments(true);
-    displaySettingsService
-      .getFootballTournaments()
-      .then(setTournaments)
-      .catch(() => error('Failed to load football tournaments'))
-      .finally(() => setLoadingTournaments(false));
-  }, [activeTab, tournaments.length, error]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingSettings]);
 
   // ── Tab 2: load teams for selected tournament ─────────────────────────────
   useEffect(() => {
-    if (!selectedTournamentForTeams) {
+    if (!selectedTournamentForTeams || !selectedTournamentStableKey) {
       setTeams([]);
       return;
     }
     setLoadingTeams(true);
     displaySettingsService
       .getTeamsForTournament(selectedTournamentForTeams)
-      .then(setTeams)
+      .then((loadedTeams) => {
+        setTeams(loadedTeams);
+        // Migrate legacy team IDs to stable keys for this tournament
+        const currentExclusions = excludedTeams[selectedTournamentStableKey] ?? [];
+        const teamMap = new Map(loadedTeams.map(t => [t.team_id, t]));
+        const migratedIds: string[] = [];
+        for (const id of currentExclusions) {
+          if (isStableKey(id)) {
+            migratedIds.push(id);
+          } else {
+            const team = teamMap.get(id);
+            if (team) {
+              migratedIds.push(stableTeamKey(team));
+            }
+          }
+        }
+        if (migratedIds.length !== currentExclusions.length) {
+          setExcludedTeams(prev => ({
+            ...prev,
+            [selectedTournamentStableKey]: migratedIds
+          }));
+        }
+      })
       .catch(() => error('Failed to load teams'))
       .finally(() => setLoadingTeams(false));
-  }, [selectedTournamentForTeams, error]);
+  }, [selectedTournamentForTeams, selectedTournamentStableKey, activeSeason, error]);
 
   // ── Tab 3: load sports ────────────────────────────────────────────────────
   useEffect(() => {
@@ -149,7 +182,7 @@ const DisplaySettings: React.FC = () => {
       .then((all) => setSports(all.filter((s) => !FIXED_SPORTS.includes(s.sport_id))))
       .catch(() => error('Failed to load sports'))
       .finally(() => setLoadingSports(false));
-  }, [activeTab, error]);
+  }, [activeTab]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const toggleItem = (id: string, list: string[], setList: (v: string[]) => void) => {
@@ -161,6 +194,37 @@ const DisplaySettings: React.FC = () => {
 
   const getSportLabel = (id: string) =>
     SPORT_LABELS[id] ?? id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // ── Migration helpers ─────────────────────────────────────────────────────
+  // Convert legacy raw tournament IDs to stable keys when loading settings
+  // Match stable keys against the new season's tournaments by comparing stable keys
+  const migrateTournamentSelection = (
+    savedIds: string[],
+    tournaments: Tournament[]
+  ): string[] => {
+    if (!tournaments.length) return savedIds;
+    const tournamentMap = new Map(tournaments.map(t => [t.tournament_id, t]));
+    // Build a set of stable keys for the new season's tournaments
+    const newSeasonStableKeys = new Set(tournaments.map(t => stableTournamentKey(t)));
+    const migrated: string[] = [];
+    for (const id of savedIds) {
+      if (isStableKey(id)) {
+        // Keep stable key if it exists in the new season's tournaments
+        if (newSeasonStableKeys.has(id)) {
+          migrated.push(id);
+        }
+        // If stable key not found in new season, drop it (tournament may not exist in this season)
+      } else {
+        // Legacy raw ID - convert to stable key if tournament exists
+        const tournament = tournamentMap.get(id);
+        if (tournament) {
+          migrated.push(stableTournamentKey(tournament));
+        }
+        // If tournament not found (e.g., from old season), drop the entry
+      }
+    }
+    return migrated;
+  };
 
   // ── Save handlers ─────────────────────────────────────────────────────────
   const saveTournaments = async () => {
@@ -212,18 +276,35 @@ const DisplaySettings: React.FC = () => {
     }
   };
 
-  // ── Team exclusion toggle ─────────────────────────────────────────────────
-  const toggleTeamExclusion = (teamId: string) => {
-    const tournamentId = selectedTournamentForTeams;
-    if (!tournamentId) return;
-    const current = excludedTeams[tournamentId] ?? [];
-    const updated = current.includes(teamId)
-      ? current.filter((id) => id !== teamId)
-      : [...current, teamId];
-    setExcludedTeams((prev) => ({ ...prev, [tournamentId]: updated }));
+  const saveActiveSeason = async () => {
+    setSaving((s) => ({ ...s, season: true }));
+    try {
+      await displaySettingsService.updateSetting('active_season', activeSeason);
+      setSettings((prev) => ({ ...prev, active_season: activeSeason }));
+      success(
+        'Saved',
+        activeSeason.trim() === ''
+          ? 'Season will be calculated automatically based on the current date.'
+          : `Active season set to "${activeSeason}".`
+      );
+    } catch (err) {
+      error('Failed to save active season settings');
+    } finally {
+      setSaving((s) => ({ ...s, season: false }));
+    }
   };
 
-  const currentExcluded = excludedTeams[selectedTournamentForTeams] ?? [];
+  // ── Team exclusion toggle ─────────────────────────────────────────────────
+  const toggleTeamExclusion = (teamKey: string) => {
+    if (!selectedTournamentStableKey) return;
+    const current = excludedTeams[selectedTournamentStableKey] ?? [];
+    const updated = current.includes(teamKey)
+      ? current.filter((id) => id !== teamKey)
+      : [...current, teamKey];
+    setExcludedTeams((prev) => ({ ...prev, [selectedTournamentStableKey]: updated }));
+  };
+
+  const currentExcluded = excludedTeams[selectedTournamentStableKey] ?? [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (loadingSettings) {
@@ -276,6 +357,13 @@ const DisplaySettings: React.FC = () => {
           <Globe size={16} />
           Other Sports
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'season' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('season')}
+        >
+          <Calendar size={16} />
+          Active Season
+        </button>
       </div>
 
       {/* ── Tab 1: Football Tournaments ──────────────────────────────────── */}
@@ -293,7 +381,7 @@ const DisplaySettings: React.FC = () => {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => selectAll(tournaments.map((t) => t.tournament_id), setSelectedTournaments)}
+                onClick={() => selectAll(tournaments.map((t) => stableTournamentKey(t)), setSelectedTournaments)}
               >
                 Select All
               </Button>
@@ -321,14 +409,15 @@ const DisplaySettings: React.FC = () => {
           ) : (
             <div className={styles.checklistGrid}>
               {tournaments.map((t) => {
-                const checked = selectedTournaments.includes(t.tournament_id);
+                const tkey = stableTournamentKey(t);
+                const checked = selectedTournaments.includes(tkey);
                 return (
                   <label key={t.tournament_id} className={styles.checkItem}>
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() =>
-                        toggleItem(t.tournament_id, selectedTournaments, setSelectedTournaments)
+                        toggleItem(tkey, selectedTournaments, setSelectedTournaments)
                       }
                       className={styles.hiddenCheckbox}
                     />
@@ -384,20 +473,28 @@ const DisplaySettings: React.FC = () => {
               <select
                 className={styles.select}
                 value={selectedTournamentForTeams}
-                onChange={(e) => setSelectedTournamentForTeams(e.target.value)}
+                onChange={(e) => {
+                  const tid = e.target.value;
+                  const tournament = tournaments.find(t => t.tournament_id === tid);
+                  setSelectedTournamentForTeams(tid);
+                  setSelectedTournamentStableKey(tournament ? stableTournamentKey(tournament) : '');
+                }}
               >
                 <option value="">— Choose a tournament —</option>
                 {loadingTournaments ? (
                   <option disabled>Loading…</option>
                 ) : (
-                  tournaments.map((t) => (
-                    <option key={t.tournament_id} value={t.tournament_id}>
-                      {t.official_name}
-                      {(excludedTeams[t.tournament_id]?.length ?? 0) > 0
-                        ? ` (${excludedTeams[t.tournament_id].length} excluded)`
-                        : ''}
-                    </option>
-                  ))
+                  tournaments.map((t) => {
+                    const tkey = stableTournamentKey(t);
+                    return (
+                      <option key={t.tournament_id} value={t.tournament_id}>
+                        {t.official_name}
+                        {(excludedTeams[tkey]?.length ?? 0) > 0
+                          ? ` (${excludedTeams[tkey].length} excluded)`
+                          : ''}
+                      </option>
+                    );
+                  })
                 )}
               </select>
               <ChevronDown size={16} className={styles.selectIcon} />
@@ -417,7 +514,7 @@ const DisplaySettings: React.FC = () => {
                     onClick={() =>
                       setExcludedTeams((prev) => ({
                         ...prev,
-                        [selectedTournamentForTeams]: teams.map((t) => t.team_id),
+                        [selectedTournamentStableKey]: teams.map((t) => stableTeamKey(t)),
                       }))
                     }
                   >
@@ -429,7 +526,7 @@ const DisplaySettings: React.FC = () => {
                     onClick={() =>
                       setExcludedTeams((prev) => ({
                         ...prev,
-                        [selectedTournamentForTeams]: [],
+                        [selectedTournamentStableKey]: [],
                       }))
                     }
                   >
@@ -447,13 +544,14 @@ const DisplaySettings: React.FC = () => {
               ) : (
                 <div className={styles.checklistGrid}>
                   {teams.map((t) => {
-                    const excluded = currentExcluded.includes(t.team_id);
+                    const teamKey = stableTeamKey(t);
+                    const excluded = currentExcluded.includes(teamKey);
                     return (
                       <label key={t.team_id} className={`${styles.checkItem} ${excluded ? styles.checkItemExcluded : ''}`}>
                         <input
                           type="checkbox"
                           checked={excluded}
-                          onChange={() => toggleTeamExclusion(t.team_id)}
+                          onChange={() => toggleTeamExclusion(teamKey)}
                           className={styles.hiddenCheckbox}
                         />
                         <span className={styles.checkIcon}>
@@ -571,6 +669,62 @@ const DisplaySettings: React.FC = () => {
                 <><Loader2 size={16} className={styles.spinner} /> Saving…</>
               ) : (
                 <><Save size={16} /> Save Other Sports Settings</>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 4: Active Season ───────────────────────────────────────────── */}
+      {activeTab === 'season' && (
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <h2 className={styles.panelTitle}>Active Season Configuration</h2>
+              <p className={styles.panelDescription}>
+                Set the active season to display in navigation menus. This allows early publication
+                of upcoming seasons before the traditional season start date.
+                <strong> Leave empty to use automatic season calculation based on the current date.</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.infoNotice}>
+            <AlertCircle size={16} />
+            Season format should be "YY/YY" (e.g., "26/27" for the 2026/27 season).
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>
+              <Calendar size={16} />
+              Active Season
+            </label>
+            <input
+              type="text"
+              className={styles.formInput}
+              value={activeSeason}
+              onChange={(e) => setActiveSeason(e.target.value)}
+              placeholder="e.g., 26/27"
+              maxLength={5}
+            />
+            <p className={styles.formHint}>
+              Leave blank to use automatic calculation (currently: {new Date().getMonth() >= 7
+                ? `${new Date().getFullYear().toString().slice(-2)}/${(new Date().getFullYear() + 1).toString().slice(-2)}`
+                : `${(new Date().getFullYear() - 1).toString().slice(-2)}/${new Date().getFullYear().toString().slice(-2)}`}
+              )
+            </p>
+          </div>
+
+          <div className={styles.saveRow}>
+            <Button
+              variant="primary"
+              onClick={saveActiveSeason}
+              disabled={saving.season}
+            >
+              {saving.season ? (
+                <><Loader2 size={16} className={styles.spinner} /> Saving…</>
+              ) : (
+                <><Save size={16} /> Save Season Settings</>
               )}
             </Button>
           </div>

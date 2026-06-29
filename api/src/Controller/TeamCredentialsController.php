@@ -686,45 +686,65 @@ class TeamCredentialsController
     }
 
     /**
-     * Get team credential data for public API (no authentication required)
-     * GET /v1/team-credentials/tournament/{tournament_id}/team/{team_id}
+     * Get team credential by team ID only (public, no auth)
+     * GET /v1/team-credentials/team/{team_id}
      */
-    public function getPublicTeamCredential(Request $request, Response $response): ResponseInterface
+    public function getPublicTeamCredentialByTeamId(Request $request, Response $response): ResponseInterface
     {
         try {
-            $tournamentId = (string)$request->getAttribute('tournament_id');
             $teamId = (string)$request->getAttribute('team_id');
 
-            if (empty($tournamentId) || empty($teamId)) {
-                return $this->errorResponse($response, 'Tournament ID and Team ID are required', null, 400);
+            if (empty($teamId)) {
+                return $this->errorResponse($response, 'Team ID is required', null, 400);
             }
 
-            $credential = $this->repository->getTeamCredentialByTeam($tournamentId, $teamId);
+            $credential = $this->repository->getTeamCredentialByTeamId($teamId);
 
             if (!$credential) {
                 return $this->errorResponse($response, 'Team credential not found', null, 404);
             }
 
-            // Remove sensitive admin fields for public API
-            $publicData = [
-                'id' => $credential['id'],
-                'tournament_id' => $credential['tournament_id'],
-                'team_id' => $credential['team_id'],
-                'team_name' => $credential['team_name'],
-                'tournament_name' => $credential['tournament_name'],
-                'short_description' => $credential['short_description'],
-                'logo_filename' => $credential['logo_filename'],
-                'banner_filename' => $credential['banner_filename'],
-                'logo_url' => $credential['logo_url'],
-                'banner_url' => $credential['banner_url'],
-                'status' => $credential['status'],
-                'created_at' => $credential['created_at'],
-                'updated_at' => $credential['updated_at']
-            ];
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'data' => $this->buildPublicPayload($credential)
+            ]));
+
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (\Exception $e) {
+            $this->logger->error('Error fetching public team credential by team ID', [
+                'error' => $e->getMessage(),
+                'team_id' => $teamId ?? null
+            ]);
+
+            return $this->errorResponse($response, 'Failed to fetch team credential', null, 500);
+        }
+    }
+
+    /**
+     * Get team credential data for public API (no authentication required)
+     * GET /v1/team-credentials/tournament/{tournament_id}/team/{team_id}
+     *
+     * Kept for backwards compatibility; looks up by team_id only.
+     */
+    public function getPublicTeamCredential(Request $request, Response $response): ResponseInterface
+    {
+        try {
+            $teamId = (string)$request->getAttribute('team_id');
+
+            if (empty($teamId)) {
+                return $this->errorResponse($response, 'Team ID is required', null, 400);
+            }
+
+            $credential = $this->repository->getTeamCredentialByTeamId($teamId);
+
+            if (!$credential) {
+                return $this->errorResponse($response, 'Team credential not found', null, 404);
+            }
 
             $response->getBody()->write(json_encode([
                 'success' => true,
-                'data' => $publicData
+                'data' => $this->buildPublicPayload($credential)
             ]));
 
             return $response->withHeader('Content-Type', 'application/json');
@@ -732,12 +752,33 @@ class TeamCredentialsController
         } catch (\Exception $e) {
             $this->logger->error('Error fetching public team credential', [
                 'error' => $e->getMessage(),
-                'tournament_id' => $tournamentId ?? null,
                 'team_id' => $teamId ?? null
             ]);
 
             return $this->errorResponse($response, 'Failed to fetch team credential', null, 500);
         }
+    }
+
+    /**
+     * Build the public-facing credential payload (no admin fields)
+     */
+    private function buildPublicPayload(array $credential): array
+    {
+        return [
+            'id'                => $credential['id'],
+            'team_id'           => $credential['team_id'],
+            'tournament_id'     => $credential['tournament_id'],
+            'team_name'         => $credential['team_name'],
+            'tournament_name'   => $credential['tournament_name'],
+            'short_description' => $credential['short_description'],
+            'logo_filename'     => $credential['logo_filename'],
+            'banner_filename'   => $credential['banner_filename'],
+            'logo_url'          => $credential['logo_url'],
+            'banner_url'        => $credential['banner_url'],
+            'status'            => $credential['status'],
+            'created_at'        => $credential['created_at'],
+            'updated_at'        => $credential['updated_at'],
+        ];
     }
 
     /**
@@ -762,6 +803,54 @@ class TeamCredentialsController
             ]);
 
             return $this->errorResponse($response, 'Failed to fetch featured teams', null, 500);
+        }
+    }
+
+    /**
+     * Rename existing image files from the old tournament-prefixed naming to
+     * the new team-only naming convention.
+     *
+     * POST /admin/team-credentials/rename-files
+     *
+     * Run this once after executing the SQL migration
+     * team_credentials_remove_tournament_dependency.sql
+     */
+    public function renameFiles(Request $request, Response $response): ResponseInterface
+    {
+        try {
+            $adminUser = $request->getAttribute('user');
+
+            $this->logger->info('Team credential file rename started', [
+                'admin_user_id' => $adminUser['id'] ?? null,
+            ]);
+
+            $result = $this->service->renameExistingFiles();
+
+            $this->logAdminActivity(
+                (int)$adminUser['id'],
+                'team_credentials.rename_files',
+                'Renamed team credential image files to team-ID-only naming convention',
+                $result['summary'] ?? []
+            );
+
+            $response->getBody()->write(json_encode([
+                'success' => $result['success'],
+                'message' => $result['success']
+                    ? 'File rename completed successfully'
+                    : 'File rename completed with some failures – check results',
+                'summary' => $result['summary'],
+                'results' => $result['results'],
+            ]));
+
+            return $response->withHeader('Content-Type', 'application/json');
+
+        } catch (\Exception $e) {
+            $this->logger->error('Error renaming team credential files', [
+                'error'         => $e->getMessage(),
+                'admin_user_id' => $adminUser['id'] ?? null,
+            ]);
+
+            return $this->errorResponse($response, 'Failed to rename team credential files: ' . $e->getMessage(), null, 500);
         }
     }
 

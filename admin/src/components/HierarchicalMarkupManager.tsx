@@ -11,6 +11,7 @@ import {
   type MarkupType,
   type MarkupLevel,
 } from '../services/markupRuleService';
+import { displaySettingsService } from '../services/displaySettingsService';
 import styles from './HierarchicalMarkupManager.module.css';
 
 // Helper to get current season
@@ -37,6 +38,7 @@ interface Tournament {
   name: string;
   official_name: string;
   season: string;
+  slug?: string;
 }
 
 interface Team {
@@ -77,6 +79,24 @@ const KNOWN_SPORTS: Sport[] = [
   { sport_type: 'cycling', name: 'Cycling', has_teams: false },
 ];
 
+/**
+ * Build a unique, human-readable label for a tournament option.
+ * Appends the season when present (e.g. "Formula 1 — 2025").
+ * If the base name is still not unique after that, also shows the slug.
+ */
+const getTournamentLabel = (t: Tournament, all: Tournament[]): string => {
+  const base = t.official_name || t.name;
+  const withSeason = t.season ? `${base} — ${t.season}` : base;
+  const duplicates = all.filter(o => {
+    const ob = o.official_name || o.name;
+    return (o.season ? `${ob} — ${o.season}` : ob) === withSeason;
+  });
+  if (duplicates.length > 1 && t.slug) {
+    return `${withSeason} (${t.slug})`;
+  }
+  return withSeason;
+};
+
 const LEVEL_LABELS: Record<MarkupLevel, string> = {
   sport: 'Sport Level',
   tournament: 'Tournament Level',
@@ -94,6 +114,17 @@ const LEVEL_DESCRIPTIONS: Record<MarkupLevel, string> = {
 };
 
 const HierarchicalMarkupManager: React.FC = () => {
+  const [activeSeason, setActiveSeason] = useState('');
+
+  useEffect(() => {
+    displaySettingsService.getSettings().then((s) => setActiveSeason(s.active_season ?? '')).catch(() => {});
+  }, []);
+
+  const getEffectiveSeason = (): string => {
+    if (activeSeason && activeSeason.trim() !== '') return activeSeason.trim();
+    return getCurrentSeason();
+  };
+
   // Sport & hierarchy selection
   const [sports, setSports] = useState<Sport[]>(KNOWN_SPORTS);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -147,12 +178,25 @@ const HierarchicalMarkupManager: React.FC = () => {
         const rawSports: any[] = data.sports || data.data || (Array.isArray(data) ? data : []);
         if (rawSports.length > 0) {
           const fetchedSports: Sport[] = rawSports
-            .map((s: any) => ({
-              sport_type: s.sport_type || s.slug || s.name?.toLowerCase()?.replace(/\s+/g, '_') || '',
-              name: s.name || s.sport_type || s.slug || '',
-              has_teams: s.has_teams ?? KNOWN_SPORTS.find(k => k.sport_type === (s.sport_type || s.slug))?.has_teams ?? true,
-            }))
-            .filter((s) => s.sport_type && s.name); // Only keep sports with valid identifiers and names
+            .map((s: any) => {
+              // API returns { sport_id: "soccer" } — also handle legacy { sport_type, slug, name }
+              const sportId: string = s.sport_id || s.sport_type || s.slug || s.name?.toLowerCase()?.replace(/\s+/g, '_') || '';
+              const knownMatch = KNOWN_SPORTS.find(k => k.sport_type === sportId);
+              // Build a human-readable name: prefer API name field, then KNOWN_SPORTS name,
+              // then title-case the sport_id (e.g. "icehockey" -> "Icehockey")
+              const displayName: string = s.name || knownMatch?.name
+                || sportId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              return {
+                sport_type: sportId,
+                name: displayName,
+                has_teams: s.has_teams ?? knownMatch?.has_teams ?? true,
+              };
+            })
+            // Only include sports that are in the KNOWN_SPORTS whitelist.
+            // XS2Event exposes sub-types like "nba", "nfl", "formula1" as separate
+            // sport_ids alongside their parent types ("basketball", "motorsport").
+            // Allowing all of them through creates duplicate/confusing entries.
+            .filter((s) => s.sport_type && s.name && KNOWN_SPORTS.some(k => k.sport_type === s.sport_type));
           if (fetchedSports.length > 0) {
             setSports(fetchedSports);
           }
@@ -170,10 +214,18 @@ const HierarchicalMarkupManager: React.FC = () => {
     try {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
       const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
-      const currentSeason = getCurrentSeason();
+
+      // Only append the active-season for soccer. Soccer uses a slash-format
+      // season ("26/27"). Rugby, basketball, cricket and other sports use
+      // calendar-year formats — sending the soccer slash format returns 0
+      // results from XS2Event.
+      let tournamentUrl = `${baseUrl}/v1/tournaments?sport_type=${sportType}&page_size=100`;
+      if (sportType === 'soccer') {
+        tournamentUrl += `&season=${encodeURIComponent(getEffectiveSeason())}`;
+      }
 
       const response = await fetch(
-        `${baseUrl}/v1/tournaments?sport_type=${sportType}&season=${currentSeason}`,
+        tournamentUrl,
         { headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey } }
       );
 
@@ -186,7 +238,8 @@ const HierarchicalMarkupManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [error]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, activeSeason]);
 
   // Fetch teams for selected tournament
   const fetchTeams = useCallback(async (sportType: string, tournamentId: string) => {
@@ -195,8 +248,10 @@ const HierarchicalMarkupManager: React.FC = () => {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
       const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
 
+      // season is NOT sent to /v1/teams — XS2Event returns 400 for unknown params.
+      // Teams are implicitly season-scoped via tournament_id.
       const response = await fetch(
-        `${baseUrl}/v1/teams?sport_type=${sportType}&tournament_id=${tournamentId}`,
+        `${baseUrl}/v1/teams?sport_type=${sportType}&tournament_id=${tournamentId}&page_size=100`,
         { headers: { 'Accept': 'application/json', 'X-Api-Key': apiKey } }
       );
 
@@ -598,7 +653,7 @@ const HierarchicalMarkupManager: React.FC = () => {
               <option value="">-- Select Tournament (optional) --</option>
               {tournaments.map(t => (
                 <option key={t.tournament_id} value={t.tournament_id}>
-                  {t.official_name || t.name}
+                  {getTournamentLabel(t, tournaments)}
                 </option>
               ))}
             </select>
@@ -656,7 +711,7 @@ const HierarchicalMarkupManager: React.FC = () => {
               <option value="">-- Select Event (optional) --</option>
               {events.map(e => (
                 <option key={e.event_id} value={e.event_id}>
-                  {e.event_name} - {new Date(e.date_start).toLocaleDateString()}
+                  {e.event_name}{e.venue_name ? ` — ${e.venue_name}` : ''} ({new Date(e.date_start).toLocaleDateString()})
                 </option>
               ))}
             </select>

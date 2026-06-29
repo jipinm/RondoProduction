@@ -153,6 +153,12 @@ const EventTicketsPage: React.FC = () => {
   // Collect XS2Event category_ids aligned to ticketIds for category-level hospitality resolution
   const categoryIds = useMemo(() => tickets.map(t => t.category_id), [tickets]);
 
+  // Deduplicated category IDs that have purchasable tickets — drives venue map availability dimming
+  const availableCategoryIds = useMemo(
+    () => [...new Set(tickets.map(t => t.category_id))],
+    [tickets]
+  );
+
   // Fetch effective (hierarchically-resolved) markup pricing for this event
   // Priority: legacy ticket > ticket rule > event rule > team rule > tournament rule > sport rule
   const { 
@@ -776,11 +782,12 @@ const EventTicketsPage: React.FC = () => {
             {/* Venue Map */}
             <div className={styles.venueImages}>
               {eventId && (
-                <VenueMap 
-                  venueId={event.venue_id} 
-                  eventId={eventId} 
+                <VenueMap
+                  venueId={event.venue_id}
+                  eventId={eventId}
                   className={styles.venueMapContainer}
                   externalHoveredCategory={hoveredTicketCategory}
+                  availableCategoryIds={availableCategoryIds}
                 />
               )}
             </div>

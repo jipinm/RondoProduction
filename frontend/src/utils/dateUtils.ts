@@ -4,23 +4,25 @@
 
 /**
  * Get the current football season based on the current date
- * Football seasons typically run from August to May of the following year
- * Example: August 2025 - May 2026 = "25/26"
+ * Football seasons typically run from August to May of the following year.
+ * Transitions to the new season in June because major leagues end by then
+ * and XS2Event publishes next-season data from June onwards.
+ * Example: June 2026 → "26/27"
  */
 export const getCurrentSeason = (): string => {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-indexed (0 = January, 7 = August)
   
-  // If it's August (7) or later, the season is current year to next year
-  // If it's before August, the season started last year
+  // Major league seasons end in May/early June; new season data is published
+  // on XS2Event from June onwards, so transition at month 5 (June).
   let startYear: number;
   let endYear: number;
-  
-  if (currentMonth >= 7) { // August or later
+
+  if (currentMonth >= 5) { // June or later
     startYear = currentYear;
     endYear = currentYear + 1;
-  } else { // Before August
+  } else { // Before June
     startYear = currentYear - 1;
     endYear = currentYear;
   }
@@ -32,6 +34,21 @@ export const getCurrentSeason = (): string => {
   const season = `${startYearShort}/${endYearShort}`;
   
   return season;
+};
+
+/**
+ * Get the active season from display settings, falling back to calculated season
+ * This allows admin to override the date-based season calculation for early publication
+ * @param configuredSeason - The active_season value from display settings (empty string = use calculated)
+ * @returns The active season string (e.g., "26/27")
+ */
+export const getActiveSeason = (configuredSeason: string): string => {
+  // If a season is configured in display settings, use it
+  if (configuredSeason && configuredSeason.trim() !== '') {
+    return configuredSeason.trim();
+  }
+  // Otherwise, fall back to the calculated season
+  return getCurrentSeason();
 };
 
 /**
@@ -50,9 +67,9 @@ export const getCurrentSeasonStart = (): string => {
   const currentMonth = now.getMonth();
   
   let seasonStartYear: number;
-  if (currentMonth >= 7) { // August or later
+  if (currentMonth >= 5) { // June or later
     seasonStartYear = currentYear;
-  } else { // Before August
+  } else { // Before June
     seasonStartYear = currentYear - 1;
   }
   
@@ -68,9 +85,9 @@ export const getCurrentSeasonEnd = (): string => {
   const currentMonth = now.getMonth();
   
   let seasonEndYear: number;
-  if (currentMonth >= 7) { // August or later
+  if (currentMonth >= 5) { // June or later
     seasonEndYear = currentYear + 1;
-  } else { // Before August
+  } else { // Before June
     seasonEndYear = currentYear;
   }
   

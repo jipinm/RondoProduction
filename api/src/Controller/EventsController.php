@@ -209,6 +209,86 @@ class EventsController
     }
 
     /**
+     * Batch-fetch minimum available ticket prices for multiple events.
+     * Returns the cheapest available ticket face_value per currency per event.
+     * Cached for 5 minutes — accurate enough for the events listing "From" price.
+     *
+     * GET /v1/events/min-ticket-prices?event_ids=id1,id2,...
+     */
+    public function batchMinTicketPrices(Request $request, Response $response): Response
+    {
+        try {
+            $queryParams = $request->getQueryParams();
+            $eventIdsRaw = $queryParams['event_ids'] ?? '';
+            $eventIds = array_values(array_filter(array_map('trim', explode(',', $eventIdsRaw))));
+
+            if (empty($eventIds)) {
+                throw new ApiException('event_ids parameter is required', 400);
+            }
+
+            if (count($eventIds) > 50) {
+                throw new ApiException('Maximum 50 event IDs per request', 400);
+            }
+
+            // Fetch tickets for all events concurrently
+            $promises = [];
+            foreach ($eventIds as $eventId) {
+                $promises[$eventId] = $this->httpClient->getAsync("$this->baseUrl/v1/tickets", [
+                    'headers' => [
+                        'X-Api-Key' => $this->apiKey,
+                        'Accept' => 'application/json',
+                    ],
+                    'query' => [
+                        'event_id' => $eventId,
+                        'ticket_status' => 'available',
+                        'stock' => 'gt:0',
+                    ],
+                ]);
+            }
+
+            $results = \GuzzleHttp\Promise\Utils::settle($promises)->wait();
+
+            $minPrices = [];
+            foreach ($results as $eventId => $result) {
+                if ($result['state'] !== 'fulfilled') {
+                    $minPrices[$eventId] = [];
+                    continue;
+                }
+
+                $body = json_decode((string) $result['value']->getBody(), true);
+                $tickets = $body['tickets'] ?? [];
+
+                $min = [];
+                foreach ($tickets as $ticket) {
+                    $currency = $ticket['currency_code'] ?? null;
+                    $faceValue = isset($ticket['face_value']) ? (int) $ticket['face_value'] : null;
+                    if ($currency === null || $faceValue === null) continue;
+                    if (!isset($min[$currency]) || $faceValue < $min[$currency]) {
+                        $min[$currency] = $faceValue;
+                    }
+                }
+                $minPrices[$eventId] = $min;
+            }
+
+            $body = json_encode(['success' => true, 'data' => $minPrices]);
+            $response->getBody()->write($body);
+
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Cache-Control', 'public, max-age=300')
+                ->withStatus(200);
+
+        } catch (ApiException $e) {
+            throw $e;
+        } catch (GuzzleException $e) {
+            $this->logger->error('Failed to batch fetch min ticket prices', [
+                'error' => $e->getMessage(),
+            ]);
+            throw new ApiException('Failed to fetch ticket prices: ' . $e->getMessage(), 500, $e);
+        }
+    }
+
+    /**
      * Build and validate event query parameters
      */
     private function buildEventQuery(array $params): array

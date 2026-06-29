@@ -121,12 +121,13 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 
   if (loading) {
     return (
-      <div className={`${styles.container} ${className}`}>
+      <div className={styles.container}>
         <input
           type="text"
           placeholder="Loading countries..."
           disabled
-          className={styles.input}
+          autoComplete="off"
+          className={`${styles.input} ${className}`.trim()}
         />
       </div>
     );
@@ -134,12 +135,12 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
 
   if (loadError) {
     return (
-      <div className={`${styles.container} ${className}`}>
+      <div className={styles.container}>
         <input
           type="text"
           placeholder="Failed to load countries"
           disabled
-          className={`${styles.input} ${styles.error}`}
+          className={`${styles.input} ${className} ${styles.error}`.trim()}
         />
         <div className={styles.errorMessage}>{loadError}</div>
       </div>
@@ -147,7 +148,7 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
   }
 
   return (
-    <div className={`${styles.container} ${className}`} ref={dropdownRef}>
+    <div className={styles.container} ref={dropdownRef}>
       <input
         ref={inputRef}
         type="text"
@@ -156,9 +157,10 @@ const CountrySelect: React.FC<CountrySelectProps> = ({
         onFocus={handleInputFocus}
         onKeyDown={handleInputKeyDown}
         placeholder={placeholder}
-        className={`${styles.input} ${error ? styles.inputError : ''}`}
+        className={`${styles.input} ${className} ${error ? styles.inputError : ''}`.trim()}
         disabled={disabled}
-        autoComplete="country"
+        autoComplete="off"
+        name="country_search_nofill"
       />
       
       {isOpen && (

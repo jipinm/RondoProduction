@@ -158,32 +158,41 @@ class TeamCredentialsRepository
     }
 
     /**
-     * Get team credential by tournament and team ID
+     * Get team credential by team ID only (tournament-agnostic)
      */
-    public function getTeamCredentialByTeam(string $tournamentId, string $teamId): ?array
+    public function getTeamCredentialByTeamId(string $teamId): ?array
     {
         try {
             $sql = "
-                SELECT 
+                SELECT
                     tc.*,
                     creator.name as created_by_name,
                     updater.name as updated_by_name
                 FROM team_credentials tc
                 LEFT JOIN admin_users creator ON tc.created_by = creator.id
                 LEFT JOIN admin_users updater ON tc.updated_by = updater.id
-                WHERE tc.tournament_id = ? AND tc.team_id = ? AND tc.sport_type = 'soccer'
+                WHERE tc.team_id = ? AND tc.sport_type = 'soccer'
             ";
 
             $pdo = $this->db->getConnection();
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$tournamentId, $teamId]);
-            
+            $stmt->execute([$teamId]);
+
             $credential = $stmt->fetch(PDO::FETCH_ASSOC);
             return $credential ?: null;
 
         } catch (PDOException $e) {
-            throw new Exception('Failed to retrieve team credential by team: ' . $e->getMessage());
+            throw new Exception('Failed to retrieve team credential by team ID: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get team credential by tournament and team ID
+     * Kept for backwards-compatible admin lookups; delegates to team-ID-only lookup.
+     */
+    public function getTeamCredentialByTeam(string $tournamentId, string $teamId): ?array
+    {
+        return $this->getTeamCredentialByTeamId($teamId);
     }
 
     /**
@@ -203,8 +212,8 @@ class TeamCredentialsRepository
             ";
 
             $params = [
-                'soccer', // Always soccer for this feature
-                $data['tournament_id'],
+                'soccer',
+                $data['tournament_id'] ?? null, // nullable reference field
                 $data['team_id'],
                 $data['team_name'] ?? null,
                 $data['tournament_name'] ?? null,
@@ -215,7 +224,7 @@ class TeamCredentialsRepository
                 $data['banner_url'] ?? null,
                 $data['status'] ?? 'active',
                 $data['created_by'] ?? null,
-                $data['created_by'] ?? null // updated_by same as created_by initially
+                $data['created_by'] ?? null
             ];
 
             $pdo = $this->db->getConnection();
@@ -225,8 +234,8 @@ class TeamCredentialsRepository
             return (int) $pdo->lastInsertId();
 
         } catch (PDOException $e) {
-            if ($e->getCode() === '23000') { // Duplicate entry
-                throw new Exception('Team credential already exists for this tournament and team combination.');
+            if ($e->getCode() === '23000') {
+                throw new Exception('Team credentials already exist for this team.');
             }
             throw new Exception('Failed to create team credential: ' . $e->getMessage());
         }
@@ -402,18 +411,18 @@ class TeamCredentialsRepository
     }
 
     /**
-     * Check if team credential exists
+     * Check if team credential exists by team_id (tournament-agnostic)
      */
-    public function teamCredentialExists(string $tournamentId, string $teamId, ?int $excludeId = null): bool
+    public function teamCredentialExists(string $teamId, ?int $excludeId = null): bool
     {
         try {
             $sql = "
                 SELECT COUNT(*) as count
-                FROM team_credentials 
-                WHERE tournament_id = ? AND team_id = ? AND sport_type = 'soccer'
+                FROM team_credentials
+                WHERE team_id = ? AND sport_type = 'soccer'
             ";
 
-            $params = [$tournamentId, $teamId];
+            $params = [$teamId];
 
             if ($excludeId !== null) {
                 $sql .= " AND id != ?";
@@ -429,6 +438,29 @@ class TeamCredentialsRepository
 
         } catch (PDOException $e) {
             throw new Exception('Failed to check team credential existence: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all credentials that have at least one image file stored
+     * Used by the file-rename utility endpoint.
+     */
+    public function getCredentialsWithFiles(): array
+    {
+        try {
+            $sql = "
+                SELECT id, team_id, logo_filename, banner_filename
+                FROM team_credentials
+                WHERE logo_filename IS NOT NULL OR banner_filename IS NOT NULL
+                ORDER BY id
+            ";
+
+            $pdo  = $this->db->getConnection();
+            $stmt = $pdo->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $e) {
+            throw new Exception('Failed to retrieve credentials with files: ' . $e->getMessage());
         }
     }
 

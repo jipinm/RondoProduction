@@ -121,16 +121,12 @@ const Hero: React.FC = () => {
     );
   }
 
-  // Error or empty state - show fallback content
+  // Error or empty state - show fallback content (CSS background only — no img
+  // element so a missing static file never produces a broken-image placeholder)
   if (error || banners.length === 0) {
     return (
       <section className={styles.hero}>
         <div className={styles.wrapper}>
-          <img 
-            src="/images/events/formula-1-hero.png" 
-            alt="Sports Events" 
-            className={styles.heroImage} 
-          />
           <div className={styles.heroContentContainer}>
             <div className={styles.heroContentWrapper}>
               <div className={styles.heroContent}>
@@ -169,9 +165,10 @@ const Hero: React.FC = () => {
   return (
     <section className={styles.hero}>
       <div className={styles.wrapper}>
-        <img 
-          src={imageUrl} 
-          alt={currentBanner.title} 
+        <img
+          key={imageUrl}
+          src={imageUrl}
+          alt={currentBanner.title}
           className={styles.heroImage}
           onLoad={handleImageLoad}
           onError={handleImageError}

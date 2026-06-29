@@ -11,6 +11,8 @@ export interface DisplaySettings {
   excluded_teams: Record<string, string[]>;
   /** Array of sport_ids to show in Other Sports dropdown. Empty = show all. */
   other_sports_visible: string[];
+  /** Active season to display in navigation (e.g., "26/27"). Empty = use calculated season. */
+  active_season: string;
 }
 
 interface DisplaySettingsResponse {
@@ -33,6 +35,7 @@ const DEFAULT_SETTINGS: DisplaySettings = {
   football_visible_tournaments: [],
   excluded_teams: {},
   other_sports_visible: [],
+  active_season: '',
 };
 
 // ── Hook ──────────────────────────────────────────────────────────────────────

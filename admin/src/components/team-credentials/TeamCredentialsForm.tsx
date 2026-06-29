@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Button from '../Button';
 import Card from '../Card';
 import { teamCredentialsService, type TeamCredential, type TeamCredentialCreate, type TeamCredentialUpdate } from '../../services/teamCredentialsService';
+import { displaySettingsService } from '../../services/displaySettingsService';
 import styles from './TeamCredentialsForm.module.css';
 
 interface TeamCredentialsFormProps {
@@ -53,6 +54,7 @@ const TeamCredentialsForm: React.FC<TeamCredentialsFormProps> = ({
   const [teams, setTeams] = useState<Team[]>([]);
   const [tournamentsLoading, setTournamentsLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(false);
+  const [activeSeason, setActiveSeason] = useState('');
   
   // Selected tournament and team names for display
   const [selectedTournamentName, setSelectedTournamentName] = useState('');
@@ -61,7 +63,10 @@ const TeamCredentialsForm: React.FC<TeamCredentialsFormProps> = ({
   const isEditing = !!credential;
 
   useEffect(() => {
-    // Load tournaments on component mount
+    // Load active season from admin settings first, then load tournaments
+    displaySettingsService.getSettings().then((settings) => {
+      setActiveSeason(settings.active_season ?? '');
+    }).catch(() => {});
     loadTournaments();
     
     if (credential) {
@@ -97,20 +102,29 @@ const TeamCredentialsForm: React.FC<TeamCredentialsFormProps> = ({
     return `${startYearShort}/${endYearShort}`;
   };
 
-  const loadTournaments = async () => {
+  const getEffectiveSeason = (): string => {
+    return activeSeason && activeSeason.trim() !== '' ? activeSeason.trim() : getCurrentSeason();
+  };
+
+  // Re-load tournaments when activeSeason resolves from admin settings
+  useEffect(() => {
+    if (activeSeason) {
+      loadTournaments(activeSeason);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSeason]);
+
+  const loadTournaments = async (seasonOverride?: string) => {
     try {
       setTournamentsLoading(true);
       const apiUrl = import.meta.env.VITE_API_URL;
-      const currentSeason = getCurrentSeason();
-      const tournamentUrl = `${apiUrl}/v1/tournaments?sport_type=soccer&season=${currentSeason}`;
-      console.log('Loading tournaments from:', tournamentUrl);
+      const season = seasonOverride ?? getEffectiveSeason();
+      const tournamentUrl = `${apiUrl}/v1/tournaments?sport_type=soccer&season=${encodeURIComponent(season)}&page_size=100`;
       const response = await fetch(tournamentUrl);
       if (response.ok) {
         const data = await response.json();
-        console.log('Tournaments loaded:', data.tournaments?.length || 0);
         setTournaments(data.tournaments || []);
       } else {
-        console.error('Failed to load tournaments, status:', response.status);
         setErrors(prev => ({ ...prev, tournaments: 'Failed to load tournaments' }));
       }
     } catch (error) {
@@ -126,7 +140,8 @@ const TeamCredentialsForm: React.FC<TeamCredentialsFormProps> = ({
       setTeamsLoading(true);
       setTeams([]); // Clear existing teams
       const apiUrl = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${apiUrl}/v1/teams?sport_type=soccer&tournament_id=${tournamentId}`);
+      const season = getEffectiveSeason();
+      const response = await fetch(`${apiUrl}/v1/teams?sport_type=soccer&tournament_id=${encodeURIComponent(tournamentId)}&season=${encodeURIComponent(season)}&page_size=100`);
       if (response.ok) {
         const data = await response.json();
         setTeams(data.teams || []);
