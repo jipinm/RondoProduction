@@ -71,8 +71,11 @@ export class XS2EventAPI {
       params = {}
     } = options;
 
-    // Build URL with query parameters
-    const url = new URL(`${this.baseUrl}${endpoint}`);
+    // Build URL with query parameters.
+    // baseUrl may be an absolute URL (production) or a relative path such as
+    // '/xs2event-proxy' (local dev Vite proxy). new URL() requires a base
+    // when the first argument is relative.
+    const url = new URL(`${this.baseUrl}${endpoint}`, window.location.origin);
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, String(value));

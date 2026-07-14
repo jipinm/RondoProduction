@@ -502,7 +502,10 @@ class BannersController
                 'location' => $location
             ]));
 
-            return $response->withHeader('Content-Type', 'application/json');
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+                ->withHeader('Vary', 'Accept-Encoding');
 
         } catch (ServiceException $e) {
             $this->logger->error('Service error in getPublicBanners', [

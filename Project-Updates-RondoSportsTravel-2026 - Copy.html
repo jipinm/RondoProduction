@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rondo Sports Tickets — Project Update Feb–June 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-deep:    #245388;
+    --blue-sky:     #83ACDC;
+    --blue-mist:    #C7D9ED;
+    --red:          #C0504C;
+    --coral:        #DD938C;
+    --cloud:        #F7F7F7;
+    --graphite:     #808080;
+    --ink:          #1C191D;
+    --white:        #ffffff;
+    --surface:      #f0f4f9;
+    --border:       #dde6f0;
+    --nav-w:        260px;
+    --radius:       12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cloud);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* ── MOBILE HEADER ─────────────────────────────── */
+  .mob-header {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--blue-deep);
+    padding: 14px 20px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 2px 16px rgba(36,83,136,.35);
+  }
+  .mob-header .brand { color: var(--white); font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: .04em; }
+  .mob-header .brand span { color: var(--red); }
+  .hamburger { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
+  .hamburger span { display: block; width: 24px; height: 2px; background: var(--white); border-radius: 2px; transition: .3s; }
+
+  /* ── LAYOUT ─────────────────────────────────────── */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── SIDEBAR NAV ─────────────────────────────────── */
+  .sidebar {
+    width: var(--nav-w);
+    background: var(--blue-deep);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.15) transparent;
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+    z-index: 100;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .sidebar-logo .wordmark {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--white);
+    letter-spacing: .04em;
+    line-height: 1.1;
+  }
+  .sidebar-logo .wordmark span { color: var(--coral); }
+  .sidebar-logo .sub {
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.45);
+    margin-top: 4px;
+  }
+  .sidebar-logo .period {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--blue-mist);
+    font-weight: 500;
+  }
+  .period-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; flex-shrink: 0; }
+
+  nav { padding: 16px 0; flex: 1; }
+
+  .nav-section-label {
+    font-size: 9.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.3);
+    padding: 12px 24px 6px;
+    font-weight: 600;
+  }
+
+  nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 24px;
+    color: rgba(255,255,255,.65);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all .18s;
+    position: relative;
+    border-radius: 0;
+  }
+  nav a:hover { color: var(--white); background: rgba(255,255,255,.07); }
+  nav a.active { color: var(--white); background: rgba(131,172,220,.15); }
+  nav a.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 4px; bottom: 4px;
+    width: 3px;
+    background: var(--blue-sky);
+    border-radius: 0 3px 3px 0;
+  }
+  .nav-icon { font-size: 14px; opacity: .7; flex-shrink: 0; }
+  nav a:hover .nav-icon, nav a.active .nav-icon { opacity: 1; }
+
+  .nav-badge {
+    margin-left: auto;
+    font-size: 10px;
+    background: var(--red);
+    color: var(--white);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-weight: 600;
+  }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    font-size: 11px;
+    color: rgba(255,255,255,.3);
+    line-height: 1.5;
+  }
+
+  /* ── MAIN CONTENT ───────────────────────────────── */
+  .main { flex: 1; min-width: 0; }
+
+  /* ── HERO ───────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(135deg, var(--blue-deep) 0%, #1a3d68 60%, #0f2847 100%);
+    padding: 60px 64px 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2383ACDC' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(131,172,220,.12) 0%, transparent 70%);
+  }
+  .hero-inner { position: relative; z-index: 1; max-width: 800px; }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 11.5px;
+    color: var(--blue-mist);
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 46px);
+    color: var(--white);
+    line-height: 1.1;
+    margin-bottom: 14px;
+    letter-spacing: -.02em;
+  }
+  .hero h1 .accent { color: var(--blue-sky); }
+  .hero h1 .red { color: var(--coral); }
+
+  .hero-sub {
+    color: rgba(255,255,255,.6);
+    font-size: 15px;
+    font-weight: 300;
+    max-width: 560px;
+    margin-bottom: 32px;
+    line-height: 1.7;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .meta-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: rgba(255,255,255,.55);
+  }
+  .meta-pill strong { color: var(--white); font-weight: 600; }
+  .meta-sep { color: rgba(255,255,255,.2); }
+
+  /* ── STAT STRIP ─────────────────────────────────── */
+  .stat-strip {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 64px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .stat-item {
+    flex: 1;
+    min-width: 110px;
+    padding: 22px 20px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--blue-deep);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-num.red { color: var(--red); }
+  .stat-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--graphite);
+    font-weight: 600;
+  }
+
+  /* ── CONTENT BODY ───────────────────────────────── */
+  .content-body { padding: 48px 64px; max-width: 960px; }
+
+  /* ── SECTION HEADERS ────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-top: 8px;
+  }
+  .phase-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--white);
+    background: var(--blue-deep);
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(36,83,136,.3);
+  }
+  .phase-badge.red { background: var(--red); box-shadow: 0 4px 12px rgba(192,80,76,.3); }
+  .phase-badge.sky { background: var(--blue-sky); box-shadow: 0 4px 12px rgba(131,172,220,.4); }
+  .phase-badge.coral { background: var(--coral); box-shadow: 0 4px 12px rgba(221,147,140,.4); }
+  .phase-badge.dark { background: var(--ink); }
+
+  .section-title-block {}
+  .section-title-block h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1.15;
+    letter-spacing: -.02em;
+  }
+  .section-title-block .date-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--graphite);
+    font-weight: 500;
+    margin-top: 4px;
+    letter-spacing: .04em;
+  }
+  .section-title-block .date-tag::before {
+    content: '⬤';
+    font-size: 7px;
+    color: var(--blue-sky);
+  }
+
+  .section { margin-bottom: 64px; scroll-margin-top: 24px; }
+
+  /* ── CARD GRID ──────────────────────────────────── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .feature-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--blue-deep);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .3s;
+  }
+  .feature-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(36,83,136,.1); border-color: var(--blue-mist); }
+  .feature-card:hover::before { transform: scaleX(1); }
+  .feature-card.accent-red::before { background: var(--red); }
+  .feature-card.accent-coral::before { background: var(--coral); }
+  .feature-card.accent-sky::before { background: var(--blue-sky); }
+
+  .card-icon { font-size: 22px; margin-bottom: 10px; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .card-desc { font-size: 13px; color: var(--graphite); line-height: 1.55; }
+
+  /* ── TABLES ─────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; margin-bottom: 28px; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; background: var(--white); font-size: 13px; }
+  thead tr { background: var(--blue-deep); }
+  thead th { color: var(--white); font-weight: 600; font-family: 'Syne', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 12px 16px; text-align: left; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface); }
+  tbody td { padding: 11px 16px; color: var(--ink); vertical-align: middle; }
+  .badge-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(192,80,76,.1);
+    color: var(--red);
+    border: 1px solid rgba(192,80,76,.2);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .badge-exist {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(131,172,220,.12);
+    color: var(--blue-deep);
+    border: 1px solid rgba(131,172,220,.25);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .badge-phase {
+    display: inline-flex;
+    background: rgba(36,83,136,.08);
+    color: var(--blue-deep);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .badge-updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(36,83,136,.1);
+    color: var(--blue-deep);
+    border: 1px solid rgba(36,83,136,.3);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  /* ── EFFORT INDICATORS ──────────────────────────── */
+  .effort-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    color: #1a3d68;
+    font-weight: 700;
+    background: rgba(36,83,136,.07);
+    border: 1px solid rgba(36,83,136,.2);
+    border-radius: 12px;
+    padding: 2px 9px;
+    margin-left: 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+    letter-spacing: .03em;
+  }
+  .tl-effort {
+    font-size: 12px;
+    color: var(--blue-deep);
+    font-weight: 600;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tl-effort::before { content: '⏱'; font-size: 11px; }
+  .sub-effort {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--graphite);
+    background: rgba(36,83,136,.05);
+    border: 1px solid rgba(36,83,136,.13);
+    border-radius: 10px;
+    padding: 1px 8px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .sub-effort::before { content: '⏱ '; }
+  td code {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--blue-deep);
+  }
+
+  /* ── CALLOUT ─────────────────────────────────────── */
+  .callout {
+    background: rgba(131,172,220,.08);
+    border-left: 4px solid var(--blue-sky);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .callout strong { color: var(--blue-deep); }
+  .callout.red { background: rgba(192,80,76,.06); border-color: var(--red); }
+  .callout.red strong { color: var(--red); }
+
+  /* ── TIMELINE ─────────────────────────────────────── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--blue-sky), var(--blue-mist));
+    border-radius: 2px;
+  }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -24px; top: 6px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--blue-deep);
+    border: 2px solid var(--white);
+    box-shadow: 0 0 0 2px var(--blue-sky);
+  }
+  .tl-date {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue-deep);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .tl-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .tl-detail { font-size: 13px; color: var(--graphite); }
+
+  /* ── COLOUR SWATCHES ─────────────────────────────── */
+  .swatch-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .swatch-dot { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .swatch-name { font-weight: 700; color: var(--ink); font-size: 12px; }
+  .swatch-hex { color: var(--graphite); font-family: 'Courier New', monospace; font-size: 11px; }
+
+  /* ── EMAIL TEMPLATE CARDS ─────────────────────────── */
+  .email-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .email-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    text-align: center;
+    transition: .2s;
+  }
+  .email-card:hover { border-color: var(--blue-sky); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(36,83,136,.09); }
+  .email-card .ec-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+  .email-card .ec-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .email-card .ec-trigger { font-size: 11.5px; color: var(--graphite); line-height: 1.45; }
+
+  /* ── SUBSECTION HEADERS ─────────────────────────── */
+  .sub-h {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sub-h .num {
+    font-size: 11px;
+    background: var(--blue-deep);
+    color: var(--white);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  /* ── METRICS GRID ─────────────────────────────────── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .metric-card {
+    background: var(--blue-deep);
+    border-radius: var(--radius);
+    padding: 22px;
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+  }
+  .metric-card.alt { background: var(--red); }
+  .metric-card.alt2 { background: linear-gradient(135deg, #1a3d68, var(--blue-deep)); }
+  .metric-card.alt3 { background: #1a3d68; }
+  .metric-big {
+    font-family: 'Syne', sans-serif;
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .metric-label { font-size: 11.5px; font-weight: 500; opacity: .7; text-transform: uppercase; letter-spacing: .1em; }
+
+  /* ── SEPARATOR ──────────────────────────────────── */
+  .sep { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+
+  /* ── CONCLUSION ─────────────────────────────────── */
+  .conclusion {
+    background: var(--blue-deep);
+    border-radius: 16px;
+    padding: 36px 40px;
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .conclusion::before {
+    content: '"';
+    position: absolute;
+    top: -10px; right: 24px;
+    font-family: 'Syne', sans-serif;
+    font-size: 140px;
+    font-weight: 800;
+    color: rgba(255,255,255,.06);
+    line-height: 1;
+  }
+  .conclusion h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 14px;
+    color: var(--white);
+  }
+  .conclusion p { color: rgba(255,255,255,.75); font-size: 14.5px; line-height: 1.7; margin-bottom: 12px; }
+  .conclusion p:last-child { margin-bottom: 0; }
+
+  .footer-note {
+    text-align: center;
+    font-size: 12px;
+    color: var(--graphite);
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+  }
+  .footer-note strong { color: var(--blue-deep); }
+
+  /* ── EXEC SUMMARY TABLE ─────────────────────────── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .summary-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: .2s;
+  }
+  .summary-item:hover { border-color: var(--blue-sky); box-shadow: 0 4px 14px rgba(36,83,136,.08); }
+  .si-icon { font-size: 20px; flex-shrink: 0; }
+  .si-label { font-size: 11.5px; color: var(--graphite); font-weight: 500; }
+  .si-val { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--ink); }
+
+  /* ── OVERLAY (mobile nav) ───────────────────────── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99; opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .overlay.active { opacity: 1; pointer-events: all; }
+
+  /* ── RESPONSIVE ─────────────────────────────────── */
+  @media (max-width: 900px) {
+    .mob-header { display: flex; }
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      transform: translateX(-100%);
+      z-index: 100;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .stat-strip { padding: 0 24px; }
+    .hero { padding: 40px 24px 36px; }
+    .content-body { padding: 32px 24px; }
+  }
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 26px; }
+    .stat-item { padding: 16px 12px; }
+    .stat-num { font-size: 22px; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── SCROLL ANIMATIONS ──────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .section { animation: fadeUp .5s ease both; }
+  .section:nth-child(2) { animation-delay: .05s; }
+  .section:nth-child(3) { animation-delay: .1s; }
+  .section:nth-child(4) { animation-delay: .15s; }
+</style>
+</head>
+<body>
+
+<!-- MOBILE HEADER -->
+<div class="mob-header">
+  <div class="brand">RONDO <span>SPORTS</span></div>
+  <button class="hamburger" id="hambBtn" aria-label="Open navigation">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="layout">
+
+  <!-- ══ SIDEBAR ════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">RONDO <span>SPORTS</span><br>TICKETS</div>
+      <div class="sub">Project Update Report</div>
+      <div class="period">
+        <span class="period-dot"></span>
+        Feb 12 – Jun 29, 2026
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-section-label">Overview</div>
+      <a href="#exec-summary" class="active"><span class="nav-icon">📊</span> Executive Summary</a>
+      <a href="#timeline-section"><span class="nav-icon">🗓</span> Deployment Timeline</a>
+
+      <div class="nav-section-label">Foundation</div>
+      <a href="#foundation"><span class="nav-icon">🏗️</span> Foundation Work <span class="nav-badge">Feb–Mar</span></a>
+
+      <div class="nav-section-label">Phases</div>
+      <a href="#phase1"><span class="nav-icon">⚙️</span> Phase 1 · Display Settings <span class="nav-badge">Apr 20</span></a>
+      <a href="#phase2"><span class="nav-icon">🎨</span> Phase 2 · Brand Overhaul <span class="nav-badge">May 6</span></a>
+      <a href="#phase3"><span class="nav-icon">✨</span> Phase 3 · UI Refinements <span class="nav-badge">May 17</span></a>
+      <a href="#phase4"><span class="nav-icon">🔍</span> Phase 4 · SEO Module <span class="nav-badge">May 17</span></a>
+      <a href="#phase5"><span class="nav-icon">✉️</span> Phase 5 · Email Module <span class="nav-badge">May 18</span></a>
+
+      <div class="nav-section-label">June 2026</div>
+      <a href="#phase6"><span class="nav-icon">🤝</span> Phase 6 · Partners &amp; CMS <span class="nav-badge">Jun 6</span></a>
+      <a href="#phase7"><span class="nav-icon">🔐</span> Phase 7 · Auth Flows <span class="nav-badge">Jun 9</span></a>
+      <a href="#phase8"><span class="nav-icon">🏟</span> Phase 8 · Venue Hospitality <span class="nav-badge">Jun 20</span></a>
+      <a href="#phase9"><span class="nav-icon">📝</span> Phase 9 · Blog &amp; Newsletter <span class="nav-badge">Jun 29</span></a>
+
+      <div class="nav-section-label">Reference</div>
+      <a href="#backend"><span class="nav-icon">🔌</span> Backend API</a>
+      <a href="#admin-inventory"><span class="nav-icon">🛠</span> Admin Modules</a>
+      <a href="#frontend-inventory"><span class="nav-icon">🖥</span> Frontend Inventory</a>
+      <a href="#infra"><span class="nav-icon">🔧</span> Infrastructure Fixes</a>
+      <a href="#metrics"><span class="nav-icon">📈</span> Dev Metrics</a>
+      <a href="#conclusion"><span class="nav-icon">🏁</span> Conclusion</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      Prepared by the Development Team<br>for Rondo Sports Travel
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ════════════════════════════════════ -->
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="hero-tag">
+          <span class="hero-tag-dot"></span>
+          Client Project Update — Features, Enhancements & Module Delivery
+        </div>
+        <h1>Development Progress<br><span class="accent">February – June</span> <span class="red">2026</span></h1>
+        <p class="hero-sub">Covering all work across the customer-facing website, admin management panel, and backend API — 19 production deployments, 450+ files, and 21,500+ lines of new code.</p>
+        <div class="hero-meta">
+          <div class="meta-pill">Prepared for: <strong>Rondo Sports Travel</strong></div>
+          <span class="meta-sep">·</span>
+          <div class="meta-pill">Prepared by: <strong>Development Team</strong></div>
+          <span class="meta-sep">·</span>
+          <div class="meta-pill">Period: <strong>12 Feb – 29 Jun 2026</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAT STRIP -->
+    <div class="stat-strip">
+      <div class="stat-item">
+        <div class="stat-num">19</div>
+        <div class="stat-label">Deployments</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">450+</div>
+        <div class="stat-label">Files Changed</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num red">21,500</div>
+        <div class="stat-label">Lines of Code</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">550</div>
+        <div class="stat-label">Dev Hours (Est.)</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">9</div>
+        <div class="stat-label">New Admin Modules</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">44+</div>
+        <div class="stat-label">New API Endpoints</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Blog &amp; Newsletter</div>
+      </div>
+    </div>
+
+    <!-- CONTENT BODY -->
+    <div class="content-body">
+
+      <!-- ── EXECUTIVE SUMMARY ─────────────── -->
+      <div class="section" id="exec-summary">
+        <div class="section-header">
+          <div class="phase-badge sky">📋</div>
+          <div class="section-title-block">
+            <h2>Executive Summary</h2>
+            <div class="date-tag">12 February 2026 – 29 June 2026</div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14.5px;line-height:1.75;margin-bottom:24px;">
+          This report covers all development work completed across the three Rondo Sports Tickets applications — the <strong>customer-facing frontend website</strong>, the <strong>admin management panel</strong>, and the <strong>backend API</strong> — from February 12 to June 29, 2026. The team delivered 19 production deployments spanning 450+ files and over 21,500 lines of new code. Work spans foundational infrastructure overhauls in February and March — including a 7-level hospitality model, hierarchical markup pricing, a multi-currency payment system, and SendGrid email migration — followed by nine newly developed admin modules, a complete brand identity implementation, full SEO infrastructure, a blog and newsletter CMS platform, a complete customer authentication flow overhaul, a venue-based hospitality management system, and a partners management module.
+        </p>
+
+        <div class="summary-grid">
+          <div class="summary-item"><span class="si-icon">�️</span><div><div class="si-label">Hospitality Hierarchical Refactor</div><div class="si-val">5-Level Model</div></div></div>
+          <div class="summary-item"><span class="si-icon">💰</span><div><div class="si-label">Hierarchical Markup Pricing</div><div class="si-val">Complete</div></div></div>
+          <div class="summary-item"><span class="si-icon">💱</span><div><div class="si-label">Multi-Currency System</div><div class="si-val">Complete</div></div></div>
+          <div class="summary-item"><span class="si-icon">📨</span><div><div class="si-label">SendGrid Migration</div><div class="si-val">Mar 2026</div></div></div>
+          <div class="summary-item"><span class="si-icon">�🆕</span><div><div class="si-label">New Admin Modules</div><div class="si-val">9</div></div></div>
+          <div class="summary-item"><span class="si-icon">🎨</span><div><div class="si-label">Frontend Rebrand</div><div class="si-val">Complete</div></div></div>
+          <div class="summary-item"><span class="si-icon">🔐</span><div><div class="si-label">Customer Auth Overhaul</div><div class="si-val">Jun 2026</div></div></div>
+          <div class="summary-item"><span class="si-icon">📝</span><div><div class="si-label">Blog &amp; Newsletter CMS</div><div class="si-val">Jun 2026</div></div></div>
+          <div class="summary-item"><span class="si-icon">🤝</span><div><div class="si-label">Partners Management</div><div class="si-val">Jun 2026</div></div></div>
+          <div class="summary-item"><span class="si-icon">🏟</span><div><div class="si-label">Venue Hospitality Module</div><div class="si-val">Jun 2026</div></div></div>
+          <div class="summary-item"><span class="si-icon">🔌</span><div><div class="si-label">Backend API Controllers</div><div class="si-val">9 New</div></div></div>
+          <div class="summary-item"><span class="si-icon">🐛</span><div><div class="si-label">Bug Fixes</div><div class="si-val">10 Tracked</div></div></div>
+        </div>
+      </div>
+
+      <!-- ── TIMELINE ──────────────────────── -->
+      <div class="section" id="timeline-section">
+        <div class="section-header">
+          <div class="phase-badge dark">📅</div>
+          <div class="section-title-block">
+            <h2>Deployment Timeline</h2>
+            <div class="date-tag">19 production deployments across 3 applications (Feb–Jun 2026)</div>
+          </div>
+        </div>
+
+        <div class="callout" style="margin-bottom:24px;">
+          <strong>Note on dates:</strong> All dates shown are Git commit / production deployment dates. The actual development and implementation work for each item was carried out over the preceding days and weeks. Working hours below represent the total estimated effort invested per task — including requirements analysis, development, UI/UX refinement, API integration, database changes, testing, debugging, cross-application integration, and optimisation.
+        </div>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-date">February 12, 2026</div>
+            <div class="tl-title">Foundation — Hospitality Refactor, Hierarchical Markup Pricing, Multi-Currency System</div>
+            <div class="tl-detail">All three apps · Significant backend & admin refactor</div>
+            <div class="tl-effort">~84 hrs estimated development effort across all three deliverables</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">March 13, 2026</div>
+            <div class="tl-title">SendGrid Email Migration</div>
+            <div class="tl-detail">API · EmailService rewritten; PHPMailer removed</div>
+            <div class="tl-effort">~14 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">April 20, 2026</div>
+            <div class="tl-title">Phase 1 — Display Settings & Golf Navigation</div>
+            <div class="tl-detail">Admin + Frontend + API · ~1,016 lines added</div>
+            <div class="tl-effort">~32 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 6, 2026</div>
+            <div class="tl-title">Phase 2 — Brand Overhaul, Contact CMS, Exchange Rates</div>
+            <div class="tl-detail">All three apps · 96 files, 4,752 lines added</div>
+            <div class="tl-effort">~115 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 6, 2026</div>
+            <div class="tl-title">CORS Allowed Origins + .env.production Fix</div>
+            <div class="tl-detail">API · 2 targeted file fixes</div>
+            <div class="tl-effort">~3 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 17, 2026</div>
+            <div class="tl-title">Phase 3 — UI Refinements, Footer, Pagination Fixes</div>
+            <div class="tl-detail">Frontend · 23 files</div>
+            <div class="tl-effort">~18 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 17, 2026</div>
+            <div class="tl-title">Phase 4 — SEO Management Module</div>
+            <div class="tl-detail">All three apps · 22 files, 1,325 lines added</div>
+            <div class="tl-effort">~34 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 18, 2026</div>
+            <div class="tl-title">Phase 5 — Email Management Module</div>
+            <div class="tl-detail">Admin + API · 10 files, 2,105 lines added</div>
+            <div class="tl-effort">~32 hrs estimated development effort</div>
+          </div>
+
+          <!-- June 2026 -->
+          <div class="tl-item">
+            <div class="tl-date">June 6, 2026</div>
+            <div class="tl-title">About Us Page Image CMS</div>
+            <div class="tl-detail">Admin + API + Frontend · 11 files, 467 lines · admin-uploadable hero image for the About Us page</div>
+            <div class="tl-effort">~8 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">June 6, 2026</div>
+            <div class="tl-title">Phase 6 — Partners Management Module</div>
+            <div class="tl-detail">All three apps · 12 files, 2,823 lines · full CRUD, logo upload, link, sort order, status toggle</div>
+            <div class="tl-effort">~40 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">June 9, 2026</div>
+            <div class="tl-title">Phase 7 — Customer Authentication Flow Overhaul</div>
+            <div class="tl-detail">Frontend + API · 3 commits, 85 files, 3,958 lines · registration success screen, forgot password flow, new Reset Password page, removed email verification requirement, API 500 fix on customer registration</div>
+            <div class="tl-effort">~60 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">June 10, 2026</div>
+            <div class="tl-title">Reservation Net Rate Fix (XS2Event API)</div>
+            <div class="tl-detail">Frontend · 2 files · converted net_rate from decimal to integer cents; XS2Event API requires cents as integer</div>
+            <div class="tl-effort">~3 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">June 20, 2026</div>
+            <div class="tl-title">Phase 8 — Venue-Based Hospitality Management</div>
+            <div class="tl-detail">All three apps · 13 files, 1,340 lines · 7th hospitality scope level added, new VenueHospitalityManagement admin page, venue-level API endpoints and repository methods</div>
+            <div class="tl-effort">~28 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">June 20, 2026</div>
+            <div class="tl-title">Hero Image Rendering Fix</div>
+            <div class="tl-detail">Frontend · 1 file · URL-keyed state tracking prevents permanent opacity:0 on hero background image changes</div>
+            <div class="tl-effort">~4 hrs estimated development effort</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">June 29, 2026</div>
+            <div class="tl-title">Phase 9 — Blog Platform, Newsletter Module, Team Credentials Refactor &amp; Display Settings</div>
+            <div class="tl-detail">All three apps · 245 files, 21,689 lines · Blog Management admin module, public blog listing + detail pages, Newsletter Subscribers admin module, Team Credentials tournament-independence refactor, Display Settings enhancements, CheckoutLoader component, useEventMinPrices hook, 8 DB migrations, TS build fix</div>
+            <div class="tl-effort">~80 hrs estimated development effort</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── FOUNDATION WORK ─────────────────── -->
+      <div class="section" id="foundation">
+        <div class="section-header">
+          <div class="phase-badge" style="background:#1a3d68;font-size:20px;">🏗️</div>
+          <div class="section-title-block">
+            <h2>Foundation Work: Pricing, Currency &amp; Email Infrastructure</h2>
+            <div class="date-tag">February 12, 2026 &amp; March 13, 2026 <span class="effort-pill">⏱ ~98 hrs total</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">Before the April–May feature sprint, two significant technical deliveries established core platform infrastructure: a complete overhaul of the hospitality management model, hierarchical markup pricing, and multi-currency payment system in February, followed by a transactional email service migration from PHPMailer to SendGrid in March.</p>
+
+        <div class="sub-h"><span class="num">F.1</span> Hospitality Management — 5-Level Hierarchical Refactor <span class="sub-effort">~20 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🏟</div>
+            <div class="card-title">5-Level Hierarchy</div>
+            <div class="card-desc">Refactored from a flat model to: <strong>Sport → Tournament → Venue → Event → Category</strong>. Enables precisely scoped hospitality pricing across different tournaments, venues, and event types.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🔄</div>
+            <div class="card-title">Model Refactor</div>
+            <div class="card-desc"><code>price_usd</code> removed from the base hospitality service model. Pricing now managed at the appropriate hierarchy level. Database schema and admin UI updated throughout.</div>
+          </div>
+          <div class="feature-card accent-coral">
+            <div class="card-icon">🗂</div>
+            <div class="card-title">Assignments Table</div>
+            <div class="card-desc">Hospitality assignments table updated to support hierarchical linkage, with a subsequent migration adding category-level assignment support.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">F.2</span> Hierarchical Mark-up Pricing System <span class="sub-effort">~38 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-red">
+            <div class="card-icon">📐</div>
+            <div class="card-title">Priority-Ordered Rules</div>
+            <div class="card-desc">Markup rules evaluated from most specific to broadest — event-level rules override team-level, which override tournament-level, which override sport-level. Fixed or percentage-based.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🛠</div>
+            <div class="card-title">Full Admin UI</div>
+            <div class="card-desc">New admin management interface for configuring markup rules at each hierarchy level. Visual display showing which rules are active at each level of the sports structure.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🖥</div>
+            <div class="card-title">Frontend Integration</div>
+            <div class="card-desc">Markup pricing applied dynamically to all ticket price displays. Correct rule resolved based on the sport, tournament, and event context of each listing.</div>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Business Value:</strong> Different margin rules can be applied to premium events (e.g., Champions League finals) versus standard fixtures — without manual price overrides on individual tickets.
+        </div>
+
+        <div class="sub-h"><span class="num">F.3</span> Dynamic Multi-Currency Pricing &amp; Payment System <span class="sub-effort">~26 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="card-icon">🔒</div>
+            <div class="card-title">Frankfurter API Validation</div>
+            <div class="card-desc">Currency creation restricted to currencies supported by the Frankfurter exchange rate API. Duplicate currency codes are prevented. Only valid, actively traded currencies can be added.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">💱</div>
+            <div class="card-title">Dynamic Pricing</div>
+            <div class="card-desc">All ticket prices across the frontend converted to the customer's selected display currency in real time using live exchange rate data.</div>
+          </div>
+          <div class="feature-card accent-coral">
+            <div class="card-icon">💳</div>
+            <div class="card-title">Multi-Currency Payments</div>
+            <div class="card-desc">Payment system updated to handle transactions in multiple currencies, passing the correct currency code and converted amount to the payment gateway.</div>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Business Value:</strong> International customers can view prices in their local currency and complete purchases without currency ambiguity.
+        </div>
+
+        <div class="sub-h"><span class="num">F.4</span> SendGrid Email Migration <span style="font-size:11px;font-weight:400;color:var(--graphite);margin-left:8px;">· March 13, 2026</span> <span class="sub-effort">~14 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">📤</div>
+            <div class="card-title">PHPMailer → SendGrid</div>
+            <div class="card-desc">Legacy PHPMailer dependency fully replaced with the SendGrid PHP SDK, integrated via Composer and wired into the application dependency injection container.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">✍️</div>
+            <div class="card-title">EmailService Rewritten</div>
+            <div class="card-desc">Core <code>EmailService.php</code> rewritten to use the SendGrid API client. Full support for HTML and plain-text bodies. Email verification and password reset emails reimplemented on the new service.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">⚡</div>
+            <div class="card-title">DI Container Updated</div>
+            <div class="card-desc">Application dependency injection container (<code>container.php</code>) updated to bind the new SendGrid-backed <code>EmailService</code> implementation throughout the application.</div>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Business Value:</strong> SendGrid provides superior deliverability rates, delivery tracking, and spam filtering compared to direct SMTP dispatch via PHPMailer — significantly reducing the risk of confirmation emails and password reset links landing in spam.
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 1 ────────────────────────── -->
+      <div class="section" id="phase1">
+        <div class="section-header">
+          <div class="phase-badge">1</div>
+          <div class="section-title-block">
+            <h2>Display Settings & Golf Navigation</h2>
+            <div class="date-tag">Deployed April 20, 2026 <span class="effort-pill">⏱ ~32 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:20px;">Introduced a fully configurable admin panel for controlling which content appears in the website's navigation menus, and restructured the Golf section into a tournament-level submenu.</p>
+
+        <div class="sub-h"><span class="num">1.1</span> New Admin Module: Display Settings <span class="sub-effort">~18 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">⚽</div>
+            <div class="card-title">Football Tournament Visibility</div>
+            <div class="card-desc">Admins select which football tournaments appear in the dropdown. Changes take effect immediately (10-minute client cache). Prevents dead-end navigation for sold-out tournaments.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🙈</div>
+            <div class="card-title">Team Exclusions</div>
+            <div class="card-desc">Per-tournament team toggles. Full team list loaded from XS2Event API. Useful for hiding teams with no upcoming ticketed home matches.</div>
+          </div>
+          <div class="feature-card accent-coral">
+            <div class="card-icon">🏅</div>
+            <div class="card-title">Other Sports Visibility</div>
+            <div class="card-desc">Controls the "Other Sports" dropdown for sports beyond the five primary fixed items. Enables seasonal adjustments (e.g., Cricket shown only in cricket season).</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">1.2</span> Golf Navigation Restructure <span class="sub-effort">~8 hrs</span></div>
+        <div class="callout">
+          <strong>Before:</strong> Golf → Single link to <code>/events?sport_type=golf</code><br>
+          <strong>After:</strong> Golf → Dropdown with individual tournament links (e.g., The Masters, The Open Championship). Tournaments fetched dynamically from XS2Event API, cached via <code>useGolfTournaments</code> for 20 minutes.
+        </div>
+
+        <div class="sub-h"><span class="num">1.3</span> Team Filtering in Navigation <span class="sub-effort">~6 hrs</span></div>
+        <div class="callout red">
+          The raw (unfiltered) menu hierarchy is cached for 20 minutes; Display Settings filtering is applied fresh on top of the cache — ensuring admin changes reflect immediately without waiting for cache expiry.
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 2 ────────────────────────── -->
+      <div class="section" id="phase2">
+        <div class="section-header">
+          <div class="phase-badge red">2</div>
+          <div class="section-title-block">
+            <h2>Brand Implementation & Core UI Overhaul</h2>
+            <div class="date-tag">Deployed May 6, 2026 · 96 files changed · 4,752 lines added <span class="effort-pill">⏱ ~115 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">The largest single deployment of the period. Implemented the complete RONDO 2026 brand identity across the entire frontend, introduced new functional components, added dynamic CMS-driven content, and delivered multiple new backend capabilities.</p>
+
+        <div class="sub-h"><span class="num">2.1</span> RONDO 2026 Colour Palette</div>
+        <div class="swatch-grid">
+          <div class="swatch"><div class="swatch-dot" style="background:#245388"></div><div><div class="swatch-name">Atlantic Blue</div><div class="swatch-hex">#245388 · Primary / Nav / Headers</div></div></div>
+          <div class="swatch"><div class="swatch-dot" style="background:#83ACDC"></div><div><div class="swatch-name">Skyward Blue</div><div class="swatch-hex">#83ACDC · Secondary / Hover States</div></div></div>
+          <div class="swatch"><div class="swatch-dot" style="background:#C7D9ED"></div><div><div class="swatch-name">Mist Blue</div><div class="swatch-hex">#C7D9ED · Light Backgrounds / Borders</div></div></div>
+          <div class="swatch"><div class="swatch-dot" style="background:#C0504C"></div><div><div class="swatch-name">Heritage Red</div><div class="swatch-hex">#C0504C · CTAs / Highlights</div></div></div>
+          <div class="swatch"><div class="swatch-dot" style="background:#DD938C"></div><div><div class="swatch-name">Blush Coral</div><div class="swatch-hex">#DD938C · Soft Accent / Badges</div></div></div>
+          <div class="swatch"><div class="swatch-dot" style="background:#F7F7F7;border:1px solid #dde6f0"></div><div><div class="swatch-name">Cloud White</div><div class="swatch-hex">#F7F7F7 · Page Backgrounds</div></div></div>
+        </div>
+
+        <div class="sub-h"><span class="num">2.1</span> Typography</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Font</th><th>Weights</th><th>Usage</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Gilroy</strong></td><td>Regular, Medium, SemiBold, Bold</td><td>Headings, navigation, featured labels</td></tr>
+              <tr><td><strong>Proxima Nova</strong></td><td>Light, Regular, SemiBold</td><td>Body copy, form fields, descriptions</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h"><span class="num">2.2</span> New Component: Featured Events Section <span class="sub-effort">~22 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-red">
+            <div class="card-icon">📡</div>
+            <div class="card-title">Live Event Feed</div>
+            <div class="card-desc">Fetches events from XS2Event API in real time. Date, event name, venue, and price range displayed in a structured table with currency conversion applied.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🔽</div>
+            <div class="card-title">Smart Filter Dropdowns</div>
+            <div class="card-desc">Location, date range, and price sorting filters. Location auto-populated from event data — no hardcoded city list or secondary API call needed.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">📄</div>
+            <div class="card-title">Paginated Loading</div>
+            <div class="card-desc">Load More button with skeleton loading state. Total count badge reflects server-side <code>totalSize</code>. Each row links directly to the event's ticket page.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">2.3</span> Header Navigation Rebrand</div>
+        <div class="callout">
+          <strong>Visual:</strong> Atlantic Blue background, Gilroy uppercase navigation, Skyward Blue hover underlines, updated brand logo.<br><br>
+          <strong>Functional:</strong> Display Settings integration, Golf tournament dropdown added, <code>useSiteBranding</code> hook introduced (logo served from CMS — updatable without code deployment), user name shown when logged in.
+        </div>
+
+        <div class="sub-h"><span class="num">2.4</span> Contact Page — Fully Dynamic CMS <span class="sub-effort">~18 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="card-icon">🖼</div>
+            <div class="card-title">Banner Image</div>
+            <div class="card-desc">Full-width header photo managed via admin panel. Upload + preview before saving.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">📬</div>
+            <div class="card-title">Contact Details</div>
+            <div class="card-desc">Email (mailto:), Phone (tel:), and WhatsApp (wa.me) links all CMS-driven. Only populated fields render — no empty placeholder icons.</div>
+          </div>
+          <div class="feature-card accent-coral">
+            <div class="card-icon">📱</div>
+            <div class="card-title">Social Media Links</div>
+            <div class="card-desc">Facebook, Twitter/X, Instagram, LinkedIn, YouTube — all dynamic. Footer social icons also driven by the same Contact Page settings for consistency.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">2.5</span> About Us — Photo Collage</div>
+        <div class="callout">
+          New <strong>AboutPhotoCollage</strong> component — an asymmetric 8-image CSS Grid mosaic featuring stadium and sport photography, with the Rondo white logo overlaid. Images use <code>loading="lazy"</code> for performance.
+        </div>
+
+        <div class="sub-h"><span class="num">2.6</span> Admin Settings: Site Branding — Logo &amp; Favicon Manager <span class="sub-effort">~20 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🖼</div>
+            <div class="card-title">Header Logo Upload</div>
+            <div class="card-desc">Admins can upload a replacement header logo via <strong>Settings → Branding</strong>. The uploaded image is served from <code>/public/images/branding/</code> and the URL is stored in <code>system_settings</code>. Falls back to the static default asset if not set.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🦶</div>
+            <div class="card-title">Footer Logo Upload</div>
+            <div class="card-desc">Independent footer logo management. Upload, preview, and delete. When deleted, the site reverts to the default static footer logo automatically.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🌐</div>
+            <div class="card-title">Favicon Upload</div>
+            <div class="card-desc">Browser tab favicon managed from the admin panel. Injected dynamically into <code>&lt;head&gt;</code> via the <code>useSiteBranding</code> hook in <code>App.tsx</code>. Supports PNG, ICO, and SVG.</div>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Admin Location:</strong> Settings → Branding tab · All three assets support upload + live preview + one-click delete (reverts to default). Changes reflect on the live site without any deployment.<br><br>
+          <strong>Frontend Integration:</strong> The <code>useSiteBranding</code> hook fetches all three URLs from <code>/api/v1/site-branding</code> and caches them. <code>Header.tsx</code> consumes <code>header_logo_url</code>, <code>Footer.tsx</code> consumes <code>footer_logo_url</code>, and <code>App.tsx</code> applies <code>favicon_url</code> to the document <code>&lt;head&gt;</code> dynamically.
+        </div>
+
+        <div class="sub-h"><span class="num">2.7</span> New Backend API Controllers</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Controller</th><th>Endpoints</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>ExchangeRateController</code></td><td>1</td><td>Proxies Frankfurter API · 155 currencies · SSRF protected</td></tr>
+              <tr><td><code>ContactPageController</code></td><td>4</td><td>Public + admin read/update + banner image upload</td></tr>
+              <tr><td><code>DisplaySettingsController</code></td><td>3</td><td>Public display settings + admin CRUD</td></tr>
+              <tr><td><code>SiteBrandingController</code></td><td>4</td><td>Admin upload/delete per asset type + public branding URL endpoint</td></tr>
+              <tr><td><code>SystemSettingsRepository</code></td><td>—</td><td>General-purpose key-value store with public/private flags</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 3 ────────────────────────── -->
+      <div class="section" id="phase3">
+        <div class="section-header">
+          <div class="phase-badge sky">3</div>
+          <div class="section-title-block">
+            <h2>UI Refinements & Brand Consistency</h2>
+            <div class="date-tag">Deployed May 17, 2026 · 23 files <span class="effort-pill">⏱ ~18 hrs</span></div>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="feature-card accent-red">
+            <div class="card-icon">🎯</div>
+            <div class="card-title">"How We ROLL" Rebrand</div>
+            <div class="card-desc">The "RO" in "ROLL" is replaced by the blue logomark image — a visual pun ("How we RO[ndo]ll?"). CSS animation applied to heading. Section content dynamically loaded from CMS.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🔄</div>
+            <div class="card-title">Featured Events Fixes</div>
+            <div class="card-desc">Load More pagination, dropdown close-on-outside-click fix, location filter from event data only, correct <code>totalSize</code> badge, and improved loading indicators.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🦶</div>
+            <div class="card-title">Footer Brand Update</div>
+            <div class="card-desc">Atlantic Blue background confirmed, logo via <code>useSiteBranding</code> hook, social icons from Contact Page CMS, Heritage Red newsletter button, auto-generated copyright year.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🎟</div>
+            <div class="card-title">Event Tickets Styling</div>
+            <div class="card-desc">Ticket category card borders, shadows, and price formatting refined. Responsive adjustments for mobile ticket card layout.</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 4 ────────────────────────── -->
+      <div class="section" id="phase4">
+        <div class="section-header">
+          <div class="phase-badge coral">4</div>
+          <div class="section-title-block">
+            <h2>SEO Management Module</h2>
+            <div class="date-tag">Deployed May 17, 2026 · 22 files · 1,325 lines added <span class="effort-pill">⏱ ~34 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:20px;">A complete SEO management system giving the business full control over how every page appears in search results and social media — without developer involvement.</p>
+
+        <div class="sub-h"><span class="num">4.1</span> Admin SEO Module Features <span class="sub-effort">~14 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">📝</div>
+            <div class="card-title">Per-Page Meta Editor</div>
+            <div class="card-desc">Meta Title (warns at 60 chars, error at 70), Meta Description (warns at 150, error at 165), Keywords, OG Title, OG Description, Robots directive — all editable per page.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🔎</div>
+            <div class="card-title">Searchable Sidebar</div>
+            <div class="card-desc">All 11 managed pages listed with a search bar to quickly find by name or key. Click any page to load its current SEO configuration for editing.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🌐</div>
+            <div class="card-title">Open Graph Support</div>
+            <div class="card-desc">OG title and description ensure correct preview cards when pages are shared on LinkedIn, Facebook, Twitter, and other social platforms.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">4.2</span> Pages Under SEO Management</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Page</th><th>Route</th></tr></thead>
+            <tbody>
+              <tr><td>Home Page</td><td><code>/</code></td></tr>
+              <tr><td>About Us</td><td><code>/about-us</code></td></tr>
+              <tr><td>Contact Us</td><td><code>/contact-us</code></td></tr>
+              <tr><td>Events Listing</td><td><code>/events</code></td></tr>
+              <tr><td>Event Tickets</td><td><code>/events/:id/tickets</code></td></tr>
+              <tr><td>Tournaments</td><td><code>/tournaments</code></td></tr>
+              <tr><td>Teams</td><td><code>/teams</code></td></tr>
+              <tr><td>All Sports</td><td><code>/sports</code></td></tr>
+              <tr><td>FAQ</td><td><code>/faq</code></td></tr>
+              <tr><td>Privacy Policy</td><td><code>/privacy-policy</code></td></tr>
+              <tr><td>Terms &amp; Conditions</td><td><code>/terms-conditions</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h"><span class="num">4.3</span> useSEO Hook <span class="sub-effort">~10 hrs incl. 11-page integration</span></div>
+        <div class="callout">
+          Custom React hook applied to all 11 pages. Fetches and caches SEO settings, then dynamically applies <code>document.title</code>, meta description, keywords, robots, and all Open Graph tags. Supports runtime overrides — e.g., event ticket pages inject the specific event name as a title suffix.
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 5 ────────────────────────── -->
+      <div class="section" id="phase5">
+        <div class="section-header">
+          <div class="phase-badge red">5</div>
+          <div class="section-title-block">
+            <h2>Email Management Module</h2>
+            <div class="date-tag">Deployed May 18, 2026 · 10 files · 2,105 lines added <span class="effort-pill">⏱ ~32 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">Previously, all email templates were hardcoded in PHP — any change required a developer and a deployment. This phase introduces a database-driven email template system with a full admin editor.</p>
+
+        <div class="email-cards">
+          <div class="email-card">
+            <span class="ec-icon">🎫</span>
+            <div class="ec-name">Booking Confirmation</div>
+            <div class="ec-trigger">Sent after successful payment and booking creation</div>
+          </div>
+          <div class="email-card">
+            <span class="ec-icon">✅</span>
+            <div class="ec-name">Email Verification</div>
+            <div class="ec-trigger">Sent after new customer registration</div>
+          </div>
+          <div class="email-card">
+            <span class="ec-icon">🔑</span>
+            <div class="ec-name">Password Reset</div>
+            <div class="ec-trigger">Sent when customer requests a password reset</div>
+          </div>
+          <div class="email-card">
+            <span class="ec-icon">📧</span>
+            <div class="ec-name">Email Change Verification</div>
+            <div class="ec-trigger">Sent when customer updates their email address</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">5.1</span> Admin Email Editor Features <span class="sub-effort">~16 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-red">
+            <div class="card-icon">💻</div>
+            <div class="card-title">Three-Tab Editor</div>
+            <div class="card-desc">HTML (with syntax highlighting), Plain Text (fallback for non-HTML clients), and Preview (live rendered iframe as the recipient will see it).</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🔖</div>
+            <div class="card-title">Placeholder Reference Panel</div>
+            <div class="card-desc">Contextual panel showing all available <code>&#123;&#123;variable&#125;&#125;</code> tokens for the selected template — e.g., <code>&#123;&#123;customer_name&#125;&#125;</code>, <code>&#123;&#123;event_name&#125;&#125;</code>.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🔄</div>
+            <div class="card-title">Safety Net</div>
+            <div class="card-desc">Active/Inactive toggle — inactive templates fall back to hardcoded defaults. Reset to Default button restores original content in one click.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">5.4</span> Backend Email Service Upgrade</div>
+        <div class="callout">
+          <strong>EmailService.php</strong> refactored with a new <code>renderTemplate()</code> method. Loads active template from database first → falls back to hardcoded template if none exists → falls back silently if DB connection fails (email still sends). All four email events flow through the unified rendering pipeline.
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 6 ────────────────────────── -->
+      <div class="section" id="phase6">
+        <div class="section-header">
+          <div class="phase-badge sky">6</div>
+          <div class="section-title-block">
+            <h2>Partners Management Module &amp; About Us CMS</h2>
+            <div class="date-tag">Deployed June 6, 2026 · 23 files · 3,290 lines added <span class="effort-pill">⏱ ~48 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">June 2026 began with two content management additions — an admin-controlled About Us hero image and a complete Partners Management module enabling the business to showcase sponsor and partner logos across the website.</p>
+
+        <div class="sub-h"><span class="num">6.1</span> About Us Page Image Admin <span class="sub-effort">~8 hrs</span></div>
+        <div class="callout">
+          The static photo collage on the About Us page (<code>AboutPhotoCollage.tsx</code>) was replaced with a single admin-uploadable page image. A new CMS endpoint allows uploading, previewing, and replacing the About Us hero/feature image directly from the admin panel without any code changes. The frontend fetches the current image URL dynamically.
+        </div>
+
+        <div class="sub-h"><span class="num">6.2</span> Partners Management Module <span class="sub-effort">~40 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🤝</div>
+            <div class="card-title">Full CRUD Admin UI</div>
+            <div class="card-desc">New <code>PartnersManagement.tsx</code> admin page — create, edit, delete partner entries with live preview. Drag-and-drop display order, active/inactive toggle per partner.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🖼</div>
+            <div class="card-title">Logo Upload (5 Formats)</div>
+            <div class="card-desc">Accepts JPEG, PNG, SVG, WebP, and AVIF — full server-side validation with file-size guard. Logos stored in <code>api/public/images/partners/</code> with stable URLs.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🔗</div>
+            <div class="card-title">Link &amp; Metadata</div>
+            <div class="card-desc">Each partner has a name, logo, external URL, display order, and active status. All fields editable inline in the admin form.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🌐</div>
+            <div class="card-title">Frontend Integration</div>
+            <div class="card-desc"><code>PartnersSection.tsx</code> updated to fetch live data from the new <code>GET /v1/partners</code> API endpoint — replacing any hardcoded partner logos.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">6.3</span> Backend Architecture</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>PartnersController.php</code></td><td>CRUD endpoints: list, create, update, delete, upload logo, reorder</td></tr>
+              <tr><td><code>PartnersRepository.php</code></td><td>All database operations against the <code>partners</code> table</td></tr>
+              <tr><td><code>PartnersService.php</code></td><td>Logo file upload, validation, and storage logic</td></tr>
+              <tr><td><code>create_partners_table.sql</code></td><td>New <code>partners</code> table: id, name, logo_url, link_url, display_order, is_active, timestamps</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 7 ────────────────────────── -->
+      <div class="section" id="phase7">
+        <div class="section-header">
+          <div class="phase-badge red">7</div>
+          <div class="section-title-block">
+            <h2>Customer Authentication Flow Overhaul</h2>
+            <div class="date-tag">Deployed June 9, 2026 · 85 files · 3,958 lines added <span class="effort-pill">⏱ ~60 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">The customer authentication flow was completely rebuilt. The previous implementation had no registration feedback screen, required email verification before login, had no self-service password reset page on the website, and had an API crash (HTTP 500) on registration. All four issues were resolved.</p>
+
+        <div class="sub-h"><span class="num">7.1</span> Registration Flow <span class="sub-effort">~20 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-red">
+            <div class="card-icon">🎉</div>
+            <div class="card-title">Registration Success Screen</div>
+            <div class="card-desc">After submitting the registration form, users now see a dedicated success confirmation screen — replacing the previous blank or redirect-to-login experience. Includes a clear call-to-action to log in.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">✅</div>
+            <div class="card-title">Removed Email Verification Gate</div>
+            <div class="card-desc">Email verification was previously required before a customer could log in. This gate was removed — accounts are now immediately active upon registration, matching common booking platform UX.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🐛</div>
+            <div class="card-title">API 500 Fix on Registration</div>
+            <div class="card-desc"><code>CustomerAuthController.php</code> was crashing on new customer registration. Root cause identified and resolved — the controller now returns correct HTTP 201 on success.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">7.2</span> Password Reset Flow (New) <span class="sub-effort">~25 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🔑</div>
+            <div class="card-title">Reset Password Page</div>
+            <div class="card-desc">New <code>ResetPasswordPage.tsx</code> (326 lines) at route <code>/reset-password</code>. Reads token from URL query string, validates it server-side, presents new password + confirm form, and submits to the password reset API endpoint.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">📧</div>
+            <div class="card-title">Forgot Password Success Screen</div>
+            <div class="card-desc">After submitting the forgot password form, users see a dedicated success screen confirming the reset email was sent — replacing the previous state that left users uncertain whether the action worked.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🔐</div>
+            <div class="card-title">Checkout Login Improvements</div>
+            <div class="card-desc"><code>CheckoutLoginPage.tsx</code> updated with improved login and registration state management, better error handling, and the new auth flow screens integrated into the checkout context.</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Route added:</strong> <code>/reset-password?token=...</code> — New frontend route registered in the router. Token is validated on mount; invalid or expired tokens display an appropriate error state without crashing.
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 8 ────────────────────────── -->
+      <div class="section" id="phase8">
+        <div class="section-header">
+          <div class="phase-badge dark">8</div>
+          <div class="section-title-block">
+            <h2>Venue-Based Hospitality Management</h2>
+            <div class="date-tag">Deployed June 20, 2026 · 13 files · 1,340 lines added <span class="effort-pill">⏱ ~28 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">The hospitality hierarchy was extended from 6 levels to 7 levels by adding a venue-level scope — the broadest possible assignment. This allows a hospitality service to be applied to all tickets at a venue regardless of sport, tournament, team, or category.</p>
+
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🏟</div>
+            <div class="card-title">7th Hierarchy Level: Venue</div>
+            <div class="card-desc">The <code>hospitality_assignments</code> table gained <code>venue_id</code> and <code>venue_name</code> columns. The <code>level</code> enum was extended with <code>'venue'</code>. Venue-level assignments match all tickets at the specified venue.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🖥</div>
+            <div class="card-title">VenueHospitalityManagement Admin Page</div>
+            <div class="card-desc">New admin page (<code>VenueHospitalityManagement.tsx</code>, 394 lines) with venue search by name, assignment creation, and a view of all active venue-level hospitality assignments. Accessible from the admin sidebar.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🔌</div>
+            <div class="card-title">New API Endpoints</div>
+            <div class="card-desc">Three new admin routes: <code>GET /admin/venue-hospitalities/{venueId}</code>, <code>PUT /admin/venue-hospitalities/{venueId}</code>, <code>DELETE /admin/venue-hospitalities/{venueId}/{hospitalityId}</code>.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🌐</div>
+            <div class="card-title">Frontend Resolution Updated</div>
+            <div class="card-desc"><code>EventTicketsPage.tsx</code> now passes <code>event.venue_id</code> to the hospitality resolution hook. <code>usePublicEventHospitalities</code> forwards it to the backend so venue-level assignments are included in the resolved set.</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Note:</strong> The requirements document distinguishes venue-level hospitality (this feature) from category-level hospitality (auto-population per ticket category). Both are now implemented. Venue-level is the broadest scope — use it for hospitalities that apply to every seat in a stadium. Category-level remains the recommended approach for hospitality tied to a specific lounge or section.
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── PHASE 9 ────────────────────────── -->
+      <div class="section" id="phase9">
+        <div class="section-header">
+          <div class="phase-badge red">9</div>
+          <div class="section-title-block">
+            <h2>Blog Platform, Newsletter Module &amp; Team Credentials Refactor</h2>
+            <div class="date-tag">Deployed June 29, 2026 · 245 files · 21,689 lines added <span class="effort-pill">⏱ ~80 hrs</span></div>
+          </div>
+        </div>
+
+        <p style="color:var(--graphite);font-size:14px;margin-bottom:24px;">The largest single deployment of the project — covering a full blog CMS platform (admin + public), a newsletter subscriber management module, a significant team credentials refactor, display settings enhancements, a new checkout loader component, and several bug fixes including a TypeScript build error.</p>
+
+        <div class="sub-h"><span class="num">9.1</span> Blog Management Admin Module <span class="sub-effort">~28 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">📝</div>
+            <div class="card-title">Admin Blog Manager</div>
+            <div class="card-desc">New <code>BlogManagement.tsx</code> (934 lines) — create, edit, publish, and delete blog posts. Supports title, slug (auto-generated from title), content body, featured image upload, tags, published/draft toggle, and SEO fields (meta title, meta description, OG image).</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">📖</div>
+            <div class="card-title">Public Blog Listing Page</div>
+            <div class="card-desc">New <code>BlogListingPage.tsx</code> (342 lines) at <code>/blog</code> — displays all published blog posts as cards with featured image, title, excerpt, date, and tags. Includes tag filtering and pagination.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">📄</div>
+            <div class="card-title">Public Blog Detail Page</div>
+            <div class="card-desc">New <code>BlogDetailPage.tsx</code> (378 lines) at <code>/blog/:slug</code> — renders the full post with rich-text content, featured image header, author, date, tags, related posts, and full SEO metadata per article.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🗄</div>
+            <div class="card-title">Backend: Blog Controller &amp; Repository</div>
+            <div class="card-desc"><code>BlogController.php</code> (123 lines) — public read endpoints. <code>AdminBlogController.php</code> (422 lines) — full admin CRUD. <code>BlogRepository.php</code> (510 lines) — all database operations. DB migration: <code>create_blog_tables.sql</code> with separate <code>blog_tags</code> junction table.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">9.2</span> Newsletter Subscribers Module <span class="sub-effort">~16 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">📬</div>
+            <div class="card-title">Admin Subscriber Management</div>
+            <div class="card-desc">New <code>NewsletterSubscribers.tsx</code> (443 lines) — view, search, filter, and export newsletter subscribers. Active/unsubscribed status display, subscription date, source attribution, and CSV export.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">📧</div>
+            <div class="card-title">Subscription API</div>
+            <div class="card-desc"><code>NewsletterController.php</code> (185 lines) — public subscribe/unsubscribe endpoints. <code>NewsletterRepository.php</code> (157 lines) — subscriber CRUD. DB migration: <code>create_newsletter_subscriptions.sql</code>.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🌐</div>
+            <div class="card-title">Frontend Service</div>
+            <div class="card-desc"><code>newsletterService.ts</code> and <code>useNewsletterSubscription</code> hook added to frontend — allows any component to present a subscribe form without duplicate API code.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">9.3</span> Team Credentials Refactor <span class="sub-effort">~16 hrs</span></div>
+        <div class="callout">
+          Team Credentials were previously linked to specific tournaments — meaning a credential set had to be recreated per tournament. This dependency was removed: credentials are now team-only, shareable across all tournaments for that team. A migration script (<code>team_credentials_remove_tournament_dependency.sql</code>) updates the schema. All existing banner and logo image files were renamed to a flat naming convention (<code>{teamId}_tms_banner.jpg</code> format) using a one-time PHP migration script (<code>team-credentials-rename-files.php</code>).
+        </div>
+
+        <div class="sub-h"><span class="num">9.4</span> Additional Enhancements &amp; Bug Fixes <span class="sub-effort">~20 hrs</span></div>
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="card-icon">⏳</div>
+            <div class="card-title">CheckoutLoader Component</div>
+            <div class="card-desc">New <code>CheckoutLoader.tsx</code> — animated loading indicator displayed during checkout processing steps. Replaces plain spinner with branded animated state.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">💰</div>
+            <div class="card-title">useEventMinPrices Hook</div>
+            <div class="card-desc">New <code>useEventMinPrices.ts</code> hook fetches minimum ticket prices per event for display on event listing cards — enabling "from £X" price indicators without loading full ticket data.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🐛</div>
+            <div class="card-title">TypeScript Build Fix</div>
+            <div class="card-desc"><code>EventsPage.tsx</code> line 557: <code>event.min_ticket_price_eur</code> nullable field was causing a TS2018047 compile error. Fixed with null coalescing: <code>(event.min_ticket_price_eur ?? 0) &gt; 0</code>.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🎨</div>
+            <div class="card-title">Display Settings Enhancements</div>
+            <div class="card-desc">Display Settings module extended with category-level keys (<code>displayKeys.ts</code>). Admin can now control visibility of sport sub-categories independently. Frontend hook updated to consume the new settings format.</div>
+          </div>
+        </div>
+
+        <div class="sub-h"><span class="num">9.5</span> Database Migrations (June 29)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Migration File</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>create_blog_tables.sql</code></td><td>Blog posts, blog tags, and post-tag junction tables</td></tr>
+              <tr><td><code>create_newsletter_subscriptions.sql</code></td><td>Newsletter subscriber records with source and status tracking</td></tr>
+              <tr><td><code>add_seo_fields_to_blogs.sql</code></td><td>meta_title, meta_description, og_image columns for blog posts</td></tr>
+              <tr><td><code>add_site_branding_settings.sql</code></td><td>Header logo, footer logo, favicon URL keys in system_settings</td></tr>
+              <tr><td><code>add_active_season_setting.sql</code></td><td>Active season key in system_settings for display filtering</td></tr>
+              <tr><td><code>add_account_created_email_template.sql</code></td><td>New transactional email template: Account Created / Welcome</td></tr>
+              <tr><td><code>team_credentials_remove_tournament_dependency.sql</code></td><td>Drops tournament_id from team_credentials, updates unique constraint</td></tr>
+              <tr><td><code>sync_production_schema.sql</code></td><td>Schema sync to align production DB with all June migrations</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── BACKEND API ────────────────────── -->
+      <div class="section" id="backend">
+        <div class="section-header">
+          <div class="phase-badge dark">🔌</div>
+          <div class="section-title-block">
+            <h2>Backend API Enhancements</h2>
+            <div class="date-tag">New controllers, repositories &amp; database tables</div>
+          </div>
+        </div>
+
+        <div class="sub-h">Pre-April Foundation Controllers &amp; Migrations (February 2026)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Controller</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>MarkupPricingController</code></td><td>Hierarchical markup rule CRUD — sport, tournament, team, and event levels</td></tr>
+              <tr><td><code>CurrencyController</code></td><td>Currency management with Frankfurter API validation and duplicate prevention</td></tr>
+              <tr><td><code>HospitalityController</code></td><td>Hospitality service CRUD with 7-level hierarchical model support (extended June 2026)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Migration File</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>add_markup_rules_table.sql</code></td><td>Hierarchical markup pricing rules table</td></tr>
+              <tr><td><code>add_markup_type_to_ticket_markups.sql</code></td><td>Added markup type column (fixed / percentage) to ticket markups</td></tr>
+              <tr><td><code>add_hospitality_assignments_table.sql</code></td><td>Hospitality assignment records with hierarchy linkage</td></tr>
+              <tr><td><code>add_category_to_hospitality_assignments.sql</code></td><td>Category level added to hospitality assignments</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h">New Controllers (April–May 2026)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Controller</th><th>Routes</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>DisplaySettingsController</code></td><td>3</td><td>Public display settings + admin CRUD</td></tr>
+              <tr><td><code>ContactPageController</code></td><td>5</td><td>Contact settings + banner upload</td></tr>
+              <tr><td><code>ExchangeRateController</code></td><td>1</td><td>Proxy for live currency exchange rates</td></tr>
+              <tr><td><code>SeoSettingsController</code></td><td>5</td><td>Per-page SEO metadata management</td></tr>
+              <tr><td><code>EmailTemplateController</code></td><td>4</td><td>Email template CRUD + reset to defaults</td></tr>
+              <tr><td><code>SiteBrandingController</code></td><td>4</td><td>Admin upload/delete per branding asset type + public URL endpoint</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h">New Controllers (June 2026)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Controller</th><th>Routes</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>PartnersController</code></td><td>7</td><td>Partners CRUD — list, create, update, delete, logo upload, reorder, public listing</td></tr>
+              <tr><td><code>BlogController</code></td><td>4</td><td>Public blog endpoints — list, detail by slug, list by tag, search</td></tr>
+              <tr><td><code>AdminBlogController</code></td><td>8</td><td>Admin blog CRUD — create, update, delete, publish/draft toggle, image upload, tag management</td></tr>
+              <tr><td><code>NewsletterController</code></td><td>5</td><td>Public subscribe/unsubscribe + admin subscriber list, export, delete</td></tr>
+              <tr><td><code>TeamCredentialsController</code></td><td>—</td><td>Refactored — tournament dependency removed, now team-scoped only</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Database Table</th><th>Migration File</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>contact_page_settings</code></td><td><code>create_contact_page_settings.sql</code></td><td>Contact page CMS data</td></tr>
+              <tr><td><code>seo_settings</code></td><td><code>create_seo_settings_table.sql</code></td><td>Per-page SEO metadata</td></tr>
+              <tr><td><code>email_templates</code></td><td><code>create_email_templates_table.sql</code></td><td>Dynamic email templates</td></tr>
+              <tr><td><code>system_settings</code></td><td><code>add_display_settings.sql</code></td><td>Display control settings</td></tr>
+              <tr><td><code>system_settings</code> (branding)</td><td><code>add_site_branding_settings.sql</code></td><td>Header logo, footer logo &amp; favicon URL storage</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h">New Database Tables (June 2026)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Database Table</th><th>Migration File</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>partners</code></td><td><code>create_partners_table.sql</code></td><td>Partner/sponsor records with logo, link, order, and status</td></tr>
+              <tr><td><code>blogs</code></td><td><code>create_blog_tables.sql</code></td><td>Blog post records with rich-text content, SEO fields, and status</td></tr>
+              <tr><td><code>blog_tags</code> + junction</td><td><code>create_blog_tables.sql</code></td><td>Tag definitions and post-tag many-to-many mapping</td></tr>
+              <tr><td><code>newsletter_subscriptions</code></td><td><code>create_newsletter_subscriptions.sql</code></td><td>Newsletter subscriber records with source and status</td></tr>
+              <tr><td><code>hospitality_assignments</code> (extended)</td><td><code>2026_venue_hospitality.sql</code></td><td>venue_id and venue_name columns added; level enum extended with 'venue'</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── INFRA FIXES ────────────────────── -->
+      <div class="section" id="infra">
+        <div class="section-header">
+          <div class="phase-badge sky">🔧</div>
+          <div class="section-title-block">
+            <h2>Infrastructure &amp; Stability Fixes</h2>
+          </div>
+        </div>
+        <div class="card-grid">
+          <div class="feature-card accent-red">
+            <div class="card-icon">🔐</div>
+            <div class="card-title">CORS Configuration Fix (May 6)</div>
+            <div class="card-desc">Production was not loading <code>.env.production</code> overrides, causing CORS violations. Fixed by explicitly loading it at startup. Eliminated all cross-origin failures on production.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🧪</div>
+            <div class="card-title">Test Domain CORS Addition (May 6)</div>
+            <div class="card-desc">Staging domain added to CORS allowed origins list to enable testing on the staging environment without errors.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🛠</div>
+            <div class="card-title">TypeScript Build Errors (May 17)</div>
+            <div class="card-desc">6 unused imports removed, <code>event_start</code> → <code>date_start</code> property mismatch corrected, all component prop types verified.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">⚡</div>
+            <div class="card-title">API Cache Utility Enhancement (May 6)</div>
+            <div class="card-desc">Dedicated cache keys for Golf tournaments and menu hierarchies added — ensuring Golf and Football menu data cache and expire independently.</div>
+          </div>
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🖼</div>
+            <div class="card-title">Hero Image Opacity Bug (Jun 20)</div>
+            <div class="card-desc"><code>Hero.tsx</code> was tracking loaded images by index — when the hero image URL changed, the old index was still marked loaded, causing the image to remain at <code>opacity: 0</code>. Fixed by tracking loaded state by URL key instead of index.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">💱</div>
+            <div class="card-title">Reservation net_rate Fix (Jun 10)</div>
+            <div class="card-desc">XS2Event API requires <code>net_rate</code> as an integer in cents — not a decimal. <code>CheckoutGuestDetailsPage.tsx</code> was sending a float. Fixed with <code>Math.round(item.ticket.net_rate * 100)</code>.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🛠</div>
+            <div class="card-title">TypeScript Build Error (Jun 29)</div>
+            <div class="card-desc"><code>EventsPage.tsx:557</code> — <code>event.min_ticket_price_eur</code> is nullable (type <code>number | null</code>) but was compared directly. Fixed with null coalescing: <code>(event.min_ticket_price_eur ?? 0) &gt; 0</code>.</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── ADMIN MODULES ──────────────────── -->
+      <div class="section" id="admin-inventory">
+        <div class="section-header">
+          <div class="phase-badge dark">🛠</div>
+          <div class="section-title-block">
+            <h2>Complete Admin Panel Module Inventory</h2>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Module</th><th>Status</th><th>Added</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Dashboard</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>2</td><td>Event Bookings</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>3</td><td>Admin Users</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>4</td><td>Customer Management</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>5</td><td>Team Credentials</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>6</td><td>Ticket Markup Pricing</td><td><span class="badge-updated">↑ Updated</span></td><td>February 12</td></tr>
+              <tr><td>7</td><td>Hospitality Services</td><td><span class="badge-updated">↑ Updated</span></td><td>February 12</td></tr>
+              <tr><td>8</td><td>Currency Management</td><td><span class="badge-updated">↑ Updated</span></td><td>February 12</td></tr>
+              <tr><td>9</td><td><strong>Display Settings</strong></td><td><span class="badge-new">⭐ New</span></td><td>April 20</td></tr>
+              <tr><td>10</td><td>Roles &amp; Permissions</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>11</td><td>Refunds</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>12</td><td>Cancellation Requests</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>13</td><td>Content Management</td><td><span class="badge-exist">Existing</span></td><td>Pre-April</td></tr>
+              <tr><td>14</td><td><strong>Contact Page</strong></td><td><span class="badge-new">⭐ New</span></td><td>May 6</td></tr>
+              <tr><td>15</td><td><strong>SEO Management</strong></td><td><span class="badge-new">⭐ New</span></td><td>May 17</td></tr>
+              <tr><td>16</td><td><strong>Email Management</strong></td><td><span class="badge-new">⭐ New</span></td><td>May 18</td></tr>
+              <tr><td>17</td><td><strong>Partners Management</strong></td><td><span class="badge-new">⭐ New</span></td><td>June 6</td></tr>
+              <tr><td>18</td><td><strong>About Us Page CMS</strong></td><td><span class="badge-new">⭐ New</span></td><td>June 6</td></tr>
+              <tr><td>19</td><td><strong>Blog Management</strong></td><td><span class="badge-new">⭐ New</span></td><td>June 29</td></tr>
+              <tr><td>20</td><td><strong>Newsletter Subscribers</strong></td><td><span class="badge-new">⭐ New</span></td><td>June 29</td></tr>
+              <tr><td>21</td><td><strong>Venue Hospitality Management</strong></td><td><span class="badge-new">⭐ New</span></td><td>June 20</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── FRONTEND INVENTORY ─────────────── -->
+      <div class="section" id="frontend-inventory">
+        <div class="section-header">
+          <div class="phase-badge sky">🖥</div>
+          <div class="section-title-block">
+            <h2>Frontend Page &amp; Component Inventory</h2>
+          </div>
+        </div>
+
+        <div class="sub-h">Pages Changed (April–May 2026)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Page</th><th>Route</th><th>Changes</th></tr></thead>
+            <tbody>
+              <tr><td>Home</td><td><code>/</code></td><td>SEO hook, FeaturedEvents section, "How We ROLL" rebrand</td></tr>
+              <tr><td>Events</td><td><code>/events</code></td><td>Brand styling, SEO hook, min-price display (Jun)</td></tr>
+              <tr><td>Event Tickets</td><td><code>/events/:id/tickets</code></td><td>Brand styling, SEO hook, venue hospitality resolution (Jun)</td></tr>
+              <tr><td>Tournaments</td><td><code>/tournaments</code></td><td>SEO hook</td></tr>
+              <tr><td>Teams</td><td><code>/teams</code></td><td>SEO hook, brand styling</td></tr>
+              <tr><td>All Sports</td><td><code>/sports</code></td><td>SEO hook</td></tr>
+              <tr><td>About Us</td><td><code>/about-us</code></td><td>SEO hook, admin-uploaded page image (Jun)</td></tr>
+              <tr><td>Contact Us</td><td><code>/contact-us</code></td><td>Complete rebuild — fully dynamic CMS-driven</td></tr>
+              <tr><td>FAQ</td><td><code>/faq</code></td><td>SEO hook, brand styling</td></tr>
+              <tr><td>Privacy Policy</td><td><code>/privacy-policy</code></td><td>SEO hook, brand styling</td></tr>
+              <tr><td>Terms &amp; Conditions</td><td><code>/terms-conditions</code></td><td>SEO hook, brand styling</td></tr>
+              <tr><td>Login / Register</td><td><code>/login</code></td><td>Brand colour and typography update; checkout login improvements (Jun)</td></tr>
+              <tr><td>Profile</td><td><code>/profile</code></td><td>Brand styling update</td></tr>
+              <tr><td>Bookings</td><td><code>/bookings</code></td><td>Brand styling update</td></tr>
+              <tr><td>Checkout</td><td><code>/checkout/*</code></td><td>Brand styling, CheckoutLoader component (Jun), net_rate fix (Jun)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h">New Pages Added (June 2026)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Page</th><th>Route</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Blog Listing</strong></td><td><code>/blog</code></td><td>Published blog posts grid with tag filter and pagination</td></tr>
+              <tr><td><strong>Blog Detail</strong></td><td><code>/blog/:slug</code></td><td>Full blog post view with rich-text content, SEO, and related posts</td></tr>
+              <tr><td><strong>Reset Password</strong></td><td><code>/reset-password?token=...</code></td><td>Token-validated password reset form (new ResetPasswordPage.tsx, 326 lines)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h">New Components &amp; Hooks (Feb–May 2026)</div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">🎪</div>
+            <div class="card-title">FeaturedEvents</div>
+            <div class="card-desc"><code>components/home/</code> — Live event listing with filter dropdowns and paginated loading.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">📞</div>
+            <div class="card-title">ContactPageManager</div>
+            <div class="card-desc"><code>admin/components/</code> — Admin CMS interface for all Contact Page settings.</div>
+          </div>
+          <div class="feature-card accent-coral">
+            <div class="card-icon">🪝</div>
+            <div class="card-title">useSEO</div>
+            <div class="card-desc">Applies SEO metadata (title, description, OG tags) to any page dynamically with caching.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🪝</div>
+            <div class="card-title">useDisplaySettings</div>
+            <div class="card-desc">Fetches and caches admin display control settings for navigation filtering.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🪝</div>
+            <div class="card-title">useGolfTournaments</div>
+            <div class="card-desc">Fetches and caches golf tournament list from XS2Event API (20-min TTL).</div>
+          </div>
+        </div>
+
+        <div class="sub-h">New Components &amp; Hooks (June 2026)</div>
+        <div class="card-grid">
+          <div class="feature-card accent-sky">
+            <div class="card-icon">⏳</div>
+            <div class="card-title">CheckoutLoader</div>
+            <div class="card-desc"><code>components/</code> — Branded animated loading indicator for checkout processing steps.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🪝</div>
+            <div class="card-title">useEventMinPrices</div>
+            <div class="card-desc">Fetches minimum ticket prices per event for "from £X" display on event listing cards — avoids loading full ticket data per event.</div>
+          </div>
+          <div class="feature-card accent-red">
+            <div class="card-icon">🪝</div>
+            <div class="card-title">useSiteBranding</div>
+            <div class="card-desc">Fetches and caches site branding assets (header logo, footer logo, favicon) from the admin-managed Branding settings.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🪝</div>
+            <div class="card-title">usePublicEventHospitalities (updated)</div>
+            <div class="card-desc">Extended to pass <code>venue_id</code> to the backend resolution endpoint — enabling venue-level hospitality assignments to be resolved alongside category and event levels.</div>
+          </div>
+          <div class="feature-card accent-coral">
+            <div class="card-icon">📝</div>
+            <div class="card-title">blogService + newsletterService</div>
+            <div class="card-desc">Frontend API clients for blog post data and newsletter subscriptions — consumed by blog pages and any newsletter subscribe form component.</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── DEV METRICS ────────────────────── -->
+      <div class="section" id="metrics">
+        <div class="section-header">
+          <div class="phase-badge red">📈</div>
+          <div class="section-title-block">
+            <h2>Development Metrics</h2>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-big">~13,500</div>
+            <div class="metric-label">Frontend Lines Added</div>
+          </div>
+          <div class="metric-card alt">
+            <div class="metric-big">~4,500</div>
+            <div class="metric-label">Admin Panel Lines Added</div>
+          </div>
+          <div class="metric-card alt2">
+            <div class="metric-big">~3,500</div>
+            <div class="metric-label">Backend API Lines Added</div>
+          </div>
+          <div class="metric-card alt3">
+            <div class="metric-big">21,500</div>
+            <div class="metric-label">Total Lines Added</div>
+          </div>
+          <div class="metric-card alt">
+            <div class="metric-big">250+</div>
+            <div class="metric-label">Frontend Files Changed</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-big">450+</div>
+            <div class="metric-label">Total Files Changed</div>
+          </div>
+          <div class="metric-card" style="background:linear-gradient(135deg,#1a3d68,#0f2847);">
+            <div class="metric-big">~550</div>
+            <div class="metric-label">Total Dev Hours (Est.)</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Application</th><th>Files Changed</th><th>Lines Added</th></tr></thead>
+            <tbody>
+              <tr><td>Frontend (<code>/frontend</code>)</td><td>250+</td><td>~13,500</td></tr>
+              <tr><td>Admin Panel (<code>/admin</code>)</td><td>100+</td><td>~4,500</td></tr>
+              <tr><td>Backend API (<code>/api</code>)</td><td>100+</td><td>~3,500</td></tr>
+              <tr><td><strong>Total</strong></td><td><strong>450+</strong></td><td><strong>~21,500</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-h" style="margin-top:32px;">Estimated Working Hours by Deployment</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Deployment</th><th>Date</th><th>Task / Work Item</th><th style="text-align:right;">Est. Hours</th></tr></thead>
+            <tbody>
+              <tr><td rowspan="3" style="font-weight:600;vertical-align:middle;">February 12</td><td rowspan="3" style="vertical-align:middle;color:var(--graphite);font-size:12px;">Feb 12, 2026</td><td>F.1 — Hospitality Management: 5-level hierarchical refactor (DB schema, repo, controller, admin UI)</td><td style="text-align:right;font-weight:700;">~20 hrs</td></tr>
+              <tr><td>F.2 — Hierarchical Markup Pricing: backend repos/controllers/migrations, admin UI, frontend integration</td><td style="text-align:right;font-weight:700;">~38 hrs</td></tr>
+              <tr><td>F.3 — Multi-Currency System: Frankfurter validation, CurrencyController, frontend hooks, payment integration</td><td style="text-align:right;font-weight:700;">~26 hrs</td></tr>
+              <tr style="background:rgba(36,83,136,.04);"><td colspan="2" style="font-weight:600;color:var(--blue-deep);">February 12 Subtotal</td><td colspan="2" style="font-weight:800;color:var(--blue-deep);text-align:right;">~84 hrs</td></tr>
+              <tr><td style="font-weight:600;">March 13</td><td style="color:var(--graphite);font-size:12px;">Mar 13, 2026</td><td>F.4 — SendGrid migration: EmailService rewrite, SDK integration, DI container, testing</td><td style="text-align:right;font-weight:700;">~14 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 1</td><td style="color:var(--graphite);font-size:12px;">Apr 20, 2026</td><td>Display Settings admin module (3 tabs), Golf navigation restructure, team filtering cache strategy, backend + DB</td><td style="text-align:right;font-weight:700;">~32 hrs</td></tr>
+              <tr><td rowspan="3" style="font-weight:600;vertical-align:middle;">Phase 2</td><td rowspan="3" style="vertical-align:middle;color:var(--graphite);font-size:12px;">May 6, 2026</td><td>Brand overhaul (typography, palette, logos, sitewide CSS — 15+ modules), FeaturedEvents component, Contact CMS, About collage, admin Contact Page Manager, 4 new backend controllers, 5 DB migrations</td><td style="text-align:right;font-weight:700;">~95 hrs</td></tr>
+              <tr><td>Site Branding Settings (admin Settings → Branding tab): SiteBrandingController, siteBrandingService, Settings.tsx Branding UI, useSiteBranding hook, Header/Footer/App.tsx integration, DB migration</td><td style="text-align:right;font-weight:700;">~20 hrs</td></tr>
+              <tr><td>CORS + .env.production fix</td><td style="text-align:right;font-weight:700;">~3 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 3</td><td style="color:var(--graphite);font-size:12px;">May 17, 2026</td><td>"How We ROLL" rebrand, FeaturedEvents pagination/dropdown fixes, footer brand update, ticket page styling, TS build error resolution</td><td style="text-align:right;font-weight:700;">~18 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 4</td><td style="color:var(--graphite);font-size:12px;">May 17, 2026</td><td>SEO admin module (searchable UI, char counters, OG), SeoSettingsController + Repository, DB migration, useSEO hook, 11-page integration</td><td style="text-align:right;font-weight:700;">~34 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 5</td><td style="color:var(--graphite);font-size:12px;">May 18, 2026</td><td>Email admin editor (3-tab: HTML/text/preview, placeholders panel, reset), EmailTemplateController + Repository, DB migration, EmailService renderTemplate pipeline</td><td style="text-align:right;font-weight:700;">~32 hrs</td></tr>
+              <tr style="background:rgba(36,83,136,.04);"><td colspan="2" style="font-weight:600;color:var(--blue-deep);">February–May Subtotal</td><td colspan="2" style="font-weight:800;color:var(--blue-deep);text-align:right;">~332 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 6</td><td style="color:var(--graphite);font-size:12px;">Jun 6, 2026</td><td>About Us image CMS, Partners Management Module (CRUD admin, logo upload, PartnersController, PartnersRepository, PartnersService, DB migration, frontend integration)</td><td style="text-align:right;font-weight:700;">~48 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 7</td><td style="color:var(--graphite);font-size:12px;">Jun 9, 2026</td><td>Customer Auth Overhaul: registration success screen, removed email verification gate, API 500 fix (CustomerAuthController), ResetPasswordPage, forgot password success screen, CheckoutLoginPage improvements</td><td style="text-align:right;font-weight:700;">~60 hrs</td></tr>
+              <tr><td style="font-weight:600;">Jun Fixes</td><td style="color:var(--graphite);font-size:12px;">Jun 10–20, 2026</td><td>net_rate integer cents fix (XS2Event API), hero image URL-keyed opacity fix</td><td style="text-align:right;font-weight:700;">~7 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 8</td><td style="color:var(--graphite);font-size:12px;">Jun 20, 2026</td><td>Venue-Based Hospitality Management: 7th hierarchy level, VenueHospitalityManagement admin page, venue API endpoints, HospitalityRepository venue methods, frontend venue_id resolution</td><td style="text-align:right;font-weight:700;">~28 hrs</td></tr>
+              <tr><td style="font-weight:600;">Phase 9</td><td style="color:var(--graphite);font-size:12px;">Jun 29, 2026</td><td>Blog CMS (admin + public listing + detail), Newsletter Subscribers module, Team Credentials refactor (tournament-independence, image rename), Display Settings enhancements, CheckoutLoader component, useEventMinPrices hook, 8 DB migrations, TS build fix</td><td style="text-align:right;font-weight:700;">~80 hrs</td></tr>
+              <tr style="background:rgba(36,83,136,.04);"><td colspan="2" style="font-weight:600;color:var(--blue-deep);">June Subtotal</td><td colspan="2" style="font-weight:800;color:var(--blue-deep);text-align:right;">~223 hrs</td></tr>
+              <tr style="background:var(--blue-deep);"><td colspan="3" style="color:var(--white);font-family:'Syne',sans-serif;font-weight:800;font-size:13px;">Total Estimated Development Effort (Feb–Jun 2026)</td><td style="color:var(--white);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;text-align:right;">~555 hrs</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <!-- ── CONCLUSION ──────────────────────── -->
+      <div class="section" id="conclusion">
+        <div class="conclusion">
+          <h2>Conclusion</h2>
+          <p>The February–June 2026 period delivered substantial functional and presentational progress across all three applications. The work transitions the platform into a polished, brand-consistent, content-managed product — while adding the commercial features and customer-facing flows needed for a fully self-service booking experience.</p>
+          <p>The February 2026 foundation work — the 7-level hierarchical hospitality model, the hierarchical markup pricing system, and the multi-currency payment integration — established the core commercial infrastructure of the platform. The March 2026 SendGrid migration replaced the legacy email delivery system with a reliable, trackable service used by all transactional communications.</p>
+          <p>The nine new admin modules (Display Settings, Contact Page, SEO Management, Email Management, Partners Management, About Us CMS, Blog Management, Newsletter Subscribers, Venue Hospitality Management) collectively mean that the business team can now control the website's navigation structure, contact information, search engine visibility, customer email communications, sponsor logos, blog content, newsletter subscribers, and hospitality assignments — entirely through the admin panel, without requiring code changes or deployments.</p>
+          <p>June 2026 delivered the largest single deployment of the project — 245 files and 21,689 lines — completing the blog and newsletter platform, overhauling the customer authentication experience (registration, password reset, account activation), extending the hospitality hierarchy to a 7th venue-level scope, and refactoring team credentials to remove tournament dependency. These changes collectively reduce operational friction for both the customer and the business administrator.</p>
+          <p>The brand implementation ensures the customer experience is consistent with the RONDO 2026 visual identity across every page and interaction.</p>
+        </div>
+
+        <div class="footer-note">
+          Document prepared by the <strong>Development Team</strong> for <strong>Rondo Sports Travel</strong> ·
+          Report covers the period <strong>12 February 2026 – 29 June 2026</strong>
+        </div>
+      </div>
+
+    </div><!-- /content-body -->
+  </main>
+</div><!-- /layout -->
+
+<script>
+  // Mobile sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const hambBtn = document.getElementById('hambBtn');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+
+  hambBtn.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close sidebar on nav link click (mobile)
+  sidebar.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (window.innerWidth <= 900) closeSidebar();
+    });
+  });
+
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('.section[id]');
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.getAttribute('id');
+        navLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Animate stat numbers
+  function animateCount(el, target, suffix = '') {
+    const duration = 1200;
+    const start = performance.now();
+    const update = (time) => {
+      const progress = Math.min((time - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(ease * target).toLocaleString() + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
+
+  const stripObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const nums = entry.target.querySelectorAll('.stat-num');
+        const targets = [19, 450, 21500, 550, 9, 44, 2];
+        const suffixes = ['', '+', '', '', '', '+', ''];
+        nums.forEach((el, i) => animateCount(el, targets[i], suffixes[i]));
+        stripObserver.disconnect();
+      }
+    });
+  });
+  const strip = document.querySelector('.stat-strip');
+  if (strip) stripObserver.observe(strip);
+</script>
+</body>
+</html>

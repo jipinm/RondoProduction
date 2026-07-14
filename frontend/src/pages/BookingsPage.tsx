@@ -488,9 +488,11 @@ const BookingsPage: React.FC = () => {
                         {booking.hospitalities.map((h, idx) => (
                           <div key={idx} className={styles.hospitalityItem}>
                             <span className={styles.hospitalityName}>🍽️ {h.hospitality_name}</span>
-                            <span className={styles.hospitalityPrice}>
-                              ${parseFloat(String(h.total_usd)).toFixed(2)}
-                            </span>
+                            {Number(h.total_usd) > 0 && (
+                              <span className={styles.hospitalityPrice}>
+                                ${parseFloat(String(h.total_usd)).toFixed(2)}
+                              </span>
+                            )}
                           </div>
                         ))}
                         {Number(booking.hospitality_total) > 0 && (

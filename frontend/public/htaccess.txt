@@ -14,17 +14,6 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [L]
 
-# Strip the "User-Agent" token that EasyApache's server-wide mod_deflate
-# config appends to Vary on every response (BrowserMatch/Header append rule
-# in the main Apache config — not set anywhere in this app). Left in place
-# it fragments CDN/browser caches per User-Agent string. "edit" (not "set")
-# so any legitimate Accept-Encoding token is preserved.
-<IfModule mod_headers.c>
-    Header edit Vary ",\s*User-Agent" ""
-    Header edit Vary "User-Agent,\s*" ""
-    Header edit Vary "^User-Agent$" ""
-</IfModule>
-
 # Security Headers
 <IfModule mod_headers.c>
     # Prevent clickjacking

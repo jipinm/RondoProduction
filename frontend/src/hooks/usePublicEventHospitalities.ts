@@ -3,7 +3,7 @@
  * 
  * Fetches hierarchically resolved hospitality services for tickets in an event.
  * Hospitalities are admin-assigned, ticket-inclusive, and price-independent.
- * Uses the 5-level hierarchy: sport > tournament > team > event > ticket.
+ * Uses a 7-level hierarchy: sport > tournament > team > category > event > ticket > venue.
  */
 
 import { useState, useEffect, useCallback } from 'react';

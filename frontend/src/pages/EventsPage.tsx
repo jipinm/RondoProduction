@@ -61,7 +61,7 @@ const EventsPage: React.FC = () => {
   const [priceFilter, setPriceFilter] = useState('Price');
 
   // Fetch data
-  const { events, loading: eventsLoading, error: eventsError } = useEvents({
+  const { events, loading: eventsLoading, error: eventsError, loadMore, hasMore, loadingMore, totalSize } = useEvents({
     sport_type,
     tournament_id,
     team_id,
@@ -176,7 +176,9 @@ const EventsPage: React.FC = () => {
 
   // All async price inputs must finish before any price is shown — prevents the raw
   // supplier price from flashing before markup is applied.
-  const priceReady = !currencyLoading && !markupLoading && !minPricesLoading;
+  // During load-more re-fetches, eventMinPrices still holds the previous page's data,
+  // so we keep prices visible for already-loaded events while the batch re-runs.
+  const priceReady = !currencyLoading && !markupLoading && (!minPricesLoading || eventMinPrices.size > 0);
 
   // Format price with correct currency from API response - converted to selected currency
   // Applies hierarchical markup (team/tournament/sport level) if a rule exists.
@@ -451,7 +453,11 @@ const EventsPage: React.FC = () => {
           <div className={styles.contentHeader}>
             <div className={styles.headerLeft}>
               <h1>Events</h1>
-              <p className={styles.eventsCount}>Found {getFilteredAndSortedEvents().length} events</p>
+              <p className={styles.eventsCount}>
+                {hasMore && totalSize !== null
+                  ? `Showing ${events.length} of ${totalSize} events`
+                  : `Found ${getFilteredAndSortedEvents().length} events`}
+              </p>
             </div>
             <div className={styles.headerRight}>
               <div className={styles.filtersHeader}>
@@ -510,71 +516,89 @@ const EventsPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className={styles.eventsList}>
-              {getFilteredAndSortedEvents().map(event => {
-                const eventDate = formatDate(event.date_start);
-                const formattedEventDate = formatEventDate(event);
+            <>
+              <div className={styles.eventsList}>
+                {getFilteredAndSortedEvents().map(event => {
+                  const eventDate = formatDate(event.date_start);
+                  const formattedEventDate = formatEventDate(event);
 
-                return (
-                  <div key={event.event_id} className={styles.eventCard}>
-                    <div className={styles.eventContent}>
-                      {/* Date Column */}
-                      <div className={styles.dateColumn}>
-                        <div className={styles.dateMonth}>{eventDate.month}</div>
-                        <div className={styles.dateDay}>{eventDate.day}</div>
-                        <div className={styles.dateDayName}>{eventDate.dayName}</div>
-                      </div>
+                  return (
+                    <div key={event.event_id} className={styles.eventCard}>
+                      <div className={styles.eventContent}>
+                        {/* Date Column */}
+                        <div className={styles.dateColumn}>
+                          <div className={styles.dateMonth}>{eventDate.month}</div>
+                          <div className={styles.dateDay}>{eventDate.day}</div>
+                          <div className={styles.dateDayName}>{eventDate.dayName}</div>
+                        </div>
 
-                      {/* Event Info */}
-                      <div className={styles.eventInfo}>
-                        {sport_type === 'soccer' && event.is_popular && (
-                          <div className={styles.popularBadge}>
-                            <Flame size={12} className={styles.flameIcon} />
-                            Popular
-                          </div>
-                        )}
+                        {/* Event Info */}
+                        <div className={styles.eventInfo}>
+                          {sport_type === 'soccer' && event.is_popular && (
+                            <div className={styles.popularBadge}>
+                              <Flame size={12} className={styles.flameIcon} />
+                              Popular
+                            </div>
+                          )}
 
-                        <h2 className={styles.eventTitle}>
-                          {event.event_name}
-                        </h2>
+                          <h2 className={styles.eventTitle}>
+                            {event.event_name}
+                          </h2>
 
-                        <div className={styles.eventDetails}>
-                          <div className={styles.eventDetail}>
-                            {new Date(event.date_start).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: false
-                            })} | {event.venue_name}, {event.city}, {event.iso_country}{(sport_type === 'rugby' || sport_type === 'tennis') ? ` | ${event.tournament_name || ''} - ${event.season || ''}` : ''}
-                          </div>
-                          <div className={styles.eventDateDisplay}>
-                            {formattedEventDate}
+                          <div className={styles.eventDetails}>
+                            <div className={styles.eventDetail}>
+                              {new Date(event.date_start).toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                              })} | {event.venue_name}, {event.city}, {event.iso_country}{(sport_type === 'rugby' || sport_type === 'tennis') ? ` | ${event.tournament_name || ''} - ${event.season || ''}` : ''}
+                            </div>
+                            <div className={styles.eventDateDisplay}>
+                              {formattedEventDate}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Price Column */}
-                      <div className={styles.priceColumn}>
-                        {(event.min_ticket_price_eur ?? 0) > 0 && (
-                          !priceReady ? (
-                            <div className={styles.skeletonPriceLabel}></div>
-                          ) : formatPrice(event) ? (
-                            <div className={styles.priceLabel}>FROM {formatPrice(event)}</div>
-                          ) : (
-                            <div className={styles.skeletonPriceLabel}></div>
-                          )
-                        )}
-                        <button
-                          className={styles.viewTicketsButton}
-                          onClick={() => handleViewTickets(event)}
-                        >
-                          View Tickets
-                        </button>
+                        {/* Price Column */}
+                        <div className={styles.priceColumn}>
+                          {(event.min_ticket_price_eur ?? 0) > 0 && (
+                            !priceReady ? (
+                              <div className={styles.skeletonPriceLabel}></div>
+                            ) : formatPrice(event) ? (
+                              <div className={styles.priceLabel}>FROM {formatPrice(event)}</div>
+                            ) : (
+                              <div className={styles.skeletonPriceLabel}></div>
+                            )
+                          )}
+                          <button
+                            className={styles.viewTicketsButton}
+                            onClick={() => handleViewTickets(event)}
+                          >
+                            View Tickets
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              {hasMore && (
+                <div className={styles.loadMoreContainer}>
+                  <button
+                    className={styles.loadMoreButton}
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Loading more events...' : 'Load More Events'}
+                  </button>
+                  {totalSize !== null && (
+                    <p className={styles.loadMoreCount}>
+                      Showing {events.length} of {totalSize} events
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 

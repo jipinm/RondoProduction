@@ -236,8 +236,11 @@ class BannersService
 
     /**
      * Upload banner image (PSR-7 UploadedFile)
-     * Saves file directly without image processing
-     * Updates both image_url and mobile_image_url with same path
+     * Saves the full-size file as-is, then best-effort generates a smaller
+     * WebP variant for mobile_image_url. If resizing isn't possible (GD
+     * unavailable, unsupported source format, or any failure), falls back
+     * to reusing the same URL for both fields — the upload never fails
+     * because of the resize step.
      */
     public function uploadBannerImage(int $bannerId, UploadedFileInterface $uploadedFile): array
     {
@@ -246,7 +249,7 @@ class BannersService
             $clientFilename = $uploadedFile->getClientFilename();
             $mediaType = $uploadedFile->getClientMediaType();
             $size = $uploadedFile->getSize();
-            
+
             $this->logger->info('Banner image upload started', [
                 'banner_id' => $bannerId,
                 'filename' => $clientFilename,
@@ -268,10 +271,14 @@ class BannersService
                 ]);
             }
 
+            // Fetch the current banner so its existing files can be cleaned up
+            // once the new ones are confirmed saved (best-effort, see below).
+            $existingBanner = $this->repository->findById($bannerId);
+
             // Generate unique filename
             $uniqueFilename = $this->generateUniqueFilename($clientFilename);
             $targetPath = $this->uploadPath . '/' . $uniqueFilename;
-            
+
             $this->logger->info('Saving banner image', [
                 'unique_filename' => $uniqueFilename,
                 'target_path' => $targetPath
@@ -285,11 +292,11 @@ class BannersService
                 $this->logger->warning('moveTo() failed, using stream fallback', [
                     'error' => $moveException->getMessage()
                 ]);
-                
+
                 $stream = $uploadedFile->getStream();
                 $stream->rewind();
                 $contents = $stream->getContents();
-                
+
                 if (file_put_contents($targetPath, $contents) === false) {
                     throw new ServiceException('Failed to save uploaded file');
                 }
@@ -302,42 +309,75 @@ class BannersService
 
             // Generate public URL
             $imageUrl = $this->baseUrl . '/' . $uniqueFilename;
-            
+
             $this->logger->info('Banner image saved successfully', [
                 'image_url' => $imageUrl
             ]);
 
-            // Update banner in database with same URL for both fields
+            // Best-effort mobile variant: falls back to the full-size URL
+            // whenever GD is unavailable or the source can't be resized.
+            $mobileImageUrl = $imageUrl;
+            $mobileFilename = pathinfo($uniqueFilename, PATHINFO_FILENAME) . '_mobile.webp';
+            $mobileTargetPath = $this->uploadPath . '/' . $mobileFilename;
+
+            if ($this->generateMobileVariant($targetPath, $mobileTargetPath, $mediaType)) {
+                $mobileImageUrl = $this->baseUrl . '/' . $mobileFilename;
+                $this->logger->info('Mobile banner variant generated', [
+                    'mobile_image_url' => $mobileImageUrl
+                ]);
+            }
+
+            // Update banner in database
             $updateData = [
                 'image_url' => $imageUrl,
-                'mobile_image_url' => $imageUrl
+                'mobile_image_url' => $mobileImageUrl
             ];
-            
+
             try {
                 $updatedBanner = $this->repository->update($bannerId, $updateData);
-                
+
                 $this->logger->info('Banner database updated', [
                     'banner_id' => $bannerId,
-                    'image_url' => $imageUrl
+                    'image_url' => $imageUrl,
+                    'mobile_image_url' => $mobileImageUrl
                 ]);
-                
+
+                // Clean up the files this upload just replaced. Best-effort:
+                // the new image is already live, so a cleanup failure here
+                // must not surface as an upload failure.
+                if ($existingBanner) {
+                    try {
+                        $this->deleteFileByUrl($existingBanner['image_url'] ?? null);
+                        $oldMobileUrl = $existingBanner['mobile_image_url'] ?? null;
+                        if ($oldMobileUrl && basename($oldMobileUrl) !== basename($existingBanner['image_url'] ?? '')) {
+                            $this->deleteFileByUrl($oldMobileUrl);
+                        }
+                    } catch (\Throwable $cleanupException) {
+                        $this->logger->warning('Failed to clean up previous banner files after re-upload', [
+                            'banner_id' => $bannerId,
+                            'error' => $cleanupException->getMessage()
+                        ]);
+                    }
+                }
+
                 return [
                     'success' => true,
                     'filename' => $uniqueFilename,
                     'image_url' => $imageUrl,
+                    'mobile_image_url' => $mobileImageUrl,
                     'banner' => $updatedBanner
                 ];
-                
+
             } catch (\Exception $dbException) {
                 // File saved but database update failed
                 $this->logger->error('File saved but database update failed', [
                     'banner_id' => $bannerId,
                     'error' => $dbException->getMessage()
                 ]);
-                
+
                 throw new ServiceException('File saved but database update failed: ' . $dbException->getMessage());
             }
-            
+
         } catch (ValidationException $e) {
             throw $e;
         } catch (ServiceException $e) {
@@ -516,20 +556,19 @@ class BannersService
     }
 
     /**
-     * Cleanup banner files when banner is deleted
+     * Cleanup banner files when banner is deleted.
+     * image_url and mobile_image_url may point at the same physical file
+     * (legacy banners, or any banner where the mobile variant couldn't be
+     * generated) or at two distinct files — both cases are handled.
      */
     private function cleanupBannerFiles(array $banner): void
     {
         try {
-            // Since both image_url and mobile_image_url are the same, only delete once
-            if (!empty($banner['image_url'])) {
-                $filename = basename($banner['image_url']);
-                $filePath = $this->uploadPath . '/' . $filename;
-                
-                if (file_exists($filePath)) {
-                    unlink($filePath);
-                    $this->logger->info('Deleted banner file', ['file' => $filePath]);
-                }
+            $this->deleteFileByUrl($banner['image_url'] ?? null);
+
+            $mobileUrl = $banner['mobile_image_url'] ?? null;
+            if ($mobileUrl && basename($mobileUrl) !== basename($banner['image_url'] ?? '')) {
+                $this->deleteFileByUrl($mobileUrl);
             }
         } catch (\Exception $e) {
             $this->logger->error('Error cleaning up banner files', [
@@ -537,6 +576,29 @@ class BannersService
                 'banner_id' => $banner['id']
             ]);
             // Don't throw exception - cleanup failure shouldn't fail the main operation
+        }
+    }
+
+    /**
+     * Delete a single banner file by its stored URL. No-ops for empty URLs
+     * and for the shared placeholder image (createBanner()'s default),
+     * since other banners may still reference it.
+     */
+    private function deleteFileByUrl(?string $url): void
+    {
+        if (empty($url)) {
+            return;
+        }
+
+        $filename = basename($url);
+        if ($filename === 'placeholder.jpg') {
+            return;
+        }
+
+        $filePath = $this->uploadPath . '/' . $filename;
+        if (file_exists($filePath)) {
+            unlink($filePath);
+            $this->logger->info('Deleted banner file', ['file' => $filePath]);
         }
     }
 
@@ -553,6 +615,99 @@ class BannersService
 
         if (!is_writable($this->uploadPath)) {
             throw new ServiceException('Upload directory is not writable: ' . $this->uploadPath);
+        }
+    }
+
+    /**
+     * Best-effort generation of a scaled-down WebP variant for mobile display.
+     * Scales to a max width of 420px preserving aspect ratio (no cropping —
+     * banner locations use very different aspect ratios, see BannerForm.tsx).
+     * Only jpeg/png/webp sources are supported (SVG is vector, AVIF encoding
+     * isn't reliably available via GD); anything else, a missing GD
+     * extension, or any failure returns false so the caller can fall back
+     * to reusing the full-size URL. Never throws.
+     */
+    private function generateMobileVariant(string $sourcePath, string $targetPath, string $mediaType): bool
+    {
+        $mobileMaxWidth = 420;
+
+        try {
+            switch ($mediaType) {
+                case 'image/jpeg':
+                case 'image/jpg':
+                    if (!function_exists('imagecreatefromjpeg')) {
+                        return false;
+                    }
+                    $source = @imagecreatefromjpeg($sourcePath);
+                    break;
+                case 'image/png':
+                    if (!function_exists('imagecreatefrompng')) {
+                        return false;
+                    }
+                    $source = @imagecreatefrompng($sourcePath);
+                    break;
+                case 'image/webp':
+                    if (!function_exists('imagecreatefromwebp')) {
+                        return false;
+                    }
+                    $source = @imagecreatefromwebp($sourcePath);
+                    break;
+                default:
+                    // image/svg+xml, image/avif — not rasterized here.
+                    return false;
+            }
+
+            if (!$source) {
+                return false;
+            }
+
+            if (!function_exists('imagewebp')) {
+                imagedestroy($source);
+                return false;
+            }
+
+            $sourceWidth = imagesx($source);
+            $sourceHeight = imagesy($source);
+
+            if ($sourceWidth <= $mobileMaxWidth) {
+                // Already mobile-sized or smaller — no benefit to a second file.
+                imagedestroy($source);
+                return false;
+            }
+
+            $targetWidth = $mobileMaxWidth;
+            $targetHeight = (int) round($sourceHeight * ($targetWidth / $sourceWidth));
+
+            $resized = imagecreatetruecolor($targetWidth, $targetHeight);
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+            $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+            imagefill($resized, 0, 0, $transparent);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $targetWidth,
+                $targetHeight,
+                $sourceWidth,
+                $sourceHeight
+            );
+
+            $success = imagewebp($resized, $targetPath, 80);
+
+            imagedestroy($source);
+            imagedestroy($resized);
+
+            return $success && file_exists($targetPath);
+        } catch (\Throwable $e) {
+            $this->logger->warning('Mobile image variant generation failed, falling back to full-size URL', [
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
     }
 

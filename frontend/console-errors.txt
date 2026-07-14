@@ -1,0 +1,132 @@
+GET https://api.stripe.com/v1/elements/sessions?client_secret=pi_3Tgb1UAACrTbXrje1qbnNIUD_secret_FtgQts8iOHUDJmENHohrogCo5&key=pk_test_REPLACE_WITH_YOUR_TEST_KEY&elements_init_source=stripe.elements&referrer_host=localhost%3A5173&stripe_js_id=49130167-a10b-4256-a67d-e5b39cdb3843&locale=en-US&expand[0]=payment_method_preference.payment_intent.payment_method&type=payment_intent 401 (Unauthorized)
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+e @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+p @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+l @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+s @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+e @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+m @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+d @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+t.requestParams @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+$k @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+eb.singleFlightCreateAndParse @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+value @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+shared-3052f788a2a12d677288cd266edcc4e7.js:1  POST https://api.stripe.com/v1/consumers/sessions/lookup 401 (Unauthorized)
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+e @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+p @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+l @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+s @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+e @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+m @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+value @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+Promise.then
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+Promise.then
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+n @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+a @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+i @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+value @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+(anonymous) @ controller-with-preconnect-cefa3098da61510312bbe3ddb487e97f.js:1
+v3:1 Unhandled payment Element loaderror {error: {…}}
+i._emitEvent @ v3:1
+(anonymous) @ v3:1
+(anonymous) @ v3:1
+s._emit @ v3:1
+_handleMessage @ v3:1
+(anonymous) @ v3:1
+(anonymous) @ v3:1
+shared-3052f788a2a12d677288cd266edcc4e7.js:1  POST https://api.stripe.com/v1/consumers/sessions/lookup 401 (Unauthorized)
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+e @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+p @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+l @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+s @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+e @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+(anonymous) @ shared-3052f788a2a12d677288cd266edcc4e7.js:1
+
+
+StripeCheckout.tsx:130
+ Payment error: IntegrationError: Invalid value for stripe.confirmPayment(): elements should have a mounted Payment Element or Express Checkout Element. 
+    at om (v3:1:644405)
+    at am (v3:1:646330)
+    at im (v3:1:646848)
+    at v3:1:780152
+    at async handleSubmit (StripeCheckout.tsx:85:40)
+CheckoutPaymentPage.tsx:262
+ Payment error: Invalid value for stripe.confirmPayment(): elements should have a mounted Payment Element or Express Checkout Element. 

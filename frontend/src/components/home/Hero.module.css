@@ -15,10 +15,27 @@
   height: 100%;
 }
 
-.heroImage {
+/* Base layer: last successfully displayed image, always fully visible.
+   Keeps the previous slide visible while the incoming image loads. */
+.heroImageBase {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 0;
+}
+
+/* Active layer: incoming image, fades from 0→1 when ready. */
+.heroImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
 }
 
 .heroContentContainer {
@@ -31,6 +48,7 @@
   flex-direction: column;
   justify-content: center;
   background: linear-gradient(to right, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%);
+  z-index: 2;
 }
 
 .heroContentWrapper {
@@ -173,6 +191,7 @@
   flex-direction: column;
   align-items: center;
   font-size: var(--font-size-2xl);
+  z-index: 3;
 }
 
 .paginationNumber {
@@ -210,6 +229,7 @@
   transform: translateX(-50%);
   display: flex;
   gap: 0.5rem;
+  z-index: 3;
 }
 
 .indicator {

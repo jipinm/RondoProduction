@@ -1,0 +1,52 @@
+# CORS is handled at Apache level (primary) + PHP CorsMiddleware (secondary).
+# Apache-level headers apply to ALL responses including PHP errors/crashes.
+
+Options -Indexes +FollowSymLinks +SymLinksIfOwnerMatch
+RewriteEngine On
+RewriteBase /
+
+# ---------------------------------------------------------------------------
+# CORS - dynamic origin matching
+# ---------------------------------------------------------------------------
+SetEnvIf Origin "^https://(www\.)?rondosportstickets\.com$"  CORS_ORIGIN=$0
+SetEnvIf Origin "^https://admin\.rondosportstickets\.com$"   CORS_ORIGIN=$0
+
+# Remove any PHP-set CORS headers first to prevent duplicates
+Header always unset Access-Control-Allow-Origin
+Header always unset Access-Control-Allow-Credentials
+Header always unset Access-Control-Allow-Methods
+Header always unset Access-Control-Allow-Headers
+Header always unset Access-Control-Max-Age
+Header always unset Vary
+
+# Re-set CORS headers for approved origins (applied to ALL status codes incl. 4xx/5xx)
+Header always set Access-Control-Allow-Origin      "%{CORS_ORIGIN}e"                                                           env=CORS_ORIGIN
+Header always set Access-Control-Allow-Credentials "true"                                                                      env=CORS_ORIGIN
+Header always set Access-Control-Allow-Methods     "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"                              env=CORS_ORIGIN
+Header always set Access-Control-Allow-Headers     "Content-Type, Authorization, X-Api-Key, X-Requested-With, Accept, Origin"  env=CORS_ORIGIN
+Header always set Access-Control-Max-Age           "86400"                                                                     env=CORS_ORIGIN
+Header always set Vary                             "Origin"                                                                    env=CORS_ORIGIN
+
+# ---------------------------------------------------------------------------
+# Rewrites
+# ---------------------------------------------------------------------------
+
+# Preserve Authorization header for JWT tokens
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+
+# Handle OPTIONS preflight directly at Apache level (CORS headers already set above)
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule .* - [R=204,L]
+
+# Standard routing - pass all non-file requests to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the "ea-php81" package as the default "PHP" programming language.
+<IfModule mime_module>
+#  AddHandler application/x-httpd-ea-php81 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit

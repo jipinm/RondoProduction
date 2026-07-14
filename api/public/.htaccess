@@ -1,18 +1,62 @@
-# CORS is handled by the PHP CorsMiddleware
-# Do not set CORS headers here to avoid duplicate headers
+# CORS is handled at Apache level (primary) + PHP CorsMiddleware (secondary).
+# Apache-level headers apply to ALL responses including PHP errors/crashes.
 
 Options -Indexes +FollowSymLinks +SymLinksIfOwnerMatch
 RewriteEngine On
 RewriteBase /
 
-# Handle Authorization header for JWT tokens
+# ---------------------------------------------------------------------------
+# CORS - dynamic origin matching
+# ---------------------------------------------------------------------------
+SetEnvIf Origin "^https://(www\.)?rondosportstickets\.com$"  CORS_ORIGIN=$0
+SetEnvIf Origin "^https://admin\.rondosportstickets\.com$"   CORS_ORIGIN=$0
+
+# Remove any PHP-set CORS headers first to prevent duplicates. Deliberately
+# does NOT touch Vary here (unlike the original version of this block) —
+# unconditionally unsetting Vary wipes out the legitimate "Accept-Encoding"
+# token on every non-CORS request (plain <img> loads, Cloudflare's own origin
+# fetches, curl, etc. never send a matching Origin header), breaking
+# compression-aware caching for the ~99% of requests that aren't CORS preflight.
+Header always unset Access-Control-Allow-Origin
+Header always unset Access-Control-Allow-Credentials
+Header always unset Access-Control-Allow-Methods
+Header always unset Access-Control-Allow-Headers
+Header always unset Access-Control-Max-Age
+
+# Re-set CORS headers for approved origins (applied to ALL status codes incl. 4xx/5xx)
+# Vary uses "append" (not "set") so it adds "Origin" to whatever Vary value
+# already exists (e.g. "Accept-Encoding") instead of replacing it outright.
+Header always set    Access-Control-Allow-Origin      "%{CORS_ORIGIN}e"                                                           env=CORS_ORIGIN
+Header always set    Access-Control-Allow-Credentials "true"                                                                      env=CORS_ORIGIN
+Header always set    Access-Control-Allow-Methods     "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"                              env=CORS_ORIGIN
+Header always set    Access-Control-Allow-Headers     "Content-Type, Authorization, X-Api-Key, X-Requested-With, Accept, Origin"  env=CORS_ORIGIN
+Header always set    Access-Control-Max-Age           "86400"                                                                     env=CORS_ORIGIN
+Header always append Vary                             "Origin"                                                                    env=CORS_ORIGIN
+
+# ---------------------------------------------------------------------------
+# Strip the "User-Agent" token that EasyApache's server-wide mod_deflate config
+# appends to Vary on every response (BrowserMatch/Header append rule in the
+# main Apache config — not set anywhere in this app or CorsMiddleware). Left
+# in place it fragments CDN/browser caches per User-Agent string. "edit" (not
+# "set") so the Accept-Encoding and CORS-matched Origin tokens above survive.
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header edit Vary ",\s*User-Agent" ""
+    Header edit Vary "User-Agent,\s*" ""
+    Header edit Vary "^User-Agent$" ""
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# Rewrites
+# ---------------------------------------------------------------------------
+
+# Preserve Authorization header for JWT tokens
 RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
 
-# Handle OPTIONS requests for CORS preflight
-# Pass ALL OPTIONS requests to index.php so Slim's CORS middleware can handle them
+# Handle OPTIONS preflight directly at Apache level (CORS headers already set above)
 RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule .* index.php [QSA,L]
+RewriteRule .* - [R=204,L]
 
 # Standard routing - pass all non-file requests to index.php
 RewriteCond %{REQUEST_FILENAME} !-f

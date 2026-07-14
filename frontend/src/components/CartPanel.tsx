@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChefHat, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChefHat, ChevronDown, ChevronUp, Utensils } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import type { Ticket, EventGuestRequirements } from '../services/apiRoutes';
 import { type EffectiveMarkup, calculateEffectiveMarkupAmount } from '../services/ticketEnhancementsService';
@@ -275,6 +275,12 @@ const CartPanel: React.FC<CartPanelProps> = ({
                       <div className={styles.itemInfo}>
                         <h4 className={styles.itemTitle}>{item.ticket.ticket_title}</h4>
                         <p className={styles.itemCategory}>{item.ticket.category_name}</p>
+                        {item.ticket.category_type === 'hospitality' && (
+                          <div className={styles.venueHospitalityBadge}>
+                            <Utensils size={11} />
+                            <span>Hospitality Included</span>
+                          </div>
+                        )}
                       </div>
                     
                       <div className={styles.quantityControls}>

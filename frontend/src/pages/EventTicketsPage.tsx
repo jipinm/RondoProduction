@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Calendar, 
+import {
+  Calendar,
   MapPin,
-  Users, 
-  Tv2, 
-  Shield, 
-  MapPinned, 
+  Users,
+  Tv2,
+  Shield,
+  MapPinned,
   IdCard,
   ChefHat,
   Building2,
-  Sparkles
+  Sparkles,
+  Utensils
 } from 'lucide-react';
 import { useEventDetails } from '../hooks/useEventDetails';
 import { useTickets } from '../hooks/useTickets';
@@ -730,6 +731,14 @@ const EventTicketsPage: React.FC = () => {
                           )}
                         </div>
                       </div>
+
+                      {/* Venue hospitality badge — XS2Event category_type === 'hospitality' */}
+                      {ticket.category_type === 'hospitality' && (
+                        <div className={styles.venueHospitalityBadge}>
+                          <Utensils size={12} />
+                          <span>Hospitality Included</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.ticketPrice}>

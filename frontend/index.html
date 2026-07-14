@@ -5,6 +5,10 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rondo Sports Ticketing – Your Gateway to Live Sports</title>
+    <!-- Early connection to the API server: starts DNS + TCP + TLS before JS executes,
+         cutting the first banner/event API call latency on cold mobile loads. -->
+    <link rel="preconnect" href="https://api.rondosportstickets.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.rondosportstickets.com" />
   </head>
   <body>
     <div id="root"></div>

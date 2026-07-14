@@ -20,7 +20,6 @@ import {
   type Hospitality,
   type HospitalityAssignment,
 } from '../services/hospitalityService';
-import { apiClient } from '../services/api-client';
 import styles from './VenueHospitalityManagement.module.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -79,8 +78,14 @@ const VenueHospitalityManagement: React.FC = () => {
     setVenuesLoading(true);
     setVenuesError(null);
     try {
+      const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
+      const apiKey = import.meta.env.VITE_XS2EVENT_API_KEY;
       const params = new URLSearchParams({ page_size: '50', venue_name: term });
-      const json = await apiClient.get<VenueApiResponse>(`/v1/venues?${params.toString()}`);
+      const res = await fetch(`${baseUrl}/v1/venues?${params.toString()}`, {
+        headers: { Accept: 'application/json', 'X-Api-Key': apiKey },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const json: VenueApiResponse = await res.json();
       const list: Venue[] = json.venues ?? json.data ?? [];
       setVenues(list);
     } catch (err) {

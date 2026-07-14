@@ -10,15 +10,36 @@ const Hero: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Track which image URLs have already finished loading so cached images
-  // are never stuck at opacity:0 when revisiting a slide.
+
+  // URLs that have successfully loaded (or timed out after 1.5 s fallback).
   const [loadedUrls, setLoadedUrls] = useState<Set<string>>(new Set());
+  // URLs that fired onError — tracked separately so we never confuse
+  // "still loading" with "definitely broken".
+  const [brokenUrls, setBrokenUrls] = useState<Set<string>>(new Set());
+
+  // The last URL that was successfully revealed — rendered as a base layer so
+  // the previous slide stays visible while the incoming image loads.
+  const [displayedUrl, setDisplayedUrl] = useState<string>('');
+
+  // True once the very first image has been shown. Gates the auto-slide timer
+  // so slides never advance while slide 1 is still invisible.
+  const [firstReady, setFirstReady] = useState(false);
+
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Use a function initializer so it only runs once and is safe before layout
+
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth < 768;
   });
+
+  const getImageUrl = (b: Banner | undefined): string => {
+    if (!b) return '';
+    return isMobile && b.mobile_image_url ? b.mobile_image_url : (b.image_url ?? '');
+  };
+
+  const imageUrl = banners.length > 0 ? getImageUrl(banners[currentSlide]) : '';
+  const isImageReady = loadedUrls.has(imageUrl);
+  const isImageBroken = brokenUrls.has(imageUrl);
 
   // Fetch banners on mount
   useEffect(() => {
@@ -26,7 +47,6 @@ const Hero: React.FC = () => {
       try {
         setLoading(true);
         const data = await bannersService.getHomepageHeroBanners();
-        
         if (data.length === 0) {
           setError('No banners available at this time');
         } else {
@@ -39,60 +59,82 @@ const Hero: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchBanners();
   }, []);
 
   // Handle window resize for responsive images
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    // Re-check on mount in case initial value was wrong (mobile browser quirk)
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // When imageUrl changes, start a timeout fallback: if the image hasn't fired
-  // onLoad within 4 seconds (e.g. very large file on slow connection), force-show
-  // it anyway so the slide is never permanently invisible.
-  const imageUrl = (() => {
-    if (banners.length === 0) return '';
-    const b = banners[currentSlide];
-    return isMobile && b?.mobile_image_url ? b.mobile_image_url : (b?.image_url ?? '');
-  })();
-
+  // P1: Fallback timer — 800 ms.
+  // If the image hasn't fired onLoad within 800 ms, force-reveal it so the
+  // slide is never permanently invisible on a stalled connection.
   useEffect(() => {
-    if (!imageUrl || loadedUrls.has(imageUrl)) return;
-    // Clear any previous timer
+    if (!imageUrl || loadedUrls.has(imageUrl) || brokenUrls.has(imageUrl)) return;
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
-    // Fallback: reveal after 4 s regardless of load state (handles very large files)
     fadeTimerRef.current = setTimeout(() => {
       setLoadedUrls((prev) => new Set(prev).add(imageUrl));
-    }, 4000);
+    }, 800);
     return () => {
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
     };
   }, [imageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-slide functionality
+  // Sync displayedUrl and firstReady whenever isImageReady becomes true.
+  // This handles both the normal onLoad path and the P2 preload path (where
+  // the image is already in the browser cache before the slide renders).
+  useEffect(() => {
+    if (isImageReady && !isImageBroken && imageUrl && imageUrl !== displayedUrl) {
+      setDisplayedUrl(imageUrl);
+      if (!firstReady) setFirstReady(true);
+    }
+  }, [isImageReady, imageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // P2: Preload the next slide's image as soon as the current slide becomes
+  // visible so the browser has it cached before the auto-advance fires.
   useEffect(() => {
     if (banners.length <= 1) return;
+    const nextIndex = (currentSlide + 1) % banners.length;
+    const nextUrl = getImageUrl(banners[nextIndex]);
+    if (!nextUrl) return;
+    const img = new Image();
+    img.src = nextUrl;
+    img.onload = () => setLoadedUrls((prev) => new Set(prev).add(nextUrl));
+  }, [currentSlide, banners, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // P1: Auto-slide only starts after the first image is fully visible.
+  // This prevents the slider advancing while slide 1 is still invisible.
+  useEffect(() => {
+    if (banners.length <= 1 || !firstReady) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length);
-    }, 5000); // Change slide every 5 seconds
-
+    }, 5000);
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [banners.length, firstReady]);
 
-  // Handle indicator click
   const handleIndicatorClick = (index: number) => {
     setCurrentSlide(index);
   };
 
-  // Loading state
+  const handleImageLoad = () => {
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setLoadedUrls((prev) => new Set(prev).add(imageUrl));
+    // displayedUrl and firstReady are updated by the sync effect above.
+  };
+
+  // P8: Track broken images separately so they are distinguishable from
+  // slow-loading images. Don't block auto-slide on a broken first image.
+  const handleImageError = () => {
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setBrokenUrls((prev) => new Set(prev).add(imageUrl));
+    if (!firstReady) setFirstReady(true);
+  };
+
+  // ── Loading skeleton ────────────────────────────────────────────────────────
   if (loading) {
     return (
       <section className={styles.hero}>
@@ -121,8 +163,7 @@ const Hero: React.FC = () => {
     );
   }
 
-  // Error or empty state - show fallback content (CSS background only — no img
-  // element so a missing static file never produces a broken-image placeholder)
+  // ── Error / empty fallback ──────────────────────────────────────────────────
   if (error || banners.length === 0) {
     return (
       <section className={styles.hero}>
@@ -149,31 +190,48 @@ const Hero: React.FC = () => {
 
   const currentBanner = banners[currentSlide];
   const formattedDate = formatEventDate(currentBanner.event_date);
-  const isImageReady = loadedUrls.has(imageUrl);
-
-  const handleImageLoad = () => {
-    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
-    setLoadedUrls((prev) => new Set(prev).add(imageUrl));
-  };
-
-  const handleImageError = () => {
-    // On error, still reveal the slot (shows the dark background; content remains readable)
-    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
-    setLoadedUrls((prev) => new Set(prev).add(imageUrl));
-  };
 
   return (
     <section className={styles.hero}>
       <div className={styles.wrapper}>
+        {/*
+         * P3: Two-layer cross-fade.
+         *
+         * Base layer  (z-index 0) — the last successfully displayed URL.
+         * Stays fully visible during transitions so the user always sees the
+         * previous slide rather than the dark background while the new image
+         * loads. Unmounts once the incoming image has been revealed
+         * (displayedUrl catches up to imageUrl).
+         *
+         * Active layer (z-index 1) — the current slide's image.
+         * Starts at opacity 0, fades to 1 when the browser finishes loading
+         * it (or after the 1.5 s fallback). Without key={imageUrl} the DOM
+         * element is reused across slides, avoiding the remount-induced flash.
+         */}
+        {displayedUrl && displayedUrl !== imageUrl && (
+          <img
+            src={displayedUrl}
+            aria-hidden="true"
+            alt=""
+            className={styles.heroImageBase}
+          />
+        )}
+
+        {/* P3 / P4 */}
         <img
-          key={imageUrl}
           src={imageUrl}
           alt={currentBanner.title}
           className={styles.heroImage}
+          fetchPriority="high"
+          loading="eager"
           onLoad={handleImageLoad}
           onError={handleImageError}
-          style={{ opacity: isImageReady ? 1 : 0, transition: 'opacity 0.4s ease' }}
+          style={{
+            opacity: isImageReady && !isImageBroken ? 1 : 0,
+            transition: 'opacity 0.6s ease',
+          }}
         />
+
         <div className={styles.heroContentContainer}>
           <div className={styles.heroContentWrapper}>
             <div className={styles.heroContent}>
@@ -188,8 +246,8 @@ const Hero: React.FC = () => {
                 </p>
               )}
               {currentBanner.link_url && currentBanner.link_target && (
-                <a 
-                  href={currentBanner.link_url} 
+                <a
+                  href={currentBanner.link_url}
                   className={styles.heroButton}
                   target={currentBanner.link_target}
                   rel={currentBanner.link_target === '_blank' ? 'noopener noreferrer' : undefined}
@@ -201,6 +259,7 @@ const Hero: React.FC = () => {
             </div>
           </div>
         </div>
+
         <div className={styles.pagination}>
           <div className={styles.paginationNumber}>
             {String(currentSlide + 1).padStart(2, '0')}
@@ -209,7 +268,7 @@ const Hero: React.FC = () => {
             {String(banners.length).padStart(2, '0')}
           </div>
         </div>
-        
+
         {banners.length > 1 && (
           <div className={styles.carouselIndicators}>
             {banners.map((_, index) => (
@@ -218,7 +277,7 @@ const Hero: React.FC = () => {
                 className={`${styles.indicator} ${index === currentSlide ? styles.active : ''}`}
                 onClick={() => handleIndicatorClick(index)}
                 aria-label={`Go to slide ${index + 1}`}
-              ></button>
+              />
             ))}
           </div>
         )}

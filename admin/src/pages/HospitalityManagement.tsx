@@ -56,6 +56,7 @@ interface Sport {
 
 const KNOWN_SPORTS: Sport[] = [
   { sport_type: 'soccer',            name: 'Soccer',            has_teams: true  },
+  { sport_type: 'formula1',          name: 'Formula One',       has_teams: false },
   { sport_type: 'motorsport',        name: 'Motorsport',        has_teams: false },
   { sport_type: 'tennis',            name: 'Tennis',            has_teams: false },
   { sport_type: 'rugby',             name: 'Rugby',             has_teams: true  },
@@ -128,7 +129,14 @@ interface XS2Event {
   event_name: string;
   tournament_name: string;
   venue_name: string;
+  venue_id?: string;
   date_start: string;
+}
+
+interface XS2Venue {
+  venue_name: string;
+  venue_id?: string;
+  reference_event_id: string;
 }
 
 interface XS2Category {
@@ -197,15 +205,18 @@ const HospitalityManagement: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [events, setEvents] = useState<XS2Event[]>([]);
+  const [venues, setVenues] = useState<XS2Venue[]>([]);
   const [categories, setCategories] = useState<XS2Category[]>([]);
   const [tickets, setTickets] = useState<XS2Ticket[]>([]);
 
   const [selectedSport, setSelectedSport] = useState<Sport | null>(null);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<XS2Venue | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<XS2Event | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<XS2Category | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<XS2Ticket | null>(null);
+  const [showAdvancedEventPicker, setShowAdvancedEventPicker] = useState(false);
 
   const [targetLevel, setTargetLevel] = useState<AssignmentLevel>('sport');
 
@@ -412,7 +423,7 @@ const HospitalityManagement: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error, activeSeason]);
 
-  const fetchEvents = useCallback(async (tournamentId: string, teamId?: string) => {
+  const fetchEvents = useCallback(async (tournamentId: string, teamId?: string): Promise<XS2Event[]> => {
     setLoading(true);
     try {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
@@ -427,14 +438,34 @@ const HospitalityManagement: React.FC = () => {
 
       if (!response.ok) throw new Error('Failed to fetch events');
       const data = await response.json();
-      setEvents(data.events || data.data?.events || []);
+      const eventList: XS2Event[] = data.events || data.data?.events || [];
+      setEvents(eventList);
+      return eventList;
     } catch (err: any) {
       console.error('Error fetching events:', err);
       error('Failed to load events: ' + err.message);
+      return [];
     } finally {
       setLoading(false);
     }
   }, [error]);
+
+  // Derive unique venues from a list of events (grouped by venue_id or venue_name).
+  // Each venue keeps a reference_event_id so categories can be fetched from it.
+  const deriveVenues = useCallback((eventList: XS2Event[]): XS2Venue[] => {
+    const venueMap = new Map<string, XS2Venue>();
+    for (const event of eventList) {
+      const key = event.venue_id || event.venue_name;
+      if (key && !venueMap.has(key)) {
+        venueMap.set(key, {
+          venue_name: event.venue_name || key,
+          venue_id: event.venue_id,
+          reference_event_id: event.event_id,
+        });
+      }
+    }
+    return Array.from(venueMap.values());
+  }, []);
 
   const fetchTickets = useCallback(async (eventId: string) => {
     setLoading(true);
@@ -458,7 +489,7 @@ const HospitalityManagement: React.FC = () => {
     }
   }, [error]);
 
-  const fetchCategories = useCallback(async (eventId: string) => {
+  const fetchCategories = useCallback(async (eventId: string): Promise<XS2Category[]> => {
     setLoading(true);
     try {
       const baseUrl = import.meta.env.VITE_XS2EVENT_BASE_URL || 'https://testapi.xs2event.com';
@@ -470,10 +501,13 @@ const HospitalityManagement: React.FC = () => {
 
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
-      setCategories(data.categories || []);
+      const categoryList: XS2Category[] = data.categories || [];
+      setCategories(categoryList);
+      return categoryList;
     } catch (err: any) {
       console.error('Error fetching categories:', err);
       setCategories([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -518,21 +552,24 @@ const HospitalityManagement: React.FC = () => {
     if (viewMode === 'assignments' && selectedSport) {
       fetchScopeAssignments();
     }
-  }, [viewMode, selectedSport, selectedTournament, selectedTeam, selectedCategory, selectedEvent, selectedTicket, fetchScopeAssignments]);
+  }, [viewMode, selectedSport, selectedTournament, selectedTeam, selectedVenue, selectedCategory, selectedEvent, selectedTicket, fetchScopeAssignments]);
 
   const handleSportSelect = async (sportType: string) => {
     const sport = sports.find(s => s.sport_type === sportType);
     setSelectedSport(sport || null);
     setSelectedTournament(null);
     setSelectedTeam(null);
+    setSelectedVenue(null);
     setSelectedEvent(null);
     setSelectedCategory(null);
     setSelectedTicket(null);
     setTournaments([]);
     setTeams([]);
+    setVenues([]);
     setEvents([]);
     setCategories([]);
     setTickets([]);
+    setShowAdvancedEventPicker(false);
     setTargetLevel('sport');
     setSelectedHospitalityIds([]);
     setScopeAssignments([]);
@@ -546,13 +583,16 @@ const HospitalityManagement: React.FC = () => {
     const tournament = tournaments.find(t => t.tournament_id === tournamentId);
     setSelectedTournament(tournament || null);
     setSelectedTeam(null);
+    setSelectedVenue(null);
     setSelectedEvent(null);
     setSelectedCategory(null);
     setSelectedTicket(null);
     setTeams([]);
+    setVenues([]);
     setEvents([]);
     setCategories([]);
     setTickets([]);
+    setShowAdvancedEventPicker(false);
     setTargetLevel('tournament');
     setSelectedHospitalityIds([]);
     setScopeAssignments([]);
@@ -561,7 +601,8 @@ const HospitalityManagement: React.FC = () => {
       if (selectedSport.has_teams) {
         await fetchTeams(selectedSport.sport_type, tournamentId);
       } else {
-        await fetchEvents(tournamentId);
+        const eventList = await fetchEvents(tournamentId);
+        setVenues(deriveVenues(eventList));
       }
     }
   };
@@ -569,18 +610,45 @@ const HospitalityManagement: React.FC = () => {
   const handleTeamSelect = async (teamId: string) => {
     const team = teams.find(t => t.team_id === teamId);
     setSelectedTeam(team || null);
+    setSelectedVenue(null);
     setSelectedEvent(null);
     setSelectedCategory(null);
     setSelectedTicket(null);
+    setVenues([]);
     setEvents([]);
     setCategories([]);
     setTickets([]);
+    setShowAdvancedEventPicker(false);
     setTargetLevel('team');
     setSelectedHospitalityIds([]);
     setScopeAssignments([]);
 
     if (team && selectedTournament) {
-      await fetchEvents(selectedTournament.tournament_id, teamId);
+      const eventList = await fetchEvents(selectedTournament.tournament_id, teamId);
+      setVenues(deriveVenues(eventList));
+    }
+  };
+
+  const handleVenueSelect = async (venueKey: string) => {
+    const venue = venues.find(v => (v.venue_id || v.venue_name) === venueKey);
+    setSelectedVenue(venue || null);
+    setSelectedEvent(null);
+    setSelectedCategory(null);
+    setSelectedTicket(null);
+    setCategories([]);
+    setTickets([]);
+    setShowAdvancedEventPicker(false);
+    setTargetLevel('category');
+    setSelectedHospitalityIds([]);
+    setScopeAssignments([]);
+
+    if (venue) {
+      // Fetch categories using the reference event — transparently, no event is shown to the user
+      const fetchedCategories = await fetchCategories(venue.reference_event_id);
+      // If venue_id was not on the original event, obtain it from the first category
+      if (!venue.venue_id && fetchedCategories.length > 0 && fetchedCategories[0].venue_id) {
+        setSelectedVenue(prev => prev ? { ...prev, venue_id: fetchedCategories[0].venue_id } : prev);
+      }
     }
   };
 
@@ -589,18 +657,13 @@ const HospitalityManagement: React.FC = () => {
     setSelectedEvent(event || null);
     setSelectedCategory(null);
     setSelectedTicket(null);
-    setCategories([]);
     setTickets([]);
     setTargetLevel('event');
     setSelectedHospitalityIds([]);
     setScopeAssignments([]);
 
     if (event) {
-      // Fetch both categories (for category-level assignment) and tickets in parallel
-      await Promise.all([
-        fetchCategories(event.event_id),
-        fetchTickets(event.event_id),
-      ]);
+      await fetchTickets(event.event_id);
     }
   };
 
@@ -629,6 +692,7 @@ const HospitalityManagement: React.FC = () => {
     if (selectedTournament) levels.push('tournament');
     if (selectedTeam) levels.push('team');
     if (selectedCategory) levels.push('category');
+    // Event and ticket levels available via the Advanced picker
     if (selectedEvent && !selectedCategory) levels.push('event');
     if (selectedTicket && !selectedCategory) levels.push('ticket');
     return levels;
@@ -640,9 +704,10 @@ const HospitalityManagement: React.FC = () => {
     if (selectedSport) parts.push(selectedSport.name);
     if (selectedTournament) parts.push(selectedTournament.official_name || selectedTournament.name);
     if (selectedTeam) parts.push(selectedTeam.official_name || selectedTeam.name);
-    if (selectedCategory) parts.push(`🏟️ ${selectedCategory.category_name}`);
-    if (selectedEvent && !selectedCategory) parts.push(selectedEvent.event_name);
-    if (selectedTicket && !selectedCategory) parts.push(selectedTicket.ticket_title);
+    if (selectedVenue) parts.push(`🏟️ ${selectedVenue.venue_name}`);
+    if (selectedCategory) parts.push(selectedCategory.category_name);
+    if (selectedEvent && !selectedVenue) parts.push(selectedEvent.event_name);
+    if (selectedTicket && !selectedVenue) parts.push(selectedTicket.ticket_title);
     return parts;
   };
 
@@ -1181,52 +1246,57 @@ const HospitalityManagement: React.FC = () => {
               </Card>
             )}
 
-            {/* Step: Event Selection */}
+            {/* Step 4: Venue Selection */}
             {((selectedTournament && !hasTeams) || selectedTeam) && (
               <Card className={styles.selectionCard}>
                 <h2 className={styles.cardTitle}>
-                  Step {hasTeams ? '4' : '3'}: Select Event (Optional)
+                  Step {hasTeams ? '4' : '3'}: Select Venue
                 </h2>
                 <p className={styles.helpText}>
-                  Skip this to assign hospitalities at the {selectedTeam ? 'team' : 'tournament'} level.
-                  Selecting an event also loads available venue categories for category-level assignment.
+                  Select the venue to configure ticket categories for. Hospitality assignments are
+                  venue-scoped — they will apply automatically to <strong>all future events</strong> at this venue.
                 </p>
-                <div className={styles.selectWrapper}>
-                  <select
-                    className={styles.select}
-                    value={selectedEvent?.event_id || ''}
-                    onChange={(e) => handleEventSelect(e.target.value)}
-                    disabled={loading || events.length === 0}
-                  >
-                    <option value="">-- Select Event (optional) --</option>
-                    {events.map(e => (
-                      <option key={e.event_id} value={e.event_id}>
-                        {e.event_name}{e.venue_name ? ` — ${e.venue_name}` : ''} ({new Date(e.date_start).toLocaleDateString()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {loading && events.length === 0 && (
-                  <div className={styles.loading}>Loading events...</div>
+                {loading && venues.length === 0 ? (
+                  <div className={styles.loading}>Loading venues...</div>
+                ) : !loading && venues.length === 0 ? (
+                  <div className={styles.helpText} style={{ color: '#f59e0b' }}>
+                    ⚠️ No events found for this {selectedTeam ? 'team' : 'tournament'}. At least one event must exist to discover venues and ticket categories.
+                  </div>
+                ) : (
+                  <div className={styles.selectWrapper}>
+                    <select
+                      className={styles.select}
+                      value={selectedVenue ? (selectedVenue.venue_id || selectedVenue.venue_name) : ''}
+                      onChange={(e) => handleVenueSelect(e.target.value)}
+                      disabled={loading}
+                    >
+                      <option value="">-- Select Venue --</option>
+                      {venues.map(v => (
+                        <option key={v.venue_id || v.venue_name} value={v.venue_id || v.venue_name}>
+                          {v.venue_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
               </Card>
             )}
 
-            {/* Step: Venue Category Selection (NEW — category level) */}
-            {selectedEvent && (
+            {/* Step 5: Ticket Category Selection */}
+            {selectedVenue && (
               <Card className={styles.selectionCard}>
                 <h2 className={styles.cardTitle}>
-                  Step {hasTeams ? '5a' : '4a'}: Assign at Venue Category Level ⭐ Recommended
+                  Step {hasTeams ? '5' : '4'}: Select Ticket Category ⭐ Recommended
                 </h2>
                 <p className={styles.helpText}>
-                  Select a venue section (XS2Event Category) to assign hospitality services that apply
-                  automatically across <strong>all events</strong> at this venue using that section —
-                  no per-event configuration needed. Category IDs are stable and venue-scoped.
+                  Select the seating section / ticket category to assign hospitality services to.
+                  This assignment applies automatically across <strong>all events</strong> at{' '}
+                  <strong>{selectedVenue.venue_name}</strong> — no per-event configuration needed.
                 </p>
                 {loading && categories.length === 0 ? (
-                  <div className={styles.loading}>Loading venue categories...</div>
+                  <div className={styles.loading}>Loading ticket categories...</div>
                 ) : categories.length === 0 ? (
-                  <div className={styles.helpText}>No categories found for this event.</div>
+                  <div className={styles.helpText}>No ticket categories found for {selectedVenue.venue_name}.</div>
                 ) : (
                   <div className={styles.selectWrapper}>
                     <select
@@ -1234,11 +1304,10 @@ const HospitalityManagement: React.FC = () => {
                       value={selectedCategory?.category_id || ''}
                       onChange={(e) => handleCategorySelect(e.target.value)}
                     >
-                      <option value="">-- Select Venue Category (optional) --</option>
+                      <option value="">-- Select Ticket Category (optional) --</option>
                       {categories
                         .slice()
                         .sort((a, b) => {
-                          // Surface hospitality/premium types first
                           const priority = ['hospitality', 'offsite_hospitality'];
                           const aP = priority.includes(a.category_type) ? 0 : 1;
                           const bP = priority.includes(b.category_type) ? 0 : 1;
@@ -1256,42 +1325,75 @@ const HospitalityManagement: React.FC = () => {
                 )}
                 {selectedCategory && (
                   <div className={styles.helpText} style={{ marginTop: '8px', color: '#0ea5e9' }}>
-                    ℹ️ Category <strong>{selectedCategory.category_name}</strong>
-                    &nbsp;(ID: <code>{selectedCategory.category_id}</code>) is venue-scoped.
-                    Assigning here applies to <strong>all events at {selectedEvent.venue_name || 'this venue'}</strong>
-                    that include this section.
+                    ℹ️ <strong>{selectedCategory.category_name}</strong> (ID: <code>{selectedCategory.category_id}</code>)
+                    — assignment applies to all events at <strong>{selectedVenue.venue_name}</strong> that include this section.
                   </div>
                 )}
               </Card>
             )}
 
-            {/* Step: Ticket Selection (only shown if no category selected) */}
-            {selectedEvent && !selectedCategory && (
+            {/* Advanced: Event / Ticket Level Assignment */}
+            {selectedVenue && (
               <Card className={styles.selectionCard}>
-                <h2 className={styles.cardTitle}>
-                  Step {hasTeams ? '5b' : '4b'}: Select Specific Ticket (Optional — event-scoped)
-                </h2>
-                <p className={styles.helpText}>
-                  Use this for one-off assignments to a specific supplier ticket within this event only.
-                  For recurring hospitality on all similar events, use the Category Level above instead.
-                </p>
-                <div className={styles.selectWrapper}>
-                  <select
-                    className={styles.select}
-                    value={selectedTicket?.ticket_id || ''}
-                    onChange={(e) => handleTicketSelect(e.target.value)}
-                    disabled={loading || tickets.length === 0}
-                  >
-                    <option value="">-- Select Ticket (optional) --</option>
-                    {tickets.map(t => (
-                      <option key={t.ticket_id} value={t.ticket_id}>
-                        {t.ticket_title}
-                      </option>
-                    ))}
-                  </select>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}
+                  onClick={() => setShowAdvancedEventPicker(p => !p)}
+                >
+                  <h2 className={styles.cardTitle} style={{ margin: 0 }}>
+                    Advanced: Event / Ticket Level Assignment
+                  </h2>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-muted, #6b7280)', marginLeft: 'auto' }}>
+                    {showAdvancedEventPicker ? '▲ Hide' : '▼ Show'}
+                  </span>
                 </div>
-                {loading && tickets.length === 0 && (
-                  <div className={styles.loading}>Loading tickets...</div>
+                {showAdvancedEventPicker && (
+                  <div style={{ marginTop: '16px' }}>
+                    <p className={styles.helpText}>
+                      Use this only for one-off assignments to a specific event or ticket. For recurring
+                      hospitality across all events, use the Ticket Category step above instead.
+                    </p>
+
+                    {/* Event picker */}
+                    <div className={styles.selectWrapper} style={{ marginBottom: '12px' }}>
+                      <select
+                        className={styles.select}
+                        value={selectedEvent?.event_id || ''}
+                        onChange={(e) => handleEventSelect(e.target.value)}
+                        disabled={loading || events.length === 0}
+                      >
+                        <option value="">-- Select Event (optional) --</option>
+                        {events
+                          .filter(e => !selectedVenue.venue_name || e.venue_name === selectedVenue.venue_name)
+                          .map(e => (
+                            <option key={e.event_id} value={e.event_id}>
+                              {e.event_name} ({new Date(e.date_start).toLocaleDateString()})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {/* Ticket picker */}
+                    {selectedEvent && !selectedCategory && (
+                      <div className={styles.selectWrapper}>
+                        <select
+                          className={styles.select}
+                          value={selectedTicket?.ticket_id || ''}
+                          onChange={(e) => handleTicketSelect(e.target.value)}
+                          disabled={loading || tickets.length === 0}
+                        >
+                          <option value="">-- Select Specific Ticket (optional) --</option>
+                          {tickets.map(t => (
+                            <option key={t.ticket_id} value={t.ticket_id}>
+                              {t.ticket_title}
+                            </option>
+                          ))}
+                        </select>
+                        {loading && tickets.length === 0 && (
+                          <div className={styles.loading}>Loading tickets...</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </Card>
             )}
